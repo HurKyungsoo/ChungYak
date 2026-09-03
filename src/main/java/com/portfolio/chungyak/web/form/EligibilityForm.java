@@ -44,6 +44,24 @@ public class EligibilityForm {
     /** 세대주 여부 */
     private boolean householdHead;
 
+    /** 해당 공급지역 계속 거주 기간 (개월) */
+    private Integer residenceMonthsInRegion;
+
+    /** 가구 월평균소득 (원, 세전) */
+    private Integer monthlyHouseholdIncome;
+
+    /** 가구원 수 (본인 포함) */
+    private Integer householdSize;
+
+    /** 맞벌이 여부 */
+    private boolean dualIncome;
+
+    /** 총자산 (원) — 공공주택 특공 자산 요건 */
+    private Long totalAssets;
+
+    /** 자동차가액 (원) — 공공주택 특공 자산 요건 */
+    private Integer carValue;
+
     /**
      * LLM 이 뽑은 값 중 <b>null 이 아닌 것만</b> 폼에 채운다.
      * null(= LLM 이 확인 못 한 값)은 건드리지 않는다 — 사용자가 화면에서 직접 고른다.
@@ -59,6 +77,7 @@ public class EligibilityForm {
         if (e.everOwnedHouse() != null) this.everOwnedHouse = e.everOwnedHouse();
         if (e.supportingOldParents() != null) this.supportingOldParents = e.supportingOldParents();
         if (e.householdHead() != null) this.householdHead = e.householdHead();
+        // 소득·자산·거주기간은 아직 LLM 추출 대상이 아니다(B1b 에서 ExtractedProfile 확장 시 추가).
     }
 
     public ApplicantProfile toProfile() {
@@ -72,6 +91,12 @@ public class EligibilityForm {
                 .everOwnedHouse(everOwnedHouse)
                 .supportingOldParents(supportingOldParents)
                 .householdHead(householdHead)
+                .residenceMonthsInRegion(residenceMonthsInRegion)
+                .monthlyHouseholdIncome(monthlyHouseholdIncome)
+                .householdSize(householdSize)
+                .dualIncome(dualIncome)
+                .totalAssets(totalAssets)
+                .carValue(carValue)
                 .build();
     }
 
@@ -101,4 +126,22 @@ public class EligibilityForm {
 
     public boolean isHouseholdHead() { return householdHead; }
     public void setHouseholdHead(boolean householdHead) { this.householdHead = householdHead; }
+
+    public Integer getResidenceMonthsInRegion() { return residenceMonthsInRegion; }
+    public void setResidenceMonthsInRegion(Integer residenceMonthsInRegion) { this.residenceMonthsInRegion = residenceMonthsInRegion; }
+
+    public Integer getMonthlyHouseholdIncome() { return monthlyHouseholdIncome; }
+    public void setMonthlyHouseholdIncome(Integer monthlyHouseholdIncome) { this.monthlyHouseholdIncome = monthlyHouseholdIncome; }
+
+    public Integer getHouseholdSize() { return householdSize; }
+    public void setHouseholdSize(Integer householdSize) { this.householdSize = householdSize; }
+
+    public boolean isDualIncome() { return dualIncome; }
+    public void setDualIncome(boolean dualIncome) { this.dualIncome = dualIncome; }
+
+    public Long getTotalAssets() { return totalAssets; }
+    public void setTotalAssets(Long totalAssets) { this.totalAssets = totalAssets; }
+
+    public Integer getCarValue() { return carValue; }
+    public void setCarValue(Integer carValue) { this.carValue = carValue; }
 }

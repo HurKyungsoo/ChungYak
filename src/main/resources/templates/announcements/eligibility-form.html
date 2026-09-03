@@ -75,6 +75,31 @@
             <legend>세대</legend>
             <label class="row"><input type="checkbox" th:field="*{householdHead}"> 세대주이다</label>
             <label class="row"><input type="checkbox" th:field="*{supportingOldParents}"> 만 65세 이상 직계존속을 3년 이상 부양 중이다</label>
+            <label class="row">가구원 수 (본인 포함)
+                <input type="number" min="1" th:field="*{householdSize}" placeholder="예: 3">
+            </label>
+            <label class="row">해당 공급지역 계속 거주 기간 (개월)
+                <input type="number" min="0" th:field="*{residenceMonthsInRegion}" placeholder="예: 24">
+                <span class="muted">(투기과열지구 등은 1·2년 이상 거주해야 1순위)</span>
+            </label>
+        </fieldset>
+
+        <fieldset>
+            <legend>소득 · 자산 <span class="muted">(특별공급 요건 — 민영은 소득만, 공공은 자산도)</span></legend>
+            <label class="row">가구 월평균소득 (원, 세전)
+                <input type="number" min="0" step="10000" th:field="*{monthlyHouseholdIncome}" placeholder="예: 6000000">
+            </label>
+            <label class="row"><input type="checkbox" th:field="*{dualIncome}"> 맞벌이다
+                <span class="muted">(맞벌이는 소득 기준이 완화됨)</span>
+            </label>
+            <label class="row">총자산 (원)
+                <input type="number" min="0" step="1000000" th:field="*{totalAssets}" placeholder="예: 300000000">
+                <span class="muted">(공공주택 특공만)</span>
+            </label>
+            <label class="row">자동차가액 (원)
+                <input type="number" min="0" step="100000" th:field="*{carValue}" placeholder="예: 20000000">
+                <span class="muted">(공공주택 특공만)</span>
+            </label>
         </fieldset>
 
         <button type="submit">판정하기</button>

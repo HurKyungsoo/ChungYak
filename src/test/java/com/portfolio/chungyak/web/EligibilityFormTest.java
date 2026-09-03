@@ -66,6 +66,38 @@ class EligibilityFormTest {
     }
 
     @Test
+    @DisplayName("소득·자산·거주기간 필드도 그대로 프로필로 옮겨진다")
+    void mapsIncomeAndAssetFields() {
+        EligibilityForm form = new EligibilityForm();
+        form.setMonthlyHouseholdIncome(6_000_000);
+        form.setHouseholdSize(3);
+        form.setDualIncome(true);
+        form.setTotalAssets(300_000_000L);
+        form.setCarValue(20_000_000);
+        form.setResidenceMonthsInRegion(24);
+
+        ApplicantProfile profile = form.toProfile();
+
+        assertThat(profile.getMonthlyHouseholdIncome()).isEqualTo(6_000_000);
+        assertThat(profile.getHouseholdSize()).isEqualTo(3);
+        assertThat(profile.isDualIncome()).isTrue();
+        assertThat(profile.getTotalAssets()).isEqualTo(300_000_000L);
+        assertThat(profile.getCarValue()).isEqualTo(20_000_000);
+        assertThat(profile.getResidenceMonthsInRegion()).isEqualTo(24);
+    }
+
+    @Test
+    @DisplayName("소득·자산을 비워 두면 null — 판정에서 '해당 요건 확인 불가'로 처리된다")
+    void blankIncomeStaysNull() {
+        ApplicantProfile profile = new EligibilityForm().toProfile();
+
+        assertThat(profile.getMonthlyHouseholdIncome()).isNull();
+        assertThat(profile.getHouseholdSize()).isNull();
+        assertThat(profile.getTotalAssets()).isNull();
+        assertThat(profile.getCarValue()).isNull();
+    }
+
+    @Test
     @DisplayName("LLM 추출값 중 null 이 아닌 것만 폼에 채운다 — null 필드는 건드리지 않는다")
     void applyExtractedFillsOnlyKnownFields() {
         EligibilityForm form = new EligibilityForm();

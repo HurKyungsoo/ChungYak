@@ -48,8 +48,26 @@ public class ApplicantProfile {
     /** 거주 지역명 ("서울", "경기" 등 — 공급지역명과 같은 체계) */
     private final String residenceRegion;
 
+    /** 해당 공급지역 계속 거주 기간 (개월). 1순위·우선공급 요건에 쓰인다. */
+    private final Integer residenceMonthsInRegion;
+
     /** 세대주 여부 */
     private final boolean householdHead;
+
+    /** 가구 월평균소득 (원, 세전). 도시근로자 월평균소득 대비 %로 환산해 소득 요건과 비교한다. */
+    private final Integer monthlyHouseholdIncome;
+
+    /** 가구원 수 (본인 포함). 소득 기준표가 가구원 수별로 다르다. */
+    private final Integer householdSize;
+
+    /** 맞벌이 여부. 맞벌이는 소득 기준이 완화된다(예: 100% → 120%). */
+    private final boolean dualIncome;
+
+    /** 총자산 (원). 공공주택 특별공급만 자산 요건이 있다(민영은 소득만). */
+    private final Long totalAssets;
+
+    /** 자동차가액 (원). 공공주택 특별공급 자산 요건 — 총자산과 별개 상한. */
+    private final Integer carValue;
 
     public boolean hasChildren() {
         return childCount > 0;

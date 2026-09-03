@@ -7,6 +7,7 @@ import com.portfolio.chungyak.llm.ProfileExtractionService;
 import com.portfolio.chungyak.rule.ApplicantProfile;
 import com.portfolio.chungyak.rule.EligibilityEngine;
 import com.portfolio.chungyak.rule.EligibilityEngine.MatchResult;
+import com.portfolio.chungyak.rule.IncomeReference;
 import com.portfolio.chungyak.service.AnnouncementQueryService;
 import com.portfolio.chungyak.web.form.EligibilityForm;
 import com.portfolio.chungyak.web.view.EligibilityResultAssembler;
@@ -49,6 +50,7 @@ public class EligibilityController {
     private final EligibilityResultAssembler resultAssembler;
     private final ProfileExtractionService profileExtractionService;
     private final ExplanationService explanationService;
+    private final IncomeReference incomeReference;
 
     @GetMapping("/announcements/{id}/eligibility")
     public String form(@PathVariable Long id, Model model) {
@@ -122,6 +124,9 @@ public class EligibilityController {
         model.addAttribute("status", queryService.statusOf(announcement));
         model.addAttribute("result", resultAssembler.assemble(result));
         model.addAttribute("explanation", explanation);
+        model.addAttribute("incomePercent", incomeReference.percentOf(
+                profile.getMonthlyHouseholdIncome(), profile.getHouseholdSize()));
+        model.addAttribute("incomeBasisYear", incomeReference.basisYear());
         return "announcements/eligibility-result";
     }
 

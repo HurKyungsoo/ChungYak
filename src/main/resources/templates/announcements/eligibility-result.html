@@ -29,6 +29,14 @@
         <p style="margin:6px 0 0" th:text="${explanation.text}">요약 문장</p>
     </div>
 
+    <p th:if="${incomePercent != null}" class="muted">
+        입력한 가구 월평균소득은 도시근로자 월평균소득 대비 약
+        <strong th:text="${incomePercent} + '%'">120%</strong>입니다
+        (<span th:text="${incomeBasisYear}">2024</span>년 기준).
+        <span th:if="${incomePercent > 160}" class="no">
+            대부분의 특별공급 소득 요건(140~160% 이하)을 초과합니다.</span>
+    </p>
+
     <h2>신청 가능한 주택형</h2>
     <table th:if="${!result.matchedUnitTypes.isEmpty()}">
         <thead>
