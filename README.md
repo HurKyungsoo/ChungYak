@@ -77,6 +77,7 @@ LLM 은 앞뒤 두 곳에만 있다. **앞**: 자연어 → 폼 값 채우기(�
 | `GET /announcements/{id}/eligibility` | 조건 입력 폼 (`ANTHROPIC_API_KEY` 있으면 자연어 입력창 추가) |
 | `POST /announcements/{id}/eligibility/extract` | 자연어 문장 → 폼 자동 채우기. 판정 안 함 — 확인 못 한 항목은 "직접 선택" 안내 |
 | `POST /announcements/{id}/eligibility` | 판정 결과 — 주택형별 신청 가능 유형·배정 세대수, "자격은 되지만 물량 없음", 전체 판정 근거. `ANTHROPIC_API_KEY` 있으면 맨 위에 "AI 요약" 별도 표시(규칙 근거는 그대로 유지) |
+| `GET /general-supply` · `POST` | 일반공급 청약가점 계산 (무주택기간 32 + 부양가족 35 + 통장기간 17 = 84점). 공고와 무관. 항목별 점수+계산 근거 |
 | `POST /api/admin/sync` | 청약홈 즉시 수집 (응답: `pagesFetched/received/created/updated`). **`ROLE_ADMIN` 필요 (HTTP Basic)** |
 
 ---
@@ -237,12 +238,13 @@ docker compose up -d --build
   공고(97건)에서 아무 매칭도 내지 못한다. 별도 `SpecialSupplyType` + 규칙이 필요하다.
 - **소득·자산·거주기간·재당첨 제한**은 판정에 넣지 않았다. 공개된 기본 요건만 본다
   (화면 하단에 고지).
-- 규칙 5종만 구현 — 기관추천·이전기관·청년·일반공급은 아직 없다.
+- **특별공급** 규칙 5종만 구현 — 기관추천·이전기관·청년은 아직 없다.
+  일반공급은 가점 계산기(`/general-supply`)가 있고, 추첨제는 미구현.
 
 ## 남은 작업
 
 [`docs/ROADMAP.md`](docs/ROADMAP.md) 참고. 요약:
 - **A. 배포** — Flyway·Actuator·Docker·Compose·CI 완료. 실제 서버·도메인 연결만 남음
-- **B. 판정 신뢰도** — 규칙 확대(소득·자산·거주요건), 일반공급 가점 계산, 신혼희망타운
+- **B. 판정 신뢰도** — 일반공급 가점 계산 ✅, 규칙 확대(소득·자산·거주요건), 신혼희망타운
 - **C. 사용자 유지** — 회원·조건 저장, 새 공고 알림
 - **D. 운영** — MyBatis 동적 조회, 캐싱, LH 연동, 벡터 검색

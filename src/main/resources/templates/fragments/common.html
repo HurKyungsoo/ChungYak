@@ -43,7 +43,8 @@
 </head>
 <body>
 <nav th:fragment="crumb" class="crumb muted">
-    <a th:href="@{/announcements}">청약나침반</a> <span>· 정형 데이터 MVP</span>
+    <a th:href="@{/announcements}">청약나침반</a>
+    <span>· </span><a th:href="@{/general-supply}">일반공급 가점 계산</a>
 </nav>
 <p th:fragment="disclaimer" class="disclaimer">
     이 서비스의 판정은 공개된 <strong>기본 요건</strong>만 결정론적 규칙으로 확인합니다.

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('청약나침반 · 일반공급 가점 계산')}"></head>
+<body>
+<div class="wrap">
+    <nav th:replace="~{fragments/common :: crumb}"></nav>
+
+    <h1>일반공급 청약가점 계산</h1>
+    <p class="muted">
+        무주택 기간(32) + 부양가족 수(35) + 청약통장 가입 기간(17) = <strong>84점 만점</strong>.
+        계산은 결정론적이며, 모르는 항목은 비워 두면 "산정 불가"로 표시됩니다(추측하지 않습니다).
+    </p>
+
+    <form method="post" th:action="@{/general-supply}" th:object="${form}">
+        <fieldset>
+            <legend>기본</legend>
+            <label class="row">만 나이
+                <input type="number" min="0" th:field="*{age}" placeholder="예: 34">
+            </label>
+            <label class="row"><input type="checkbox" th:field="*{married}"> 혼인 중이다
+                <span class="muted">(만 30세 미만 미혼이면 무주택 기간은 0점)</span>
+            </label>
+        </fieldset>
+
+        <fieldset>
+            <legend>무주택 기간</legend>
+            <label class="row">무주택 기간 (개월)
+                <input type="number" min="0" th:field="*{houselessMonths}" placeholder="예: 60">
+                <span class="muted">만 30세(또는 그 전 혼인 시 혼인신고일)부터 공고일까지 중 무주택인 기간</span>
+            </label>
+        </fieldset>
+
+        <fieldset>
+            <legend>부양가족</legend>
+            <label class="row">부양가족 수 (본인 제외)
+                <input type="number" min="0" th:field="*{dependents}" placeholder="예: 2">
+                <span class="muted">배우자 + 동거 직계존속(3년 이상) + 미혼 자녀</span>
+            </label>
+        </fieldset>
+
+        <fieldset>
+            <legend>청약통장</legend>
+            <label class="row">가입 기간 (개월)
+                <input type="number" min="0" th:field="*{accountMonths}" placeholder="예: 84">
+            </label>
+        </fieldset>
+
+        <button type="submit">가점 계산</button>
+    </form>
+
+    <p th:replace="~{fragments/common :: disclaimer}"></p>
+</div>
+</body>
+</html>
