@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew test)",
+      "Bash(./gradlew test *)",
+      "Bash(./gradlew compileJava)",
+      "Bash(./gradlew compileJava *)",
+      "Bash(./gradlew compileTestJava)",
+      "Bash(./gradlew compileTestJava *)",
+      "Bash(./gradlew build)",
+      "Bash(./gradlew check)",
+      "Bash(./gradlew bootRun)",
+      "Bash(curl -s -o /dev/null -w *)",
+      "Bash(curl -s http://localhost:8080/*)",
+      "Bash(curl -s \"http://localhost:8080/*)",
+      "Bash(gh run watch *)"
+    ]
+  }
+}
