@@ -1,7 +1,6 @@
 package com.portfolio.chungyak.rule.rules;
 
 import com.portfolio.chungyak.domain.Announcement;
-import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.rule.ApplicantProfile;
 import com.portfolio.chungyak.rule.EligibilityDecision;
@@ -11,13 +10,16 @@ import org.springframework.stereotype.Component;
 /**
  * 신생아 특별공급.
  *
- * 공공주택에만 배정된다 — Swagger Mdl 설명에 명시돼 있고,
- * 실데이터에서도 HOUSE_DTL_SECD='03' 이면서 특별법 적용인 공고만
- * NWBB_HSHLDCO 가 채워진다. 그래서 공고 유형부터 먼저 확인한다.
- *
  * 기본 요건
  *  - 2세 이하(입양 포함) 자녀가 있을 것
  *  - 무주택 세대구성원
+ *
+ * 공급 대상: 2024년 제도 개편으로 공공·민영 모두에 배정된다.
+ * 라이브 데이터로 확인 — 민영 공고 49건, 205개 주택형에 NWBB_HSHLDCO 가 채워져 있다
+ * (예: "올 뉴 챔피언스시티 1차"(민영, 광주) 084 타입 신생아 31세대).
+ * 그래서 이 규칙은 공고 유형을 보지 않는다 —
+ * "이 공고 주택형에 신생아 물량이 있는가"는 EligibilityEngine 이
+ * SupplyBreakdown 으로 판단하고, 이 규칙은 신청자 조건만 본다.
  */
 @Component
 public class NewbornRule implements EligibilityRule {
@@ -29,12 +31,6 @@ public class NewbornRule implements EligibilityRule {
 
     @Override
     public EligibilityDecision evaluate(ApplicantProfile profile, Announcement announcement) {
-        // 민영주택에는 신생아 특공 물량 자체가 없다
-        if (announcement.getHouseDetailType() != HouseDetailType.PUBLIC) {
-            return EligibilityDecision.ineligible(supportedType())
-                    .failed("이 공고는 민영주택이라 신생아 특별공급 물량이 배정되지 않습니다.");
-        }
-
         boolean newbornOk = profile.isHasNewborn();
         boolean houselessOk = profile.isHouseless();
 

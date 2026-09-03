@@ -60,6 +60,7 @@ class EligibilityEngineTest {
                         .build())
                 .build();
 
+        // 실데이터: "올 뉴 챔피언스시티 1차"(민영) 084.9730A — 신생아 31세대도 민영에 배정된다
         a.addUnitType(UnitType.builder()
                 .modelNo("01")
                 .typeName("084.9730A")
@@ -67,8 +68,7 @@ class EligibilityEngineTest {
                 .specialSupplyCount(172)
                 .supplyBreakdown(SupplyBreakdown.builder()
                         .newlywed(47).multiChild(31).firstTime(22)
-                        .oldParents(10).institutionRecommend(31)
-                        .newborn(detailType == HouseDetailType.PUBLIC ? 31 : 0)
+                        .oldParents(10).institutionRecommend(31).newborn(31)
                         .build())
                 .topAmount(87000)
                 .build());
@@ -121,17 +121,44 @@ class EligibilityEngineTest {
     }
 
     @Test
-    @DisplayName("신생아 특공은 공공주택에만 있다 — 민영 공고에서는 자격이 있어도 탈락")
-    void newbornOnlyInPublicHousing() {
+    @DisplayName("신생아 특공 자격은 공고 유형과 무관하게 판정한다 — 민영에도 물량이 배정된다")
+    void newbornRuleIgnoresHouseType() {
         ApplicantProfile profile = ApplicantProfile.builder()
                 .married(true).monthsSinceMarriage(12)
                 .hasNewborn(true).houseless(true).accountMonths(12)
                 .build();
 
+        // 규칙은 신청자 조건만 본다 — 민영/공공 모두 자격 충족
         assertThat(engine.evaluate(profile, privateAnnouncement)
-                .decisions().get(SpecialSupplyType.NEWBORN).isEligible()).isFalse();
+                .decisions().get(SpecialSupplyType.NEWBORN).isEligible()).isTrue();
         assertThat(engine.evaluate(profile, publicAnnouncement)
                 .decisions().get(SpecialSupplyType.NEWBORN).isEligible()).isTrue();
+
+        // 실제 신청 가능 여부는 그 공고 주택형에 신생아 물량이 있느냐로 갈린다 (엔진이 판단)
+        assertThat(engine.evaluate(profile, privateAnnouncement).bestMatch().applicableTypes())
+                .contains(SpecialSupplyType.NEWBORN);
+    }
+
+    @Test
+    @DisplayName("자격은 되지만 그 공고에 신생아 물량이 없으면 물량없음으로 안내한다")
+    void newbornQualifiedButNoAllocation() {
+        Announcement noNewborn = announcement(HouseDetailType.PRIVATE, false);
+        noNewborn.getUnitTypes().clear();
+        noNewborn.addUnitType(UnitType.builder()
+                .modelNo("01").typeName("059.9900A")
+                .generalSupplyCount(100).specialSupplyCount(40)
+                .supplyBreakdown(SupplyBreakdown.builder()
+                        .newlywed(25).multiChild(15).build())   // 신생아 배정 없음
+                .build());
+
+        ApplicantProfile profile = ApplicantProfile.builder()
+                .married(true).monthsSinceMarriage(12)
+                .hasNewborn(true).houseless(true).accountMonths(12)
+                .build();
+
+        EligibilityEngine.MatchResult result = engine.evaluate(profile, noNewborn);
+        assertThat(result.decisions().get(SpecialSupplyType.NEWBORN).isEligible()).isTrue();
+        assertThat(result.qualifiedButUnavailable()).contains(SpecialSupplyType.NEWBORN);
     }
 
     @Test

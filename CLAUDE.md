@@ -68,8 +68,12 @@
 
 - 청약홈 공고 총 2,861건, 주택형 총 14,637건
 - 특별공급 세대수는 **주택형(Mdl)마다 다르다.** 공고 단위가 아니다.
-- 청년(`YGMN_HSHLDCO`)·신생아(`NWBB_HSHLDCO`)는 **공공주택에만** 채워진다
-  (`HOUSE_DTL_SECD='03'` + `PUBLIC_HOUSE_SPCLW_APPLC_AT='Y'`)
+- 청년(`YGMN_HSHLDCO`)은 **공공주택에만** 채워진다
+  (`HOUSE_DTL_SECD='03'` + `PUBLIC_HOUSE_SPCLW_APPLC_AT='Y'`). 현재 데이터에 5개 공고뿐.
+- 신생아(`NWBB_HSHLDCO`)는 **공공·민영 모두** 채워진다 (2024 제도 개편).
+  라이브 확인(2026-09-03): 민영 49공고·205주택형에 배정.
+  예) "올 뉴 챔피언스시티 1차" `PBLANC_NO=2026000419`(민영·광주) 084 타입 신생아 31세대.
+  → `NewbornRule` 은 공고 유형으로 거르면 안 된다. 물량 유무는 엔진이 `SupplyBreakdown` 으로 본다.
 - `HSSPLY_ADRES` 에 "전남광주통합특별시" 같은 통합 명칭이 들어온다.
   지역 필터는 `SUBSCRPT_AREA_CODE_NM` 을 쓸 것.
 - null 이 흔한 필드: `NSPRC_NM`, `SPSPLY_RCEPT_*`, `GNRL_RNK1_ETC_GG_*`
