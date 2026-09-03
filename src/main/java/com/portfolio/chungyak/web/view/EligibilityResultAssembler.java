@@ -1,6 +1,5 @@
 package com.portfolio.chungyak.web.view;
 
-import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.rule.EligibilityDecision;
 import com.portfolio.chungyak.rule.EligibilityEngine.MatchResult;
 import com.portfolio.chungyak.rule.EligibilityEngine.UnitMatch;
@@ -58,8 +57,4 @@ public class EligibilityResultAssembler {
                 List.copyOf(decision.getFailedReasons()),
                 List.copyOf(decision.getMissingInputs()));
     }
-
-    /** 참고: SpecialSupplyType 은 라벨 조회용으로만 임포트한다. */
-    @SuppressWarnings("unused")
-    private static final Class<SpecialSupplyType> TYPE_REF = SpecialSupplyType.class;
 }

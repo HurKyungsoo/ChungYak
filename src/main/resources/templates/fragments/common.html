@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title}">청약나침반</title>
+    <style>
+        body { font-family: system-ui, 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+               margin: 0; background: #f5f6f8; color: #1a1a1a; line-height: 1.55; }
+        .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 60px; }
+        a { color: #1558d6; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        h1 { font-size: 21px; margin: 8px 0 4px; }
+        h2 { font-size: 16px; margin: 30px 0 10px; }
+        h3 { font-size: 14px; margin: 18px 0 6px; }
+        table { border-collapse: collapse; width: 100%; background: #fff; font-size: 14px; }
+        th, td { border: 1px solid #e2e2e2; padding: 8px 10px; text-align: left; vertical-align: top; }
+        th { background: #fafafa; font-weight: 600; }
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px;
+               background: #e8eef9; color: #1558d6; white-space: nowrap; }
+        .tag.open { background: #e3f6e8; color: #1a7f37; }
+        .tag.soon { background: #fff4e0; color: #a15c00; }
+        .tag.closed { background: #eee; color: #777; }
+        .muted { color: #888; font-size: 13px; }
+        .crumb { margin-bottom: 14px; }
+        form.filter { margin: 16px 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        select, input[type=number] { padding: 6px 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 5px; }
+        .card { background: #fff; border: 1px solid #e2e2e2; border-radius: 8px; padding: 16px 18px; margin: 12px 0; }
+        .ok { color: #1a7f37; } .no { color: #c0362c; } .miss { color: #a15c00; }
+        ul.reasons { margin: 4px 0 0; padding-left: 18px; }
+        ul.reasons li { margin: 2px 0; }
+        fieldset { border: 1px solid #e2e2e2; border-radius: 8px; margin: 12px 0; padding: 10px 16px 14px; }
+        legend { font-weight: 600; padding: 0 6px; }
+        label.row { display: block; margin: 8px 0; }
+        label.row input[type=number] { width: 90px; margin-left: 6px; }
+        button { background: #1558d6; color: #fff; border: 0; border-radius: 6px;
+                 padding: 10px 20px; font-size: 15px; cursor: pointer; margin-top: 10px; }
+        .banner { padding: 12px 14px; border-radius: 8px; margin: 14px 0; font-size: 14px; }
+        .banner.good { background: #e3f6e8; color: #12611f; }
+        .banner.bad { background: #fdeceb; color: #8a2b23; }
+        .disclaimer { margin-top: 30px; font-size: 12px; color: #999; border-top: 1px solid #e2e2e2; padding-top: 12px; }
+    </style>
+</head>
+<body>
+<nav th:fragment="crumb" class="crumb muted">
+    <a th:href="@{/announcements}">청약나침반</a> <span>· 정형 데이터 MVP</span>
+</nav>
+<p th:fragment="disclaimer" class="disclaimer">
+    이 서비스의 판정은 공개된 <strong>기본 요건</strong>만 결정론적 규칙으로 확인합니다.
+    실제 청약은 소득·자산 기준, 지역 거주요건, 재당첨 제한 등이 추가되며
+    예비신혼부부·한부모가족 등 예외가 많습니다. 최종 확인은 청약홈 공고문을 따르세요.
+</p>
+</body>
+</html>
