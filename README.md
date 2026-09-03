@@ -207,11 +207,14 @@ curl -u admin:$ADMIN_PASSWORD -X POST http://localhost:8080/api/admin/sync
 ### 테스트
 
 ```bash
-./gradlew test                                   # 전체 (LLM 통합테스트는 키 없으면 skip)
+./gradlew test                                   # 전체
 ./gradlew test --tests '*EligibilityEngineTest*' # 규칙 엔진 경계값
 
-# 실제 LLM 호출까지 검증 (비용 발생) — 자연어 추출 + 판정 요약
+# 라이브 테스트 (키 있으면 자동 실행, 없으면 skip)
+#  - ANTHROPIC_API_KEY 있으면 LLM 통합테스트 (비용 발생)
+#  - PUBLICDATA_SERVICE_KEY 있으면 청약홈 API 계약테스트 (ApplyhomeApiContractTest)
 ANTHROPIC_API_KEY=<키> ./gradlew test --tests '*IntegrationTest*'
+./gradlew test --tests '*ApplyhomeApiContractTest*'   # 청약홈 스키마가 안 바뀌었는지
 ```
 
 ### 빌드

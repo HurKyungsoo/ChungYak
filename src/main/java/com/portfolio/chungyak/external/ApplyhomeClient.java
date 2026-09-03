@@ -83,7 +83,8 @@ public class ApplyhomeClient {
         }
     }
 
-    private List<ExternalAnnouncement> parseAnnouncements(byte[] body) throws Exception {
+    // package-private: 계약 테스트(ApplyhomeParseContractTest)가 픽스처 바이트로 직접 호출한다
+    List<ExternalAnnouncement> parseAnnouncements(byte[] body) throws Exception {
         if (body == null || body.length == 0) return List.of();
 
         JsonNode root = objectMapper.readTree(body);
@@ -145,7 +146,7 @@ public class ApplyhomeClient {
                 .build();
     }
 
-    private List<ExternalUnitType> parseUnitTypes(byte[] body) throws Exception {
+    List<ExternalUnitType> parseUnitTypes(byte[] body) throws Exception {
         if (body == null || body.length == 0) return List.of();
 
         JsonNode root = objectMapper.readTree(body);

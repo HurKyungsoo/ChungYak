@@ -79,6 +79,8 @@
   두 요구가 충돌하므로 URI 조립 방식을 바꿀 때 반드시 라이브 호출로 확인할 것.
 - 파싱 실패는 예외를 던지지 말고 **해당 건만 스킵**한다.
 - API 키를 코드나 `application.yml` 에 하드코딩하지 말 것.
+- 파서가 읽는 필드명을 바꾸면 `ApplyhomeParseContractTest`(오프라인 픽스처)가 깨진다.
+  실제 API 스키마 변화는 `ApplyhomeApiContractTest`(라이브, `PUBLICDATA_SERVICE_KEY` 있을 때)가 잡는다.
 
 ## 데이터에서 확인된 사실 (추측 금지)
 
