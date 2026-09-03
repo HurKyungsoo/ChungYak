@@ -2,93 +2,96 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/common :: head('청약나침반 · 판정 결과')}"></head>
 <body>
-<div class="wrap">
-    <nav th:replace="~{fragments/common :: crumb}"></nav>
+<header th:replace="~{fragments/common :: header}"></header>
 
-    <p class="muted"><a th:href="@{/announcements/{id}(id=${announcement.id})}">← <span th:text="${announcement.houseName}">공고</span></a></p>
+<main>
+    <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="backlink">← 조건 다시 입력</a>
     <h1>자격 판정 결과</h1>
-    <p class="muted">
+    <p class="muted" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <span th:text="${result.houseName}">공고명</span>
-        <span th:if="${result.regulatedArea}"> · <span class="tag soon">규제지역</span></span>
+        <span class="badge reg" th:if="${result.regulatedArea}">규제지역</span>
     </p>
 
     <div th:if="${result.hasAnyMatch}" class="banner good">
-        신청 가능한 주택형이 <strong th:text="${result.matchedUnitTypes.size()}">1</strong>개 있습니다.
+        <div><span class="big">신청 가능한 주택형이 <span th:text="${result.matchedUnitTypes.size()}">1</span>개 있습니다.</span></div>
     </div>
     <div th:unless="${result.hasAnyMatch}" class="banner bad">
-        이 공고에서 현재 조건으로 신청 가능한 특별공급 유형이 없습니다. 아래 판정 근거를 확인하세요.
+        <div><span class="big">현재 조건으로 신청 가능한 특별공급 유형이 없습니다.</span>
+            <p>아래 판정 근거에서 어떤 요건이 막았는지 확인하세요.</p></div>
     </div>
 
-    <!-- LLM 요약. 규칙 기반 근거(아래)를 대체하지 않고 그 위에 얹는 읽기용 문단이다.
-         판정은 규칙 엔진이 했고, 이 문장은 그 근거를 재구성만 한 것이다. -->
-    <div th:if="${explanation != null and explanation.shown}" class="card"
-         style="background:#f7f9fc;border-left:3px solid #1558d6">
-        <strong th:text="${explanation.aiGenerated} ? 'AI 요약' : '요약'">요약</strong>
-        <span th:if="${explanation.aiGenerated}" class="muted"> · 판정은 규칙 엔진이 했고 AI 는 근거를 문장으로 정리만 했습니다</span>
-        <span th:unless="${explanation.aiGenerated}" class="muted"> · 규칙 데이터로 자동 생성</span>
-        <p style="margin:6px 0 0" th:text="${explanation.text}">요약 문장</p>
+    <!-- LLM 요약 — 규칙 근거(아래)를 대체하지 않고 그 위에 얹는 읽기용 문단.
+         판정은 규칙 엔진이 했고 이 문장은 그 근거를 재구성만 한 것이다. -->
+    <div th:if="${explanation != null and explanation.shown}" class="card tint">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+            <strong th:text="${explanation.aiGenerated} ? 'AI 요약' : '요약'">요약</strong>
+            <span class="muted" th:text="${explanation.aiGenerated}
+                  ? '판정은 규칙 엔진이 했고 AI 는 근거를 문장으로 정리만 했습니다'
+                  : '규칙 데이터로 자동 생성'">설명</span>
+        </div>
+        <p style="margin:0" th:text="${explanation.text}">요약 문장</p>
     </div>
 
     <p th:if="${incomePercent != null}" class="muted">
-        입력한 가구 월평균소득은 도시근로자 월평균소득 대비 약
-        <strong th:text="${incomePercent} + '%'">120%</strong>입니다
-        (<span th:text="${incomeBasisYear}">2024</span>년 기준).
-        <span th:if="${incomePercent > 160}" class="no">
+        입력한 가구 월평균소득은 도시근로자 대비 약
+        <strong th:text="${incomePercent} + '%'">120%</strong> (<span th:text="${incomeBasisYear}">2024</span>년 기준).
+        <span th:if="${incomePercent > 160}" style="color:var(--no);font-weight:600">
             대부분의 특별공급 소득 요건(140~160% 이하)을 초과합니다.</span>
     </p>
 
     <h2>신청 가능한 주택형</h2>
-    <table th:if="${!result.matchedUnitTypes.isEmpty()}">
-        <thead>
-        <tr><th>주택형</th><th>공급면적(㎡)</th><th>신청 가능 유형 · 배정 세대</th><th>합계</th></tr>
-        </thead>
-        <tbody>
-        <tr th:each="m : ${result.matchedUnitTypes}">
-            <td th:text="${m.typeName}">084.9730A</td>
-            <td th:text="${m.supplyArea} ?: '-'">84.97</td>
-            <td>
-                <span th:each="t, it : ${m.applicableTypes}">
-                    <span th:text="${t.typeLabel} + ' ' + ${t.allocatedCount} + '세대'">신혼 47세대</span><span th:if="${!it.last}">, </span>
-                </span>
-            </td>
-            <td th:text="|${m.totalAllocated}세대|">47세대</td>
-        </tr>
-        </tbody>
-    </table>
+    <div class="table-scroll" th:if="${!result.matchedUnitTypes.isEmpty()}">
+        <table>
+            <thead>
+            <tr><th>주택형</th><th class="num">공급면적(㎡)</th><th>신청 가능 유형 · 배정 세대</th><th class="num">합계</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="m : ${result.matchedUnitTypes}">
+                <td th:text="${m.typeName}">084.9730A</td>
+                <td class="num" th:text="${m.supplyArea} ?: '-'">84.97</td>
+                <td>
+                    <span th:each="t, it : ${m.applicableTypes}"
+                          th:text="${t.typeLabel} + ' ' + ${t.allocatedCount} + '세대' + (${it.last} ? '' : ',  ')">신혼 47세대</span>
+                </td>
+                <td class="num"><strong th:text="|${m.totalAllocated}세대|">47세대</strong></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
     <p th:if="${result.matchedUnitTypes.isEmpty()}" class="muted">없음</p>
 
     <h2>자격은 되지만 이 공고에 물량이 없는 유형</h2>
     <p class="muted">다른 공고에서는 신청할 수 있습니다.</p>
     <div th:if="${result.qualifiedButUnavailable.isEmpty()}" class="muted">해당 없음</div>
-    <div th:each="d : ${result.qualifiedButUnavailable}" class="card">
-        <strong th:text="${d.typeLabel}">신생아</strong> <span class="ok">— 자격 충족</span>
+    <div th:each="d : ${result.qualifiedButUnavailable}" class="card decision-card">
+        <div class="head"><strong th:text="${d.typeLabel}">신생아</strong>
+            <span class="verdict ok">자격 충족</span></div>
         <ul class="reasons">
-            <li th:each="r : ${d.satisfiedReasons}" class="ok" th:text="'✓ ' + ${r}">이유</li>
+            <li th:each="r : ${d.satisfiedReasons}" class="r-ok" th:text="${r}">이유</li>
         </ul>
-        <p class="muted">이 공고의 어떤 주택형에도 이 유형 배정 세대가 없습니다.</p>
+        <p class="muted" style="margin:6px 0 0">이 공고의 어떤 주택형에도 이 유형 배정 세대가 없습니다.</p>
     </div>
 
     <h2>전체 판정 근거</h2>
-    <p class="muted">모든 특별공급 유형에 대한 판정과 이유입니다. (이 자리는 이후 LLM 자연어 설명으로 대체됩니다.)</p>
-    <div th:each="d : ${result.allDecisions}" class="card">
-        <strong th:text="${d.typeLabel}">유형</strong>
-        <span th:if="${d.undetermined}" class="miss">— 판정 불가 (입력 부족)</span>
-        <span th:unless="${d.undetermined}" th:classappend="${d.eligible} ? 'ok' : 'no'"
-              th:text="${d.eligible} ? '— 자격 충족' : '— 자격 미충족'">결과</span>
-
-        <ul class="reasons" th:if="${!d.satisfiedReasons.isEmpty()}">
-            <li th:each="r : ${d.satisfiedReasons}" class="ok" th:text="'✓ ' + ${r}">충족</li>
-        </ul>
-        <ul class="reasons" th:if="${!d.failedReasons.isEmpty()}">
-            <li th:each="r : ${d.failedReasons}" class="no" th:text="'✗ ' + ${r}">미충족</li>
-        </ul>
-        <ul class="reasons" th:if="${!d.missingInputs.isEmpty()}">
-            <li th:each="r : ${d.missingInputs}" class="miss" th:text="'? ' + ${r} + ' — 입력이 필요합니다'">누락</li>
+    <p class="muted">모든 특별공급 유형에 대한 판정과 이유입니다.</p>
+    <div th:each="d : ${result.allDecisions}" class="card decision-card">
+        <div class="head">
+            <strong th:text="${d.typeLabel}">유형</strong>
+            <span th:if="${d.undetermined}" class="verdict miss">판정 불가 · 입력 부족</span>
+            <span th:unless="${d.undetermined}"
+                  th:classappend="${d.eligible} ? 'ok' : 'no'" class="verdict"
+                  th:text="${d.eligible} ? '자격 충족' : '자격 미충족'">결과</span>
+        </div>
+        <ul class="reasons">
+            <li th:each="r : ${d.satisfiedReasons}" class="r-ok" th:text="${r}">충족</li>
+            <li th:each="r : ${d.failedReasons}" class="r-no" th:text="${r}">미충족</li>
+            <li th:each="r : ${d.missingInputs}" class="r-miss" th:text="${r} + ' — 입력이 필요합니다'">누락</li>
         </ul>
     </div>
 
-    <p><a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}">← 조건 다시 입력</a></p>
-    <p th:replace="~{fragments/common :: disclaimer}"></p>
-</div>
+    <div th:replace="~{fragments/common :: disclaimer}"></div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

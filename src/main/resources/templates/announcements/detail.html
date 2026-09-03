@@ -2,19 +2,29 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/common :: head('청약나침반 · ' + ${announcement.houseName})}"></head>
 <body>
-<div class="wrap">
-    <nav th:replace="~{fragments/common :: crumb}"></nav>
+<header th:replace="~{fragments/common :: header}"></header>
+
+<main>
+    <a th:href="@{/announcements}" class="backlink">← 공고 목록</a>
 
     <h1 th:text="${announcement.houseName}">공고명</h1>
-    <p>
-        <span class="tag"
+    <p style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span class="badge"
               th:classappend="${status == '접수중'} ? 'open' : (${status == '접수예정'} ? 'soon' : 'closed')"
               th:text="${status}">상태</span>
-        <span class="muted" th:text="${announcement.houseDetailType.label} + ' / ' + ${announcement.houseType.label}">민영 / APT</span>
+        <span class="badge" th:text="${announcement.houseDetailType.label} + ' · ' + ${announcement.houseType.label}">민영 · APT</span>
+        <span class="badge reg"
+              th:if="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}">규제지역</span>
     </p>
 
+    <div class="btn-row" style="margin:16px 0 4px">
+        <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="btn btn-primary btn-lg">내 조건으로 자격 판정 →</a>
+        <a th:if="${announcement.noticeUrl != null}" th:href="${announcement.noticeUrl}"
+           target="_blank" rel="noopener" class="btn btn-ghost btn-lg">청약홈 공고문</a>
+    </div>
+
     <div class="card">
-        <table>
+        <table class="kv">
             <tr><th>지역</th><td th:text="${announcement.regionName} ?: '-'">서울</td></tr>
             <tr><th>주소</th><td th:text="${announcement.address} ?: '-'">주소</td></tr>
             <tr><th>총 공급세대</th><td th:text="${announcement.totalSupplyCount} ?: '-'">100</td></tr>
@@ -26,56 +36,55 @@
             <tr><th>특별공급 접수</th><td>
                 <span th:if="${announcement.specialReceptBeginDate != null}"
                       th:text="${announcement.specialReceptBeginDate} + ' ~ ' + (${announcement.specialReceptEndDate} ?: '?')">특공</span>
-                <span th:unless="${announcement.specialReceptBeginDate != null}" class="muted">공고에 별도 표기 없음</span>
+                <span th:unless="${announcement.specialReceptBeginDate != null}" class="subtle">공고에 별도 표기 없음</span>
             </td></tr>
             <tr><th>당첨자발표</th><td th:text="${announcement.winnerAnnounceDate} ?: '-'">발표일</td></tr>
             <tr><th>규제</th><td>
-                <span th:if="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}" class="tag soon">규제지역 (통장 24개월 필요)</span>
-                <span th:unless="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}" class="muted">비규제 (통장 6개월)</span>
-            </td></tr>
-            <tr><th>공고문</th><td>
-                <a th:if="${announcement.noticeUrl != null}" th:href="${announcement.noticeUrl}" target="_blank" rel="noopener">청약홈 공고 바로가기</a>
-                <span th:unless="${announcement.noticeUrl != null}" class="muted">-</span>
+                <span th:if="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}">
+                    규제지역 <span class="subtle">— 청약통장 24개월·해당지역 2년 거주 필요</span></span>
+                <span th:unless="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}"
+                      class="subtle">비규제 (청약통장 6개월)</span>
             </td></tr>
         </table>
     </div>
 
     <h2>주택형별 특별공급 세대수</h2>
     <p class="muted">특별공급 배정은 공고가 아니라 <strong>주택형마다</strong> 다릅니다. 0 세대는 그 유형 물량이 없다는 뜻입니다.</p>
-    <table>
-        <thead>
-        <tr>
-            <th>주택형</th><th>공급면적(㎡)</th><th>일반</th><th>특공 합계</th>
-            <th>다자녀</th><th>신혼</th><th>생애최초</th><th>노부모</th>
-            <th>기관추천</th><th>청년</th><th>신생아</th><th>이전기관</th><th>기타</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="u : ${announcement.unitTypes}">
-            <td th:text="${u.typeName}">084.9730A</td>
-            <td th:text="${u.supplyArea} ?: '-'">84.97</td>
-            <td th:text="${u.generalSupplyCount}">141</td>
-            <td th:text="${u.specialSupplyCount}">172</td>
-            <td th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.multiChild} : 0">31</td>
-            <td th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.newlywed} : 0">47</td>
-            <td th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.firstTime} : 0">22</td>
-            <td th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.oldParents} : 0">10</td>
-            <td th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.institutionRecommend} : 0">31</td>
-            <td th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.youth} : 0">0</td>
-            <td th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.newborn} : 0">31</td>
-            <td th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.transferInstitution} : 0">0</td>
-            <td th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.etc} : 0">0</td>
-        </tr>
-        <tr th:if="${announcement.unitTypes.isEmpty()}">
-            <td colspan="13" class="muted">주택형 정보가 없습니다.</td>
-        </tr>
-        </tbody>
-    </table>
+    <div class="table-scroll">
+        <table>
+            <thead>
+            <tr>
+                <th>주택형</th><th class="num">공급면적(㎡)</th><th class="num">일반</th><th class="num">특공 합계</th>
+                <th class="num">다자녀</th><th class="num">신혼</th><th class="num">생애최초</th><th class="num">노부모</th>
+                <th class="num">기관추천</th><th class="num">청년</th><th class="num">신생아</th><th class="num">이전기관</th><th class="num">기타</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="u : ${announcement.unitTypes}">
+                <td th:text="${u.typeName}">084.9730A</td>
+                <td class="num" th:text="${u.supplyArea} ?: '-'">84.97</td>
+                <td class="num" th:text="${u.generalSupplyCount}">141</td>
+                <td class="num"><strong th:text="${u.specialSupplyCount}">172</strong></td>
+                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.multiChild} : 0">31</td>
+                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.newlywed} : 0">47</td>
+                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.firstTime} : 0">22</td>
+                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.oldParents} : 0">10</td>
+                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.institutionRecommend} : 0">31</td>
+                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.youth} : 0">0</td>
+                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.newborn} : 0">31</td>
+                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.transferInstitution} : 0">0</td>
+                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.etc} : 0">0</td>
+            </tr>
+            <tr th:if="${announcement.unitTypes.isEmpty()}">
+                <td colspan="13" class="muted">주택형 정보가 없습니다.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
 
-    <h2>내 조건으로 신청 가능 유형 확인</h2>
-    <p><a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}">→ 자격 판정 폼으로 이동</a></p>
+    <div th:replace="~{fragments/common :: disclaimer}"></div>
+</main>
 
-    <p th:replace="~{fragments/common :: disclaimer}"></p>
-</div>
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

@@ -2,13 +2,35 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/common :: head('청약나침반 · 공고 목록')}"></head>
 <body>
-<div class="wrap">
-    <nav th:replace="~{fragments/common :: crumb}"></nav>
+<header th:replace="~{fragments/common :: header}"></header>
 
-    <h1>분양 공고 — 접수중 · 접수예정</h1>
-    <p class="muted">청약홈에서 수집한 공고입니다. 공고를 눌러 주택형별 특별공급 물량과 자격 판정을 확인하세요.</p>
+<main>
+    <section class="hero">
+        <span class="eyebrow">청약 자격 확인</span>
+        <h1>내 조건에 맞는 특별공급, 판정은 규칙이 합니다</h1>
+        <p class="lead">
+            공공데이터로 모은 분양 공고에서 신혼부부·생애최초·다자녀·노부모부양·신생아 특별공급 자격을
+            결정론적 규칙으로 확인합니다. AI 는 자연어 입력과 결과 설명에만 쓰고, 되고/안 되고는 규칙 엔진이 정합니다.
+        </p>
+        <div class="stat-row">
+            <div class="stat">
+                <div class="n" th:text="${rows.size()}">9</div>
+                <div class="l">접수중·예정 공고</div>
+            </div>
+            <div class="stat" th:if="${totalCount != null}">
+                <div class="n" th:text="${#numbers.formatInteger(totalCount, 1, 'COMMA')}">2,861</div>
+                <div class="l">수집된 전체 공고</div>
+            </div>
+            <div class="stat">
+                <div class="n">84점</div>
+                <div class="l"><a th:href="@{/general-supply}">일반공급 가점 계산 →</a></div>
+            </div>
+        </div>
+    </section>
 
-    <form class="filter" method="get" th:action="@{/announcements}">
+    <h2>분양 공고 — 접수중 · 접수예정</h2>
+
+    <form class="filter-bar" method="get" th:action="@{/announcements}">
         <select name="region">
             <option value="">지역 전체</option>
             <option th:each="r : ${regions}" th:value="${r}" th:text="${r}"
@@ -20,42 +42,47 @@
                     th:value="${d.name()}" th:text="${d.label}"
                     th:selected="${d == selectedDetailType}">민영</option>
         </select>
-        <button type="submit">필터 적용</button>
+        <button type="submit" class="btn btn-ghost">필터 적용</button>
+        <span class="muted" style="margin-left:auto" th:text="|${rows.size()}건|">9건</span>
     </form>
 
-    <p class="muted" th:text="|총 ${rows.size()}건|">총 0건</p>
+    <div class="table-scroll">
+        <table>
+            <thead>
+            <tr>
+                <th>공고명</th><th>지역</th><th>유형</th><th>접수기간</th>
+                <th>상태</th><th class="num">주택형</th><th class="num">특공 세대</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="row : ${rows}">
+                <td class="wrap"><a th:href="@{/announcements/{id}(id=${row.id})}" th:text="${row.houseName}">공고명</a></td>
+                <td th:text="${row.regionName} ?: '-'">서울</td>
+                <td th:text="${row.houseDetailTypeLabel}">민영</td>
+                <td class="muted">
+                    <span th:text="${row.receptBeginDate} ?: '?'">2026-01-01</span> ~
+                    <span th:text="${row.receptEndDate} ?: '?'">2026-01-05</span>
+                </td>
+                <td>
+                    <span class="badge"
+                          th:classappend="${row.status == '접수중'} ? 'open' : (${row.status == '접수예정'} ? 'soon' : 'closed')"
+                          th:text="${row.status}">상태</span>
+                </td>
+                <td class="num" th:text="|${row.unitTypeCount}개|">3개</td>
+                <td class="num" th:text="|${row.totalSpecialSupply}세대|">120세대</td>
+            </tr>
+            <tr th:if="${rows.isEmpty()}">
+                <td colspan="7" class="muted">
+                    조건에 맞는 공고가 없습니다. 필터를 바꾸거나 관리자 동기화(<code>POST /api/admin/sync</code>)를 먼저 실행하세요.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
 
-    <table>
-        <thead>
-        <tr>
-            <th>공고명</th><th>지역</th><th>유형</th><th>접수기간</th>
-            <th>상태</th><th>주택형</th><th>특공 세대</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="row : ${rows}">
-            <td><a th:href="@{/announcements/{id}(id=${row.id})}" th:text="${row.houseName}">공고명</a></td>
-            <td th:text="${row.regionName} ?: '-'">서울</td>
-            <td th:text="${row.houseDetailTypeLabel}">민영</td>
-            <td class="muted">
-                <span th:text="${row.receptBeginDate} ?: '?'">2026-01-01</span> ~
-                <span th:text="${row.receptEndDate} ?: '?'">2026-01-05</span>
-            </td>
-            <td>
-                <span class="tag"
-                      th:classappend="${row.status == '접수중'} ? 'open' : (${row.status == '접수예정'} ? 'soon' : 'closed')"
-                      th:text="${row.status}">상태</span>
-            </td>
-            <td th:text="|${row.unitTypeCount}개|">3개</td>
-            <td th:text="|${row.totalSpecialSupply}세대|">120세대</td>
-        </tr>
-        <tr th:if="${rows.isEmpty()}">
-            <td colspan="7" class="muted">조건에 맞는 공고가 없습니다. 필터를 바꾸거나 관리자 동기화(<code>POST /api/admin/sync</code>)를 먼저 실행하세요.</td>
-        </tr>
-        </tbody>
-    </table>
+    <div th:replace="~{fragments/common :: disclaimer}"></div>
+</main>
 
-    <p th:replace="~{fragments/common :: disclaimer}"></p>
-</div>
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

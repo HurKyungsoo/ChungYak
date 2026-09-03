@@ -40,6 +40,12 @@ public class AnnouncementQueryService {
                 .toList();
     }
 
+    /** 수집된 전체 공고 수 — 목록 화면 상단 통계 */
+    @Transactional(readOnly = true)
+    public long totalCount() {
+        return announcementRepository.count();
+    }
+
     /** 필터 드롭다운에 쓸 지역명 목록 */
     @Transactional(readOnly = true)
     public List<String> availableRegions() {

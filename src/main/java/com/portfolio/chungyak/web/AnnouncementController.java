@@ -39,6 +39,7 @@ public class AnnouncementController {
                 .toList();
 
         model.addAttribute("rows", rows);
+        model.addAttribute("totalCount", queryService.totalCount());
         model.addAttribute("regions", queryService.availableRegions());
         model.addAttribute("detailTypes", HouseDetailType.values());
         model.addAttribute("selectedRegion", region);

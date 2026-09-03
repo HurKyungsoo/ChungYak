@@ -14,7 +14,7 @@ LLM 은 앞(자연어 → 조건)과 뒤(판정 결과 → 설명)에만 쓰고,
 | 언어/런타임 | Java 21, Spring Boot 3.3 | 레코드·패턴매칭·가상스레드까지 쓸 수 있는 최신 LTS |
 | 영속성 | JPA + MyBatis 병행 | 정적 CRUD·락은 JPA, 동적 조회·집계는 MyBatis (도입 예정) |
 | DB | MariaDB (운영) / H2 파일 (로컬·테스트) | 로컬은 무설정 기동, 운영은 표준 RDBMS |
-| 화면 | Thymeleaf | 서버 렌더링, 판정 결과를 그대로 보여주는 정보 중심 화면 |
+| 화면 | Thymeleaf + 손 CSS 디자인시스템 | 서버 렌더링. `fragments/common.html` 에 토큰·다크모드·컴포넌트, Pretendard, 반응형. 빌드 단계 없음 |
 | 빌드 | Gradle 8.10.2 | Spring Boot 3.3 Gradle 플러그인 호환 (9.x 는 `bootJar` 에서 깨짐) |
 | 스키마 | Flyway (`db/migration`) | `ddl-auto: validate`. H2·MariaDB 공용 SQL |
 | 배포 | Docker Compose (app + MariaDB + Caddy) | Caddy 가 Let's Encrypt 자동. CI: GitHub Actions |
