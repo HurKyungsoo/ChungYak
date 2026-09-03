@@ -17,9 +17,11 @@ import java.util.Map;
 /**
  * 관리자 동기화 API.
  *
- * TODO(security): 지금은 스켈레톤 단계라 누구나 호출할 수 있다.
- *   Spring Security 를 붙이면 이 컨트롤러 전체에 ROLE_ADMIN 을 요구하도록 바꾼다.
- *   (@PreAuthorize("hasRole('ADMIN')") 또는 SecurityFilterChain 에서 /api/admin/** 보호)
+ * `/api/admin/**` 는 {@link com.portfolio.chungyak.config.SecurityConfig} 에서
+ * `ROLE_ADMIN` (HTTP Basic) 을 요구한다. 계정은 `ADMIN_USERNAME` / `ADMIN_PASSWORD`
+ * 환경변수로 주입한다(미설정 시 임시 비밀번호를 기동 로그에 남김).
+ *
+ *   curl -u admin:$ADMIN_PASSWORD -X POST http://localhost:8080/api/admin/sync
  */
 @Slf4j
 @RestController

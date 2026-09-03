@@ -18,6 +18,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
 
     // 청약홈은 JSON, LH 는 JSON. XML 은 나중에 소스가 늘면 추가
@@ -36,6 +37,7 @@ dependencies {
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

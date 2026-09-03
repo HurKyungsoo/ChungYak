@@ -92,12 +92,19 @@
 - 컨트롤러에 비즈니스 로직 작성
 - 규칙 엔진에서 LLM 호출
 - 판정 결과를 이유 없이 반환
-- `application.yml` 에 실제 키 커밋
+- `application.yml` 에 실제 키·비밀번호 커밋
+
+## 보안
+
+- `/api/admin/**` = `ROLE_ADMIN` (HTTP Basic), `config/SecurityConfig`.
+  나머지 화면은 전부 공개. CSRF 는 비활성(세션 사용자 인증 없음 + 관리자 API stateless).
+- 계정: `ADMIN_USERNAME`/`ADMIN_PASSWORD` 환경변수. 미설정 시 임시 비밀번호 자동 생성 → 로그.
+- 컨트롤러 단위테스트(`AdminSyncControllerTest`)는 `standaloneSetup` 이라 시큐리티를 안 탄다.
+  인증 동작은 `AdminSecurityTest`(`@SpringBootTest`)가 검증한다.
 
 ## 남은 작업
 
 1. LH 목록 API 활용신청 (포털 버튼 404 로 막혀 있음) -> 승인되면 `LhClient` 추가
 2. 벡터 검색 — LH 공고내용(4000자) 임베딩 + 하이브리드 검색
 3. 신혼희망타운 — 별도 `SpecialSupplyType` + 규칙 (현재 엔진이 매칭 못 냄)
-4. Security — `/api/admin/**` 에 `ROLE_ADMIN`
 5. Docker + CI + 배포

@@ -62,6 +62,9 @@ LLM 은 앞뒤 두 곳에만 있다. **앞**: 자연어 → 폼 값 채우기(�
   `LlmProfileCaller` / `LlmExplainer` 인터페이스에 목을 끼운다).
   `ANTHROPIC_API_KEY` 가 없으면 빈이 안 만들어지고 두 기능만 꺼진다.
 - **web** — 컨트롤러 3개(관리자 sync / 공고 목록·상세 / 자격 판정+자연어 추출). 비즈니스 로직 없음.
+- **config** — `SecurityConfig`: `/api/admin/**` 만 `ROLE_ADMIN`(HTTP Basic), 나머지 화면은 공개.
+  CSRF 비활성(세션 기반 사용자 인증 없음 + 관리자 API 는 stateless Basic). 계정은
+  `ADMIN_USERNAME`/`ADMIN_PASSWORD` 환경변수, 미설정 시 임시 비밀번호를 기동 로그에 남긴다.
 
 ### 화면
 
@@ -72,7 +75,7 @@ LLM 은 앞뒤 두 곳에만 있다. **앞**: 자연어 → 폼 값 채우기(�
 | `GET /announcements/{id}/eligibility` | 조건 입력 폼 (`ANTHROPIC_API_KEY` 있으면 자연어 입력창 추가) |
 | `POST /announcements/{id}/eligibility/extract` | 자연어 문장 → 폼 자동 채우기. 판정 안 함 — 확인 못 한 항목은 "직접 선택" 안내 |
 | `POST /announcements/{id}/eligibility` | 판정 결과 — 주택형별 신청 가능 유형·배정 세대수, "자격은 되지만 물량 없음", 전체 판정 근거. `ANTHROPIC_API_KEY` 있으면 맨 위에 "AI 요약" 별도 표시(규칙 근거는 그대로 유지) |
-| `POST /api/admin/sync` | 청약홈 즉시 수집 (응답: `pagesFetched/received/created/updated`) |
+| `POST /api/admin/sync` | 청약홈 즉시 수집 (응답: `pagesFetched/received/created/updated`). **`ROLE_ADMIN` 필요 (HTTP Basic)** |
 
 ---
 
@@ -159,6 +162,7 @@ LLM 은 앞뒤 두 곳에만 있다. **앞**: 자연어 → 폼 값 채우기(�
 - JDK 21
 - 공공데이터포털 인증키 (한국부동산원 청약홈 API 활용신청)
 - (선택) `ANTHROPIC_API_KEY` — 자연어 입력·판정 요약용. 없으면 두 기능만 비활성
+- (선택) `ADMIN_PASSWORD` — `/api/admin/**` 관리자 계정. 없으면 기동 시 임시 비밀번호를 로그에 출력
 
 ### 로컬 실행
 
@@ -180,11 +184,12 @@ LLM_MODEL=claude-haiku-4-5 ./gradlew bootRun
 ### 첫 데이터 수집
 
 ```bash
-curl -X POST http://localhost:8080/api/admin/sync
+# /api/admin/** 는 ROLE_ADMIN (HTTP Basic)
+curl -u admin:$ADMIN_PASSWORD -X POST http://localhost:8080/api/admin/sync
 # → {"pagesFetched":29,"received":2861,"created":2861,"updated":0}
 ```
 
-이후 `http://localhost:8080/announcements` 에서 공고 목록을 확인한다.
+이후 `http://localhost:8080/announcements` 에서 공고 목록을 확인한다 (목록·상세·판정 화면은 인증 불필요).
 
 ### 테스트
 
@@ -217,5 +222,4 @@ ANTHROPIC_API_KEY=<키> ./gradlew test --tests '*IntegrationTest*'
 
 1. **LH 연동** — 목록 API 활용신청 승인되면 `LhClient` 추가 (응답 구조가 청약홈과 완전히 다름)
 2. **벡터 검색** — LH 공고내용(4,000자) 임베딩 + 하이브리드 검색
-4. **Security** — `/api/admin/**` 에 `ROLE_ADMIN` (현재는 스켈레톤이라 열려 있음)
-5. **Docker + CI + 배포**
+3. **Docker + CI + 배포**

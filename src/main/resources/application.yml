@@ -28,6 +28,13 @@ llm:
     api-key: ${ANTHROPIC_API_KEY:REPLACE_ME}
     model: ${LLM_MODEL:claude-sonnet-5}
 
+# 관리자 계정 (/api/admin/** 보호). 비밀번호를 커밋하지 말 것.
+# ADMIN_PASSWORD 가 없으면 기동 시 임시 비밀번호를 생성해 로그에 남긴다.
+security:
+  admin:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:}
+
   # 한국부동산원 청약홈 (odcloud 게이트웨이)
   applyhome:
     base-url: https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1
