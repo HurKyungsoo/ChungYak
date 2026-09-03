@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: chungyak
+  profiles:
+    active: local
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        default_batch_fetch_size: 100
+    open-in-view: false
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+# 공공데이터포털 인증키 - 절대 커밋하지 말 것
+publicdata:
+  service-key: ${PUBLICDATA_SERVICE_KEY:REPLACE_ME}
+
+  # 한국부동산원 청약홈 (odcloud 게이트웨이)
+  applyhome:
+    base-url: https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1
+    detail-path: /getAPTLttotPblancDetail
+    model-path: /getAPTLttotPblancMdl
+    per-page: 100
+    max-pages: 30
+
+  # 한국토지주택공사 (data.go.kr 게이트웨이) - 목록 API 활용신청 대기 중
+  lh:
+    enabled: false
+    notice-list-url: https://apis.data.go.kr/B552555/lhopendata/lhNoticeList
+    detail-url: https://apis.data.go.kr/B552555/lhLeaseNoticeBfhDtlInfo1/getLeaseNoticeBfhDtlInfo1
+    supply-url: https://apis.data.go.kr/B552555/lhLeaseNoticeBfhSplInfo1/getLeaseNoticeBfhSplInfo1
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:h2:file:./data/chungyak;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  thymeleaf:
+    cache: false
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: jdbc:mariadb://localhost:3306/chungyak?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    driver-class-name: org.mariadb.jdbc.Driver
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
