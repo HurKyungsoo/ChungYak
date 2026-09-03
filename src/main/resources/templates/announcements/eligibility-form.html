@@ -69,6 +69,14 @@
                 <input type="number" min="0" th:field="*{accountMonths}" placeholder="예: 12">
                 <span class="muted">(비규제 6개월 / 규제지역 24개월)</span>
             </label>
+            <label class="row">납입 횟수
+                <input type="number" min="0" th:field="*{accountPaymentCount}" placeholder="예: 24">
+                <span class="muted">(국민주택 순위 요건 — 12회 이상, 규제지역 24회)</span>
+            </label>
+            <label class="row">예치금 (원)
+                <input type="number" min="0" step="100000" th:field="*{accountDeposit}" placeholder="예: 3000000">
+                <span class="muted">(민영주택 — 지역·면적별. 서울·부산 전용 85㎡ 이하 300만)</span>
+            </label>
         </fieldset>
 
         <fieldset>

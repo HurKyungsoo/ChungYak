@@ -40,7 +40,11 @@ public final class RuleTestSupport {
     public static final AssetRequirement ASSET = new AssetRequirement(REQUIREMENTS);
     public static final ReWinRequirement RE_WIN = new ReWinRequirement(
             new ReWinRestrictionProperties(120, 60));
-    public static final CommonRequirements COMMON = new CommonRequirements(RE_WIN, INCOME, ASSET);
+    public static final AccountRequirement ACCOUNT = new AccountRequirement(
+            new AccountRequirementProperties(12, 24,
+                    new AccountRequirementProperties.PrivateDeposit(3_000_000, 2_500_000, 2_000_000)));
+    public static final CommonRequirements COMMON =
+            new CommonRequirements(RE_WIN, INCOME, ASSET, ACCOUNT);
 
     public static List<EligibilityRule> allRules() {
         return List.of(
@@ -60,6 +64,8 @@ public final class RuleTestSupport {
                 .monthlyHouseholdIncome(5_000_000)
                 .householdSize(3)
                 .totalAssets(200_000_000L)
-                .carValue(15_000_000);
+                .carValue(15_000_000)
+                .accountPaymentCount(24)          // 국민주택 규제지역 기준도 충족
+                .accountDeposit(15_000_000);       // 민영 예치금 기준 충족
     }
 }

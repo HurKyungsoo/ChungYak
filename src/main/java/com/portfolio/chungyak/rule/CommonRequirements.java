@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * 여러 특별공급 유형에 공통으로 걸리는 요건 묶음 — 재당첨 제한 · 소득 · 자산.
+ * 여러 특별공급 유형에 공통으로 걸리는 요건 묶음 — 재당첨 제한 · 소득 · 자산 · 청약통장.
  *
  * 규칙은 이걸 주입받아 {@link #checkAll} 한 뒤:
  *  - 모두 {@code passed()} 여야 자기 pass 조건 통과
@@ -20,11 +20,14 @@ public class CommonRequirements {
     private final ReWinRequirement reWin;
     private final IncomeRequirement income;
     private final AssetRequirement asset;
+    private final AccountRequirement account;
 
-    public CommonRequirements(ReWinRequirement reWin, IncomeRequirement income, AssetRequirement asset) {
+    public CommonRequirements(ReWinRequirement reWin, IncomeRequirement income,
+                              AssetRequirement asset, AccountRequirement account) {
         this.reWin = reWin;
         this.income = income;
         this.asset = asset;
+        this.account = account;
     }
 
     public List<RequirementCheck> checkAll(ApplicantProfile profile,
@@ -33,7 +36,8 @@ public class CommonRequirements {
         return List.of(
                 reWin.check(profile, type),
                 income.check(profile, type),
-                asset.check(profile, announcement));
+                asset.check(profile, announcement),
+                account.check(profile, announcement));
     }
 
     /** 전부 통과했는지 */

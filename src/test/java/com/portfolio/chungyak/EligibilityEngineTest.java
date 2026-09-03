@@ -126,10 +126,12 @@ class EligibilityEngineTest {
         ApplicantProfile at140 = ApplicantProfile.builder()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
                 .totalAssets(100_000_000L).carValue(0)
+                .accountPaymentCount(24).accountDeposit(10_000_000)
                 .householdSize(3).monthlyHouseholdIncome(10_078_108).build();      // 정확히 140%
         ApplicantProfile over = ApplicantProfile.builder()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
                 .totalAssets(100_000_000L).carValue(0)
+                .accountPaymentCount(24).accountDeposit(10_000_000)
                 .householdSize(3).monthlyHouseholdIncome(10_500_000).build();      // 약 146%
 
         assertThat(engine.evaluate(at140, privateAnnouncement)
@@ -145,10 +147,12 @@ class EligibilityEngineTest {
         ApplicantProfile single = ApplicantProfile.builder()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
                 .totalAssets(100_000_000L).carValue(0)
+                .accountPaymentCount(24).accountDeposit(10_000_000)
                 .householdSize(3).monthlyHouseholdIncome(income).dualIncome(false).build();
         ApplicantProfile dual = ApplicantProfile.builder()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
                 .totalAssets(100_000_000L).carValue(0)
+                .accountPaymentCount(24).accountDeposit(10_000_000)
                 .householdSize(3).monthlyHouseholdIncome(income).dualIncome(true).build();
 
         assertThat(engine.evaluate(single, privateAnnouncement)
@@ -163,6 +167,7 @@ class EligibilityEngineTest {
         ApplicantProfile richInAssets = ApplicantProfile.builder()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
                 .householdSize(3).monthlyHouseholdIncome(5_000_000)
+                .accountPaymentCount(24).accountDeposit(10_000_000)
                 .totalAssets(500_000_000L).carValue(15_000_000)   // 총자산 5억 > 3.79억
                 .build();
 
@@ -208,6 +213,36 @@ class EligibilityEngineTest {
                 .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
         // 100개월이면 일반 지역은 풀렸지만 투기과열 당첨이면 아직 제한 중
         assertThat(engine.evaluate(spec100, privateAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
+    }
+
+    @Test
+    @DisplayName("국민주택 특공은 청약통장 납입 횟수도 본다 — 12회 미만이면 탈락")
+    void publicHousingAccountPaymentCount() {
+        ApplicantProfile fewPayments = ApplicantProfile.builder()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
+                .householdSize(3).monthlyHouseholdIncome(5_000_000)
+                .totalAssets(200_000_000L).carValue(15_000_000)
+                .accountPaymentCount(6).accountDeposit(15_000_000)   // 납입 6회 < 12
+                .build();
+
+        assertThat(engine.evaluate(fewPayments, publicAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
+        // 같은 사람이 민영 공고면 예치금 기준이라 통과 (납입 횟수는 안 봄)
+        assertThat(engine.evaluate(fewPayments, privateAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
+    }
+
+    @Test
+    @DisplayName("민영주택 특공은 지역별 예치금을 본다 — 서울 300만 미달이면 탈락")
+    void privateHousingAccountDeposit() {
+        ApplicantProfile lowDeposit = ApplicantProfile.builder()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
+                .householdSize(3).monthlyHouseholdIncome(5_000_000)
+                .accountPaymentCount(24).accountDeposit(2_000_000)   // 200만 < 서울 300만
+                .build();
+
+        assertThat(engine.evaluate(lowDeposit, privateAnnouncement)   // 서울
                 .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
     }
 

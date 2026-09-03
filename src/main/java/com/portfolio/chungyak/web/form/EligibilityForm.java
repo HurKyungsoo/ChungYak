@@ -35,6 +35,12 @@ public class EligibilityForm {
     /** 청약통장 가입 기간 (개월) */
     private Integer accountMonths;
 
+    /** 청약통장 납입 횟수 (국민주택) */
+    private Integer accountPaymentCount;
+
+    /** 청약통장 예치금 (원, 민영주택) */
+    private Integer accountDeposit;
+
     /** 과거 주택 소유 이력 */
     private boolean everOwnedHouse;
 
@@ -97,6 +103,8 @@ public class EligibilityForm {
                 .hasNewborn(hasNewborn)
                 .houseless(houseless)
                 .accountMonths(accountMonths)
+                .accountPaymentCount(accountPaymentCount)
+                .accountDeposit(accountDeposit)
                 .everOwnedHouse(everOwnedHouse)
                 .supportingOldParents(supportingOldParents)
                 .householdHead(householdHead)
@@ -129,6 +137,12 @@ public class EligibilityForm {
 
     public Integer getAccountMonths() { return accountMonths; }
     public void setAccountMonths(Integer accountMonths) { this.accountMonths = accountMonths; }
+
+    public Integer getAccountPaymentCount() { return accountPaymentCount; }
+    public void setAccountPaymentCount(Integer accountPaymentCount) { this.accountPaymentCount = accountPaymentCount; }
+
+    public Integer getAccountDeposit() { return accountDeposit; }
+    public void setAccountDeposit(Integer accountDeposit) { this.accountDeposit = accountDeposit; }
 
     public boolean isEverOwnedHouse() { return everOwnedHouse; }
     public void setEverOwnedHouse(boolean everOwnedHouse) { this.everOwnedHouse = everOwnedHouse; }

@@ -91,6 +91,15 @@ re-win-restriction:
   speculation-area-months: 120   # 투기과열지구·청약과열지역 당첨 10년
   default-months: 60             # 그 외 (보수적으로 수도권 과밀억제권역 5년)
 
+# 청약통장 납입횟수(국민주택)·예치금(민영). 가입 기간과 별개.
+account:
+  public-min-count: 12           # 국민주택 1순위 납입 횟수 (수도권 기준)
+  public-min-count-regulated: 24 # 규제지역
+  private-deposit:               # 민영 예치금 (원, 전용 85㎡ 이하 기준)
+    tier1: 3000000               # 서울·부산
+    tier2: 2500000               # 그 외 광역시
+    tier3: 2000000               # 기타 시·군
+
 # 전년도 도시근로자 가구원수별 월평균소득 (통계청). 매년 3월경 갱신 — 배포 없이 여기만 수정.
 income-reference:
   basis-year: "2024"

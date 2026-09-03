@@ -39,6 +39,12 @@ public class ApplicantProfile {
     /** 청약통장 가입 기간 (개월) */
     private final Integer accountMonths;
 
+    /** 청약통장 납입 횟수. 국민주택(공공) 특별공급 순위 요건에 쓴다. */
+    private final Integer accountPaymentCount;
+
+    /** 청약통장 예치금 (원). 민영주택 특별공급은 지역·면적별 예치금 기준을 넘어야 한다. */
+    private final Integer accountDeposit;
+
     /** 과거 주택 소유 이력 — 생애최초 특공은 세대 전원이 무주택 이력이어야 한다 */
     private final boolean everOwnedHouse;
 

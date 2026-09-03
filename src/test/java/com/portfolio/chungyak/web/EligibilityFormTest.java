@@ -26,6 +26,8 @@ class EligibilityFormTest {
         form.setHasNewborn(true);
         form.setHouseless(true);
         form.setAccountMonths(12);
+        form.setAccountPaymentCount(24);
+        form.setAccountDeposit(3_000_000);
         form.setEverOwnedHouse(false);
         form.setSupportingOldParents(true);
         form.setHouseholdHead(true);
@@ -38,6 +40,8 @@ class EligibilityFormTest {
         assertThat(profile.isHasNewborn()).isTrue();
         assertThat(profile.isHouseless()).isTrue();
         assertThat(profile.getAccountMonths()).isEqualTo(12);
+        assertThat(profile.getAccountPaymentCount()).isEqualTo(24);
+        assertThat(profile.getAccountDeposit()).isEqualTo(3_000_000);
         assertThat(profile.isEverOwnedHouse()).isFalse();
         assertThat(profile.isSupportingOldParents()).isTrue();
         assertThat(profile.isHouseholdHead()).isTrue();
