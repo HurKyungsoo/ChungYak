@@ -37,4 +37,10 @@ public class AnthropicClientConfig {
     public LlmProfileCaller anthropicProfileCaller(AnthropicClient client, LlmProperties properties) {
         return new AnthropicProfileCaller(client, properties);
     }
+
+    @Bean
+    @ConditionalOnBean(AnthropicClient.class)
+    public LlmExplainer anthropicExplainer(AnthropicClient client, LlmProperties properties) {
+        return new AnthropicExplainer(client, properties);
+    }
 }

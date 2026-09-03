@@ -26,8 +26,8 @@ LLM 은 앞(자연어 → 조건)과 뒤(판정 결과 → 설명)에만 쓰고,
 ```
               [자연어 질문]                                    [판정 결과]
                    │                                               ▲
-                   ▼ ProfileExtractionService (LLM: 값 추출만)       │ (LLM: 설명 — 예정)
-              ExtractedProfile ──► [사용자가 폼에서 확인·수정] ──┐     │
+                   ▼ ProfileExtractionService (LLM: 값 추출만)       │ ExplanationService
+              ExtractedProfile ──► [사용자가 폼에서 확인·수정] ──┐     │ (LLM: 근거 재구성 + 모순검사)
                                                               ▼     │
   청약홈/LH API ──► 어댑터 ──► Announcement ──────────►  ApplicantProfile
    (ApplyhomeClient)  (PublicDataParser)  (JPA)                │
@@ -39,11 +39,13 @@ LLM 은 앞(자연어 → 조건)과 뒤(판정 결과 → 설명)에만 쓰고,
                                                               │
                                                  EligibilityDecision (이유 필수)
                                                               │
-                                                 EligibilityResultView (화면 재배열)
+                                          EligibilityResultView (화면 재배열)
+                                                   + ExplanationResult (AI 요약 / 폴백)
 ```
 
-자연어 추출은 폼을 **채워주기만** 한다. 채운 값은 사용자가 확인·수정한 뒤에야 규칙 엔진으로
-들어간다 — LLM 이 뽑은 값이 판정으로 직행하지 않는다.
+LLM 은 앞뒤 두 곳에만 있다. **앞**: 자연어 → 폼 값 채우기(사용자가 확인·수정 후 규칙 엔진으로).
+**뒤**: 확정된 판정 근거를 문장으로 재구성(모순 검사 후 표시, 실패 시 규칙 데이터로 조립한 폴백).
+어느 쪽도 판정 자체에는 관여하지 않는다.
 
 ### 레이어
 
@@ -54,9 +56,11 @@ LLM 은 앞(자연어 → 조건)과 뒤(판정 결과 → 설명)에만 쓰고,
 - **rule** — `EligibilityRule` 구현체 하나 = 특별공급 유형 하나.
   현재 신혼부부·생애최초·다자녀·노부모부양·신생아 5종. 새 유형은 구현체 추가로만 늘린다.
 - **service** — 수집(`AnnouncementSyncService`), 조회(`AnnouncementQueryService`).
-- **llm** — 자연어 → `ExtractedProfile` 추출(`ProfileExtractionService`). CLAUDE.md 규칙의 "앞"
-  쪽만 담당한다. SDK 호출은 `AnthropicProfileCaller` 한 곳에 격리(테스트는 `LlmProfileCaller`
-  인터페이스에 목을 끼운다). `ANTHROPIC_API_KEY` 가 없으면 빈이 안 만들어지고 기능만 꺼진다.
+- **llm** — CLAUDE.md 규칙의 "앞·뒤"만 담당. `ProfileExtractionService`(자연어 → 폼 값),
+  `ExplanationService`(판정 근거 → 요약 + `ContradictionCheck` 모순 검사 + `FallbackSummary` 폴백).
+  SDK 호출은 `AnthropicProfileCaller` / `AnthropicExplainer` 두 파일에만 격리(테스트는
+  `LlmProfileCaller` / `LlmExplainer` 인터페이스에 목을 끼운다).
+  `ANTHROPIC_API_KEY` 가 없으면 빈이 안 만들어지고 두 기능만 꺼진다.
 - **web** — 컨트롤러 3개(관리자 sync / 공고 목록·상세 / 자격 판정+자연어 추출). 비즈니스 로직 없음.
 
 ### 화면
@@ -67,7 +71,7 @@ LLM 은 앞(자연어 → 조건)과 뒤(판정 결과 → 설명)에만 쓰고,
 | `GET /announcements/{id}` | 공고 상세 + 주택형별 특별공급 세대수 표 |
 | `GET /announcements/{id}/eligibility` | 조건 입력 폼 (`ANTHROPIC_API_KEY` 있으면 자연어 입력창 추가) |
 | `POST /announcements/{id}/eligibility/extract` | 자연어 문장 → 폼 자동 채우기. 판정 안 함 — 확인 못 한 항목은 "직접 선택" 안내 |
-| `POST /announcements/{id}/eligibility` | 판정 결과 — 주택형별 신청 가능 유형·배정 세대수, "자격은 되지만 물량 없음", 전체 판정 근거 |
+| `POST /announcements/{id}/eligibility` | 판정 결과 — 주택형별 신청 가능 유형·배정 세대수, "자격은 되지만 물량 없음", 전체 판정 근거. `ANTHROPIC_API_KEY` 있으면 맨 위에 "AI 요약" 별도 표시(규칙 근거는 그대로 유지) |
 | `POST /api/admin/sync` | 청약홈 즉시 수집 (응답: `pagesFetched/received/created/updated`) |
 
 ---
@@ -114,6 +118,25 @@ LLM 은 앞(자연어 → 조건)과 뒤(판정 결과 → 설명)에만 쓰고,
   단위테스트가 LLM 응답을 목으로 고정해 null 처리 로직만 검증(`ProfileExtractionServiceTest`),
   실제 호출은 `@EnabledIfEnvironmentVariable` 통합테스트로 분리(`ProfileExtractionIntegrationTest`).
 
+### 판정 요약 (LLM 뒷단) — 왜 설명에만 쓰나
+
+`ExplanationService` 는 이미 확정된 판정을 자연어로 정리한다. 판정에는 손대지 않는다.
+
+- **재구성만, 판정 안 함.** 규칙 엔진이 낸 `satisfied`/`failed`/`missing` 이유를 그대로 근거로
+  주고 "이걸 문장으로 정리해줘" 만 시킨다. 프롬프트에 "판정 결과나 세대수를 새로 만들지 말 것"
+  을 명시. LLM 이 판정 로직에 들어갈 여지가 없다 — 입력이 이미 확정된 결론이다.
+- **모순 검사로 방어.** LLM 이 지시를 어기고 "신청 가능합니다" 를 지어낼 수 있다.
+  `ContradictionCheck` 가 `MatchResult.hasAnyMatch()` 극성과 요약 문장의 단정을 대조한다 —
+  신청 가능 유형이 없는데 "가능하다" 고 하거나, 있는데 "없다" 고 하면 모순.
+  ("가능" 한 단어가 아니라 "신청가능합니다"/"신청가능한특별공급이없" 같은 문형으로 판단해 오탐을 줄인다.)
+- **모순이면 재생성 → 폴백.** 최대 2회 재생성하고, 그래도 모순이면 `FallbackSummary` 로 대체한다.
+  폴백은 `MatchResult` 값만으로 조립한 결정론적 한 문단이라 판정과 절대 어긋나지 않는다.
+  이 흐름을 `ExplanationServiceTest`(모순되는 목 → 폴백 확인)와 `ContradictionCheckTest` 가 고정한다.
+- **화면.** "AI 요약" 은 규칙 근거 목록 **위에 별도로** 얹힌다. 근거 목록은 그대로 남아 있어
+  요약이 근거를 가리지 않는다. 폴백일 땐 "AI" 배지 없이 "요약(규칙 데이터로 자동 생성)" 으로 표시.
+- **키 없으면 안 보인다.** `ANTHROPIC_API_KEY` 없으면 `DISABLED` — 요약 영역 자체가 사라지고
+  규칙 기반 이유만 보인다.
+
 ### 데이터에서 확인한 사실 (추측 아님, 라이브 호출로 검증)
 
 - 청약홈 공고 2,861건, 주택형 14,637건 (2026-09-03 수집).
@@ -135,7 +158,7 @@ LLM 은 앞(자연어 → 조건)과 뒤(판정 결과 → 설명)에만 쓰고,
 
 - JDK 21
 - 공공데이터포털 인증키 (한국부동산원 청약홈 API 활용신청)
-- (선택) `ANTHROPIC_API_KEY` — 자연어 입력 기능용. 없으면 그 기능만 비활성
+- (선택) `ANTHROPIC_API_KEY` — 자연어 입력·판정 요약용. 없으면 두 기능만 비활성
 
 ### 로컬 실행
 
@@ -143,10 +166,10 @@ LLM 은 앞(자연어 → 조건)과 뒤(판정 결과 → 설명)에만 쓰고,
 # 두 키 없이도 기동된다 (외부 API 는 빈 리스트, 자연어 입력창은 숨김)
 ./gradlew bootRun
 
-# 실제 수집 + 자연어 추출까지
+# 실제 수집 + 자연어 추출 + 판정 요약까지
 PUBLICDATA_SERVICE_KEY=<발급키> ANTHROPIC_API_KEY=<발급키> ./gradlew bootRun
 
-# 추출 모델 변경 (기본 claude-sonnet-5)
+# LLM 모델 변경 (기본 claude-sonnet-5)
 LLM_MODEL=claude-haiku-4-5 ./gradlew bootRun
 ```
 
@@ -169,8 +192,8 @@ curl -X POST http://localhost:8080/api/admin/sync
 ./gradlew test                                   # 전체 (LLM 통합테스트는 키 없으면 skip)
 ./gradlew test --tests '*EligibilityEngineTest*' # 규칙 엔진 경계값
 
-# 실제 LLM 호출까지 검증 (비용 발생)
-ANTHROPIC_API_KEY=<키> ./gradlew test --tests '*ProfileExtractionIntegrationTest*'
+# 실제 LLM 호출까지 검증 (비용 발생) — 자연어 추출 + 판정 요약
+ANTHROPIC_API_KEY=<키> ./gradlew test --tests '*IntegrationTest*'
 ```
 
 ### 빌드
@@ -193,7 +216,6 @@ ANTHROPIC_API_KEY=<키> ./gradlew test --tests '*ProfileExtractionIntegrationTes
 ## 남은 작업
 
 1. **LH 연동** — 목록 API 활용신청 승인되면 `LhClient` 추가 (응답 구조가 청약홈과 완전히 다름)
-2. **LLM 설명 생성** — 자연어 추출은 완료. 남은 건 판정 결과(`EligibilityDecision`) → 자연어 설명(뒤쪽)
-3. **벡터 검색** — LH 공고내용(4,000자) 임베딩 + 하이브리드 검색
+2. **벡터 검색** — LH 공고내용(4,000자) 임베딩 + 하이브리드 검색
 4. **Security** — `/api/admin/**` 에 `ROLE_ADMIN` (현재는 스켈레톤이라 열려 있음)
 5. **Docker + CI + 배포**

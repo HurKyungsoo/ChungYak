@@ -1,6 +1,7 @@
 package com.portfolio.chungyak.web;
 
 import com.portfolio.chungyak.domain.Announcement;
+import com.portfolio.chungyak.llm.ExplanationService;
 import com.portfolio.chungyak.llm.ProfileExtractionResult;
 import com.portfolio.chungyak.llm.ProfileExtractionService;
 import com.portfolio.chungyak.rule.ApplicantProfile;
@@ -32,7 +33,11 @@ import org.springframework.web.server.ResponseStatusException;
  *
  * 자연어 입력(/extract)은 LLM 으로 폼을 <b>채워주기만</b> 한다.
  * 채운 값은 사용자가 확인·수정한 뒤 위 1~3 플로우로 그대로 들어간다.
- * LLM 은 판정에 관여하지 않는다(CLAUDE.md 절대 규칙).
+ *
+ * 판정 결과 화면에는 LLM 요약(ExplanationService)이 얹힌다 — 이미 확정된 근거를
+ * 문장으로 재구성한 것이고, 모순 검사를 통과하지 못하면 결정론적 요약으로 대체된다.
+ *
+ * LLM 은 앞(추출)·뒤(요약) 어느 쪽에서도 판정에 관여하지 않는다(CLAUDE.md 절대 규칙).
  */
 @Slf4j
 @Controller
@@ -43,6 +48,7 @@ public class EligibilityController {
     private final EligibilityEngine eligibilityEngine;
     private final EligibilityResultAssembler resultAssembler;
     private final ProfileExtractionService profileExtractionService;
+    private final ExplanationService explanationService;
 
     @GetMapping("/announcements/{id}/eligibility")
     public String form(@PathVariable Long id, Model model) {
@@ -108,9 +114,14 @@ public class EligibilityController {
                 announcement.getId(), result.matches().size(),
                 result.qualifiedButUnavailable().size());
 
+        // 뒷단 LLM: 확정된 판정 근거를 문장으로 재구성만 한다 (판정에는 관여하지 않음).
+        var explanation = explanationService.explain(result);
+        log.info("판정 요약 — 공고 #{}: {}", announcement.getId(), explanation.status());
+
         model.addAttribute("announcement", announcement);
         model.addAttribute("status", queryService.statusOf(announcement));
         model.addAttribute("result", resultAssembler.assemble(result));
+        model.addAttribute("explanation", explanation);
         return "announcements/eligibility-result";
     }
 

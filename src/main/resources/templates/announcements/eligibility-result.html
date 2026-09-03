@@ -19,6 +19,16 @@
         이 공고에서 현재 조건으로 신청 가능한 특별공급 유형이 없습니다. 아래 판정 근거를 확인하세요.
     </div>
 
+    <!-- LLM 요약. 규칙 기반 근거(아래)를 대체하지 않고 그 위에 얹는 읽기용 문단이다.
+         판정은 규칙 엔진이 했고, 이 문장은 그 근거를 재구성만 한 것이다. -->
+    <div th:if="${explanation != null and explanation.shown}" class="card"
+         style="background:#f7f9fc;border-left:3px solid #1558d6">
+        <strong th:text="${explanation.aiGenerated} ? 'AI 요약' : '요약'">요약</strong>
+        <span th:if="${explanation.aiGenerated}" class="muted"> · 판정은 규칙 엔진이 했고 AI 는 근거를 문장으로 정리만 했습니다</span>
+        <span th:unless="${explanation.aiGenerated}" class="muted"> · 규칙 데이터로 자동 생성</span>
+        <p style="margin:6px 0 0" th:text="${explanation.text}">요약 문장</p>
+    </div>
+
     <h2>신청 가능한 주택형</h2>
     <table th:if="${!result.matchedUnitTypes.isEmpty()}">
         <thead>

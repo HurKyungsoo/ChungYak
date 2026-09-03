@@ -16,7 +16,7 @@
 - MariaDB(prod) / H2(local, test)
 - Thymeleaf
 - LLM: 공식 Anthropic Java SDK (`com.anthropic:anthropic-java`) — Spring AI 아님.
-  자연어 -> `ExtractedProfile` 추출에만. SDK 호출은 `llm/AnthropicProfileCaller` 한 곳에 격리.
+  자연어 추출 + 판정 요약. SDK 호출은 `llm/AnthropicProfileCaller`·`llm/AnthropicExplainer` 두 곳에만.
 
 ## 빌드 · 실행
 
@@ -37,12 +37,14 @@
 1. **자격 판정은 `rule` 패키지 안에서만 한다.**
    LLM 호출 코드가 `EligibilityRule` 구현체나 `EligibilityEngine` 에 들어가면 안 된다.
 
-2. **LLM 의 역할은 앞뒤 두 곳뿐이다.**
-   - 앞: 자연어 질문 -> `ExtractedProfile` 추출 (`llm` 패키지, 구현 완료)
-   - 뒤: `EligibilityDecision` -> 자연어 설명 (미구현)
+2. **LLM 의 역할은 앞뒤 두 곳뿐이다.** 둘 다 `llm` 패키지, 구현 완료.
+   - 앞: 자연어 질문 -> `ExtractedProfile` 추출 (`ProfileExtractionService`)
+   - 뒤: `MatchResult` -> 자연어 요약 (`ExplanationService`)
    그 사이는 전부 결정론적이어야 한다.
-   앞쪽도 추출값이 판정으로 직행하면 안 된다 — 사용자가 폼에서 확인·수정한 뒤에만
-   `EligibilityEngine` 으로 들어간다. 애매한 필드는 추측하지 말고 null.
+   - 앞: 추출값이 판정으로 직행하면 안 된다 — 사용자가 폼에서 확인·수정한 뒤에만
+     `EligibilityEngine` 으로 들어간다. 애매한 필드는 추측하지 말고 null.
+   - 뒤: 판정은 이미 끝났고 LLM 은 근거를 문장으로 재구성만 한다. `ContradictionCheck` 가
+     요약이 판정과 어긋나는지 사후 검사하고, 어긋나면 `FallbackSummary`(결정론적)로 대체.
 
 3. **`EligibilityDecision` 은 반드시 이유를 남긴다.**
    `satisfied`/`failed`/`missing` 중 최소 하나는 채워져야 한다.
@@ -95,8 +97,7 @@
 ## 남은 작업
 
 1. LH 목록 API 활용신청 (포털 버튼 404 로 막혀 있음) -> 승인되면 `LhClient` 추가
-2. LLM 뒤쪽 — `EligibilityDecision` -> 자연어 설명 (앞쪽 추출은 `llm` 패키지에 구현 완료)
-3. 벡터 검색 — LH 공고내용(4000자) 임베딩 + 하이브리드 검색
-4. 신혼희망타운 — 별도 `SpecialSupplyType` + 규칙 (현재 엔진이 매칭 못 냄)
-5. Security — `/api/admin/**` 에 `ROLE_ADMIN`
-6. Docker + CI + 배포
+2. 벡터 검색 — LH 공고내용(4000자) 임베딩 + 하이브리드 검색
+3. 신혼희망타운 — 별도 `SpecialSupplyType` + 규칙 (현재 엔진이 매칭 못 냄)
+4. Security — `/api/admin/**` 에 `ROLE_ADMIN`
+5. Docker + CI + 배포
