@@ -50,7 +50,7 @@
 | B4 | 공고 원문 반영 | ⬜ | PDF(4,000자) 파싱 or "세부 요건은 공고문 확인" 고지 강화 |
 | B5 | 수집 실패 알림 | ⬜ | 전체 sync 실패 시 알림 (현재 조용히 낡은 데이터) |
 | B6 | 외부 API 계약 테스트 | ⬜ | 청약홈 응답 스키마 변경 감지 |
-| B7 | 거주요건 판정 | ⬜ | `residenceMonthsInRegion` 을 규칙에 반영 (현재 필드만 있음) |
+| B7 | 거주요건 판정 | ✅ | `RegionResidenceRequirement` — 규제지역 24개월/수도권 12개월 계속 거주. 미충족은 FAIL("기타지역 물량은 가능" 안내). `CommonRequirements` 에 합류 |
 
 각 규칙 수정 시 `EligibilityEngineTest` 필수. 새 유형은 구현체 추가 (if-else 금지).
 

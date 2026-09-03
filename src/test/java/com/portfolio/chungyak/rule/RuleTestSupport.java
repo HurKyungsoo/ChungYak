@@ -43,8 +43,10 @@ public final class RuleTestSupport {
     public static final AccountRequirement ACCOUNT = new AccountRequirement(
             new AccountRequirementProperties(12, 24,
                     new AccountRequirementProperties.PrivateDeposit(3_000_000, 2_500_000, 2_000_000)));
+    public static final RegionResidenceRequirement RESIDENCE = new RegionResidenceRequirement(
+            new RegionResidenceRequirementProperties(24, 12));
     public static final CommonRequirements COMMON =
-            new CommonRequirements(RE_WIN, INCOME, ASSET, ACCOUNT);
+            new CommonRequirements(RE_WIN, INCOME, ASSET, ACCOUNT, RESIDENCE);
 
     public static List<EligibilityRule> allRules() {
         return List.of(
@@ -65,7 +67,8 @@ public final class RuleTestSupport {
                 .householdSize(3)
                 .totalAssets(200_000_000L)
                 .carValue(15_000_000)
-                .accountPaymentCount(24)          // 국민주택 규제지역 기준도 충족
-                .accountDeposit(15_000_000);       // 민영 예치금 기준 충족
+                .accountPaymentCount(24)           // 국민주택 규제지역 기준도 충족
+                .accountDeposit(15_000_000)        // 민영 예치금 기준 충족
+                .residenceMonthsInRegion(36);      // 규제지역 거주요건(24개월)도 충족
     }
 }

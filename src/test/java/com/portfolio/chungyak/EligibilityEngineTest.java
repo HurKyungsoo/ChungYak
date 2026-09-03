@@ -126,12 +126,12 @@ class EligibilityEngineTest {
         ApplicantProfile at140 = ApplicantProfile.builder()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
                 .totalAssets(100_000_000L).carValue(0)
-                .accountPaymentCount(24).accountDeposit(10_000_000)
+                .accountPaymentCount(24).accountDeposit(10_000_000).residenceMonthsInRegion(36)
                 .householdSize(3).monthlyHouseholdIncome(10_078_108).build();      // 정확히 140%
         ApplicantProfile over = ApplicantProfile.builder()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
                 .totalAssets(100_000_000L).carValue(0)
-                .accountPaymentCount(24).accountDeposit(10_000_000)
+                .accountPaymentCount(24).accountDeposit(10_000_000).residenceMonthsInRegion(36)
                 .householdSize(3).monthlyHouseholdIncome(10_500_000).build();      // 약 146%
 
         assertThat(engine.evaluate(at140, privateAnnouncement)
@@ -147,12 +147,12 @@ class EligibilityEngineTest {
         ApplicantProfile single = ApplicantProfile.builder()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
                 .totalAssets(100_000_000L).carValue(0)
-                .accountPaymentCount(24).accountDeposit(10_000_000)
+                .accountPaymentCount(24).accountDeposit(10_000_000).residenceMonthsInRegion(36)
                 .householdSize(3).monthlyHouseholdIncome(income).dualIncome(false).build();
         ApplicantProfile dual = ApplicantProfile.builder()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
                 .totalAssets(100_000_000L).carValue(0)
-                .accountPaymentCount(24).accountDeposit(10_000_000)
+                .accountPaymentCount(24).accountDeposit(10_000_000).residenceMonthsInRegion(36)
                 .householdSize(3).monthlyHouseholdIncome(income).dualIncome(true).build();
 
         assertThat(engine.evaluate(single, privateAnnouncement)
@@ -167,7 +167,7 @@ class EligibilityEngineTest {
         ApplicantProfile richInAssets = ApplicantProfile.builder()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
                 .householdSize(3).monthlyHouseholdIncome(5_000_000)
-                .accountPaymentCount(24).accountDeposit(10_000_000)
+                .accountPaymentCount(24).accountDeposit(10_000_000).residenceMonthsInRegion(36)
                 .totalAssets(500_000_000L).carValue(15_000_000)   // 총자산 5억 > 3.79억
                 .build();
 
@@ -222,7 +222,7 @@ class EligibilityEngineTest {
         ApplicantProfile fewPayments = ApplicantProfile.builder()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
                 .householdSize(3).monthlyHouseholdIncome(5_000_000)
-                .totalAssets(200_000_000L).carValue(15_000_000)
+                .totalAssets(200_000_000L).carValue(15_000_000).residenceMonthsInRegion(36)
                 .accountPaymentCount(6).accountDeposit(15_000_000)   // 납입 6회 < 12
                 .build();
 
@@ -244,6 +244,25 @@ class EligibilityEngineTest {
 
         assertThat(engine.evaluate(lowDeposit, privateAnnouncement)   // 서울
                 .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
+    }
+
+    @Test
+    @DisplayName("규제지역은 해당 공급지역 거주요건(24개월)도 본다 — 경계값")
+    void regionResidenceRequirement() {
+        ApplicantProfile at23 = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(24)
+                .residenceMonthsInRegion(23).build();
+        ApplicantProfile at24 = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(24)
+                .residenceMonthsInRegion(24).build();
+
+        assertThat(engine.evaluate(at23, regulatedAnnouncement)   // 서울·투기과열
+                .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
+        assertThat(engine.evaluate(at24, regulatedAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
+        assertThat(engine.evaluate(at23, regulatedAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED).getFailedReasons())
+                .anyMatch(r -> r.contains("거주") && r.contains("24개월"));
     }
 
     @Test

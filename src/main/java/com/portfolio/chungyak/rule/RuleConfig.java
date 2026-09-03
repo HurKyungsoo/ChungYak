@@ -11,7 +11,8 @@ import org.springframework.context.annotation.Configuration;
         IncomeReferenceProperties.class,
         SpecialSupplyRequirementProperties.class,
         ReWinRestrictionProperties.class,
-        AccountRequirementProperties.class
+        AccountRequirementProperties.class,
+        RegionResidenceRequirementProperties.class
 })
 public class RuleConfig {
 }

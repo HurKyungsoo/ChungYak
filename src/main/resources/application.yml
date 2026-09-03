@@ -100,6 +100,11 @@ account:
     tier2: 2500000               # 그 외 광역시
     tier3: 2000000               # 기타 시·군
 
+# 해당 공급지역 거주요건 (계속 거주 기간, 개월)
+region-residence:
+  regulated-months: 24          # 투기과열지구·청약과열지역 2년
+  metro-months: 12              # 수도권(서울·경기·인천) 1년
+
 # 전년도 도시근로자 가구원수별 월평균소득 (통계청). 매년 3월경 갱신 — 배포 없이 여기만 수정.
 income-reference:
   basis-year: "2024"
