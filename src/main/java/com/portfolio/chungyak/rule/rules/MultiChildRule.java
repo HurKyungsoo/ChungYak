@@ -3,8 +3,11 @@ package com.portfolio.chungyak.rule.rules;
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.rule.ApplicantProfile;
+import com.portfolio.chungyak.rule.AssetRequirement;
 import com.portfolio.chungyak.rule.EligibilityDecision;
 import com.portfolio.chungyak.rule.EligibilityRule;
+import com.portfolio.chungyak.rule.IncomeRequirement;
+import com.portfolio.chungyak.rule.RequirementCheck;
 import org.springframework.stereotype.Component;
 
 /**
@@ -14,12 +17,22 @@ import org.springframework.stereotype.Component;
  *  - 미성년 자녀 2명 이상 (2024년 기준 3명 -> 2명으로 완화)
  *  - 무주택 세대구성원
  *  - 청약통장 가입 6개월 이상
+ *  - 소득 요건 (도시근로자 대비 %)
+ *  - 공공주택이면 자산 요건
  */
 @Component
 public class MultiChildRule implements EligibilityRule {
 
     private static final int MIN_CHILDREN = 2;
     private static final int MIN_ACCOUNT_MONTHS = 6;
+
+    private final IncomeRequirement incomeRequirement;
+    private final AssetRequirement assetRequirement;
+
+    public MultiChildRule(IncomeRequirement incomeRequirement, AssetRequirement assetRequirement) {
+        this.incomeRequirement = incomeRequirement;
+        this.assetRequirement = assetRequirement;
+    }
 
     @Override
     public SpecialSupplyType supportedType() {
@@ -34,7 +47,10 @@ public class MultiChildRule implements EligibilityRule {
         Integer accountMonths = profile.getAccountMonths();
         boolean accountOk = accountMonths != null && accountMonths >= MIN_ACCOUNT_MONTHS;
 
-        boolean pass = childOk && houselessOk && accountOk;
+        RequirementCheck income = incomeRequirement.check(profile, supportedType());
+        RequirementCheck asset = assetRequirement.check(profile, announcement);
+
+        boolean pass = childOk && houselessOk && accountOk && income.passed() && asset.passed();
         EligibilityDecision decision = pass
                 ? EligibilityDecision.eligible(supportedType())
                 : EligibilityDecision.ineligible(supportedType());
@@ -59,6 +75,9 @@ public class MultiChildRule implements EligibilityRule {
         } else {
             decision.failed("청약통장 가입기간이 " + accountMonths + "개월로 6개월에 미달합니다.");
         }
+
+        income.describe(decision);
+        asset.describe(decision);
 
         return decision;
     }

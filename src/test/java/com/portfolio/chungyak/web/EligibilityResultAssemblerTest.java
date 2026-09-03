@@ -3,8 +3,7 @@ package com.portfolio.chungyak.web;
 import com.portfolio.chungyak.domain.*;
 import com.portfolio.chungyak.rule.ApplicantProfile;
 import com.portfolio.chungyak.rule.EligibilityEngine;
-import com.portfolio.chungyak.rule.EligibilityRule;
-import com.portfolio.chungyak.rule.rules.*;
+import com.portfolio.chungyak.rule.RuleTestSupport;
 import com.portfolio.chungyak.web.view.EligibilityResultAssembler;
 import com.portfolio.chungyak.web.view.EligibilityResultView;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,7 +11,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,10 +27,12 @@ class EligibilityResultAssemblerTest {
 
     @BeforeEach
     void setUp() {
-        List<EligibilityRule> rules = List.of(
-                new NewlywedRule(), new FirstTimeRule(), new MultiChildRule(),
-                new OldParentsRule(), new NewbornRule());
-        engine = new EligibilityEngine(rules);
+        engine = new EligibilityEngine(RuleTestSupport.allRules());
+    }
+
+    /** 소득·자산 요건은 넉넉히 통과하는 프로필 (월소득 500만·3인 ≈ 70%) */
+    private static ApplicantProfile.ApplicantProfileBuilder passing() {
+        return RuleTestSupport.passingIncomeAndAssets();
     }
 
     private Announcement publicAnnouncement() {
@@ -61,7 +61,7 @@ class EligibilityResultAssemblerTest {
     @Test
     @DisplayName("신청 가능한 주택형에 유형별 배정 세대수가 그대로 담긴다")
     void carriesAllocationCounts() {
-        ApplicantProfile profile = ApplicantProfile.builder()
+        ApplicantProfile profile = passing()
                 .married(true).monthsSinceMarriage(24)
                 .childCount(2).hasNewborn(true)
                 .houseless(true).accountMonths(12)
@@ -82,7 +82,7 @@ class EligibilityResultAssemblerTest {
     @Test
     @DisplayName("모든 판정에 이유(satisfied/failed/missing 중 최소 하나)가 실린다")
     void everyDecisionHasReasons() {
-        ApplicantProfile profile = ApplicantProfile.builder()
+        ApplicantProfile profile = passing()
                 .married(true).monthsSinceMarriage(100)   // 혼인기간 초과
                 .houseless(false)                          // 주택 보유
                 .build();                                  // accountMonths 없음
@@ -119,7 +119,7 @@ class EligibilityResultAssemblerTest {
                 .build());
 
         // 신혼·다자녀 둘 다 자격이 되는 신청자
-        ApplicantProfile profile = ApplicantProfile.builder()
+        ApplicantProfile profile = passing()
                 .married(true).monthsSinceMarriage(24)
                 .childCount(2)
                 .houseless(true).accountMonths(12)
