@@ -131,6 +131,87 @@
         a.card { display: block; color: inherit; transition: border-color .12s, box-shadow .12s, transform .12s; }
         a.card:hover { text-decoration: none; border-color: var(--border-strong); box-shadow: var(--shadow); transform: translateY(-1px); }
 
+        /* ── hero actions / stat strip ─────────────────────────────── */
+        .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+        .stat-strip { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 18px;
+                      font-size: .85rem; color: var(--text-muted); }
+        .stat-strip span { display: inline-flex; align-items: baseline; gap: 5px; }
+        .stat-strip b { color: var(--text); font-weight: 750; font-size: .98rem; letter-spacing: -0.01em; }
+
+        .sec-head { display: flex; align-items: baseline; gap: 10px; margin: 26px 0 2px; }
+        .sec-head h2 { margin: 0; }
+        .sec-head .count { color: var(--text-subtle); font-size: .85rem; font-weight: 500; }
+
+        /* ── notice cards (공고 목록) ──────────────────────────────── */
+        .notice-list { display: grid; gap: 12px; margin: 16px 0; }
+        .notice-card {
+            display: block; background: var(--surface); color: inherit;
+            border: 1px solid var(--border); border-radius: var(--r-lg);
+            padding: 17px 20px; box-shadow: var(--shadow-sm);
+            transition: border-color .12s, box-shadow .12s, transform .12s;
+        }
+        .notice-card:hover { text-decoration: none; border-color: var(--border-strong);
+                             box-shadow: var(--shadow); transform: translateY(-2px); }
+        .notice-card .top { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
+        .notice-card .meta { color: var(--text-muted); font-size: .82rem; font-weight: 500; }
+        .notice-card .dday {
+            margin-left: auto; font-size: .77rem; font-weight: 700; white-space: nowrap;
+            padding: 3px 9px; border-radius: var(--r-pill);
+            background: var(--surface-2); color: var(--text-muted);
+        }
+        .notice-card .dday.soon { background: var(--warn-weak); color: var(--warn); }
+        .notice-card .title {
+            font-size: 1.05rem; font-weight: 650; letter-spacing: -0.015em;
+            line-height: 1.42; margin-bottom: 12px; color: var(--text);
+        }
+        .notice-card .facts { display: flex; flex-wrap: wrap; gap: 6px; }
+        .notice-card .fact {
+            font-size: .8rem; font-weight: 550; color: var(--text-muted);
+            background: var(--surface-2); border-radius: var(--r-sm); padding: 4px 9px;
+        }
+        .notice-card .fact.hl { background: var(--brand-weak); color: var(--brand); }
+        .notice-card .fact.zero { color: var(--text-subtle); }
+
+        .dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--text-subtle); }
+        .dot.open { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-weak); }
+        .dot.soon { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-weak); }
+        .status-text { font-size: .82rem; font-weight: 650; }
+        .status-text.open { color: var(--ok); }
+        .status-text.soon { color: var(--warn); }
+
+        .empty { text-align: center; padding: 46px 20px; color: var(--text-muted);
+                 background: var(--surface); border: 1px dashed var(--border-strong);
+                 border-radius: var(--r-lg); font-size: .9rem; }
+
+        /* ── generic chips ────────────────────────────────────────── */
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: .8rem; font-weight: 550; color: var(--text-muted);
+            background: var(--surface-2); border-radius: var(--r-sm); padding: 4px 9px;
+        }
+        .chip.hl   { background: var(--brand-weak); color: var(--brand); }
+        .chip.zero { color: var(--text-subtle); }
+        .chip.dday { background: var(--surface-2); color: var(--text-muted); font-weight: 700;
+                     border-radius: var(--r-pill); }
+        .chip.dday.soon { background: var(--warn-weak); color: var(--warn); }
+
+        /* ── result hero (판정/가점 결과 상단) ────────────────────── */
+        .result-hero {
+            border-radius: var(--r-lg); padding: 22px 24px; margin: 16px 0 20px;
+            border: 1px solid transparent; display: flex; flex-direction: column; gap: 4px;
+        }
+        .result-hero.good { background: var(--ok-weak);
+            border-color: color-mix(in srgb, var(--ok) 28%, transparent); }
+        .result-hero.bad  { background: var(--no-weak);
+            border-color: color-mix(in srgb, var(--no) 28%, transparent); }
+        .result-hero .headline { font-size: 1.35rem; font-weight: 750; letter-spacing: -0.02em; line-height: 1.3; }
+        .result-hero.good .headline { color: color-mix(in srgb, var(--ok) 85%, var(--text)); }
+        .result-hero.bad  .headline { color: color-mix(in srgb, var(--no) 85%, var(--text)); }
+        .result-hero .sub { color: var(--text-muted); font-size: .9rem; }
+        .result-hero .score-num { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+        .result-hero .score-num small { font-size: 1rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0; }
+
         /* ── buttons ───────────────────────────────────────────────── */
         .btn {
             display: inline-flex; align-items: center; justify-content: center; gap: 6px;

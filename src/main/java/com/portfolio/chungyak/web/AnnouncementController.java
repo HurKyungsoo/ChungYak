@@ -4,6 +4,7 @@ import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.service.AnnouncementQueryService;
 import com.portfolio.chungyak.web.view.AnnouncementListRow;
+import com.portfolio.chungyak.web.view.Dday;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -34,8 +36,9 @@ public class AnnouncementController {
         HouseDetailType parsedDetailType = parseDetailType(detailType);
         List<Announcement> announcements = queryService.findOpenOrUpcoming(region, parsedDetailType);
 
+        LocalDate today = queryService.today();
         List<AnnouncementListRow> rows = announcements.stream()
-                .map(a -> AnnouncementListRow.of(a, queryService.statusOf(a)))
+                .map(a -> AnnouncementListRow.of(a, queryService.statusOf(a), today))
                 .toList();
 
         model.addAttribute("rows", rows);
@@ -62,8 +65,11 @@ public class AnnouncementController {
         Announcement announcement = queryService.findDetail(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "공고를 찾을 수 없습니다."));
 
+        String status = queryService.statusOf(announcement);
         model.addAttribute("announcement", announcement);
-        model.addAttribute("status", queryService.statusOf(announcement));
+        model.addAttribute("status", status);
+        model.addAttribute("dday", Dday.of(status, announcement.getReceptBeginDate(),
+                announcement.getReceptEndDate(), queryService.today()));
         return "announcements/detail";
     }
 }

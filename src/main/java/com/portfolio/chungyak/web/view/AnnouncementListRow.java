@@ -19,12 +19,15 @@ public record AnnouncementListRow(
         LocalDate receptEndDate,
         String status,
         int unitTypeCount,
-        int totalSpecialSupply) {
+        int totalSpecialSupply,
+        String ddayLabel,
+        boolean ddayUrgent) {
 
-    public static AnnouncementListRow of(Announcement a, String status) {
+    public static AnnouncementListRow of(Announcement a, String status, LocalDate today) {
         int specialSum = a.getUnitTypes().stream()
                 .mapToInt(u -> u.getSupplyBreakdown() == null ? 0 : u.getSupplyBreakdown().total())
                 .sum();
+        Dday dday = Dday.of(status, a.getReceptBeginDate(), a.getReceptEndDate(), today);
         return new AnnouncementListRow(
                 a.getId(),
                 a.getHouseName(),
@@ -34,6 +37,8 @@ public record AnnouncementListRow(
                 a.getReceptEndDate(),
                 status,
                 a.getUnitTypes().size(),
-                specialSum);
+                specialSum,
+                dday.label(),
+                dday.urgent());
     }
 }

@@ -8,12 +8,13 @@
     <a th:href="@{/general-supply}" class="backlink">← 값 다시 입력</a>
     <h1>일반공급 청약가점 결과</h1>
 
-    <div th:if="${score.complete}" class="banner good">
-        <div><span class="big">총 <span th:text="${score.total}">64</span>점</span> <span class="muted">/ 84점</span></div>
+    <div th:if="${score.complete}" class="result-hero good">
+        <div class="score-num"><span th:text="${score.total}">64</span>점 <small>/ 84점</small></div>
+        <div class="sub">무주택 기간 + 부양가족 수 + 청약통장 가입 기간을 합산한 결과입니다.</div>
     </div>
-    <div th:unless="${score.complete}" class="banner bad">
-        <div><span class="big">총점을 계산하지 못했습니다.</span>
-            <p>일부 항목을 산정할 수 없습니다. 아래 빈 항목을 채우세요.</p></div>
+    <div th:unless="${score.complete}" class="result-hero bad">
+        <div class="headline">총점을 계산하지 못했습니다</div>
+        <div class="sub">일부 항목을 산정할 수 없습니다. 아래 빈 항목을 채우세요.</div>
     </div>
 
     <div class="table-scroll">

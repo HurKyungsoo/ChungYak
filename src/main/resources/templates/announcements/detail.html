@@ -8,14 +8,20 @@
     <a th:href="@{/announcements}" class="backlink">← 공고 목록</a>
 
     <h1 th:text="${announcement.houseName}">공고명</h1>
-    <p style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <span class="badge"
-              th:classappend="${status == '접수중'} ? 'open' : (${status == '접수예정'} ? 'soon' : 'closed')"
-              th:text="${status}">상태</span>
-        <span class="badge" th:text="${announcement.houseDetailType.label} + ' · ' + ${announcement.houseType.label}">민영 · APT</span>
-        <span class="badge reg"
+    <div class="chips" style="margin-bottom:4px">
+        <span class="chip">
+            <span class="dot"
+                  th:classappend="${status == '접수중'} ? 'open' : (${status == '접수예정'} ? 'soon' : '')"></span>
+            <span class="status-text"
+                  th:classappend="${status == '접수중'} ? 'open' : (${status == '접수예정'} ? 'soon' : '')"
+                  th:text="${status}">상태</span>
+        </span>
+        <span class="chip dday" th:if="${dday != null and dday.present()}"
+              th:classappend="${dday.urgent()} ? 'soon' : ''" th:text="${dday.label()}">D-2</span>
+        <span class="chip" th:text="${announcement.houseDetailType.label} + ' · ' + ${announcement.houseType.label}">민영 · APT</span>
+        <span class="chip" style="color:var(--no)"
               th:if="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}">규제지역</span>
-    </p>
+    </div>
 
     <div class="btn-row" style="margin:16px 0 4px">
         <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="btn btn-primary btn-lg">내 조건으로 자격 판정 →</a>

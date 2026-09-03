@@ -72,7 +72,7 @@ LLM 은 앞뒤 두 곳에만 있다. **앞**: 자연어 → 폼 값 채우기(�
 
 | 경로 | 설명 |
 |---|---|
-| `GET /announcements` | 접수중·예정 공고 목록, 지역·주택유형 필터 |
+| `GET /announcements` | 접수중·예정 공고 카드 목록, 지역·주택유형 필터, 접수 D-day 배지 |
 | `GET /announcements/{id}` | 공고 상세 + 주택형별 특별공급 세대수 표 |
 | `GET /announcements/{id}/eligibility` | 조건 입력 폼 (`ANTHROPIC_API_KEY` 있으면 자연어 입력창 추가) |
 | `POST /announcements/{id}/eligibility/extract` | 자연어 문장 → 폼 자동 채우기. 판정 안 함 — 확인 못 한 항목은 "직접 선택" 안내 |

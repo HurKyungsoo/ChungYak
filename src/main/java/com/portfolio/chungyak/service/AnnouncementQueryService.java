@@ -63,6 +63,11 @@ public class AnnouncementQueryService {
         return announcementRepository.findByIdWithUnitTypes(id);
     }
 
+    /** 오늘 (Clock 기준) — 목록 뷰 모델의 D-day 계산에 넘긴다 */
+    public LocalDate today() {
+        return LocalDate.now(clock);
+    }
+
     /** 오늘 기준 공고 상태 — 화면 표시용 */
     public String statusOf(Announcement a) {
         LocalDate today = LocalDate.now(clock);

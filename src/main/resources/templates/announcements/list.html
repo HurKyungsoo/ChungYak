@@ -7,28 +7,26 @@
 <main>
     <section class="hero">
         <span class="eyebrow">청약 자격 확인</span>
-        <h1>내 조건에 맞는 특별공급, 판정은 규칙이 합니다</h1>
+        <h1>청약 자격, 판정은 규칙이 합니다</h1>
         <p class="lead">
-            공공데이터로 모은 분양 공고에서 신혼부부·생애최초·다자녀·노부모부양·신생아 특별공급 자격을
-            결정론적 규칙으로 확인합니다. AI 는 자연어 입력과 결과 설명에만 쓰고, 되고/안 되고는 규칙 엔진이 정합니다.
+            관심 공고를 고르면 그 공고 기준으로 신혼부부·생애최초·다자녀·노부모부양·신생아
+            특별공급 자격을 결정론적 규칙으로 확인합니다. AI 는 자연어 입력과 결과 설명에만 씁니다.
         </p>
-        <div class="stat-row">
-            <div class="stat">
-                <div class="n" th:text="${rows.size()}">9</div>
-                <div class="l">접수중·예정 공고</div>
-            </div>
-            <div class="stat" th:if="${totalCount != null}">
-                <div class="n" th:text="${#numbers.formatInteger(totalCount, 1, 'COMMA')}">2,861</div>
-                <div class="l">수집된 전체 공고</div>
-            </div>
-            <div class="stat">
-                <div class="n">84점</div>
-                <div class="l"><a th:href="@{/general-supply}">일반공급 가점 계산 →</a></div>
-            </div>
+        <div class="hero-actions">
+            <a href="#list" class="btn btn-primary btn-lg">접수중 공고 보기 ↓</a>
+            <a th:href="@{/general-supply}" class="btn btn-ghost btn-lg">일반공급 가점 계산</a>
+        </div>
+        <div class="stat-strip">
+            <span><b th:text="${rows.size()}">9</b> 접수중·접수예정</span>
+            <span th:if="${totalCount != null}"><b th:text="${#numbers.formatInteger(totalCount, 1, 'COMMA')}">2,861</b> 수집된 전체 공고</span>
+            <span><b>84점</b> 일반공급 가점 만점</span>
         </div>
     </section>
 
-    <h2>분양 공고 — 접수중 · 접수예정</h2>
+    <div class="sec-head" id="list">
+        <h2>접수중 · 접수예정</h2>
+        <span class="count" th:text="|${rows.size()}건|">9건</span>
+    </div>
 
     <form class="filter-bar" method="get" th:action="@{/announcements}">
         <select name="region">
@@ -43,41 +41,38 @@
                     th:selected="${d == selectedDetailType}">민영</option>
         </select>
         <button type="submit" class="btn btn-ghost">필터 적용</button>
-        <span class="muted" style="margin-left:auto" th:text="|${rows.size()}건|">9건</span>
     </form>
 
-    <div class="table-scroll">
-        <table>
-            <thead>
-            <tr>
-                <th>공고명</th><th>지역</th><th>유형</th><th>접수기간</th>
-                <th>상태</th><th class="num">주택형</th><th class="num">특공 세대</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="row : ${rows}">
-                <td class="wrap"><a th:href="@{/announcements/{id}(id=${row.id})}" th:text="${row.houseName}">공고명</a></td>
-                <td th:text="${row.regionName} ?: '-'">서울</td>
-                <td th:text="${row.houseDetailTypeLabel}">민영</td>
-                <td class="muted">
+    <div class="notice-list" th:if="${!rows.isEmpty()}">
+        <a class="notice-card" th:each="row : ${rows}"
+           th:href="@{/announcements/{id}(id=${row.id})}">
+            <div class="top">
+                <span class="dot"
+                      th:classappend="${row.status == '접수중'} ? 'open' : (${row.status == '접수예정'} ? 'soon' : '')"></span>
+                <span class="status-text"
+                      th:classappend="${row.status == '접수중'} ? 'open' : (${row.status == '접수예정'} ? 'soon' : '')"
+                      th:text="${row.status}">접수중</span>
+                <span class="meta" th:text="|${row.regionName ?: '-'} · ${row.houseDetailTypeLabel}|">서울 · 민영</span>
+                <span class="dday" th:if="${row.ddayLabel != null}"
+                      th:classappend="${row.ddayUrgent} ? 'soon' : ''"
+                      th:text="${row.ddayLabel}">D-2</span>
+            </div>
+            <div class="title" th:text="${row.houseName}">공고명</div>
+            <div class="facts">
+                <span class="fact">접수
                     <span th:text="${row.receptBeginDate} ?: '?'">2026-01-01</span> ~
                     <span th:text="${row.receptEndDate} ?: '?'">2026-01-05</span>
-                </td>
-                <td>
-                    <span class="badge"
-                          th:classappend="${row.status == '접수중'} ? 'open' : (${row.status == '접수예정'} ? 'soon' : 'closed')"
-                          th:text="${row.status}">상태</span>
-                </td>
-                <td class="num" th:text="|${row.unitTypeCount}개|">3개</td>
-                <td class="num" th:text="|${row.totalSpecialSupply}세대|">120세대</td>
-            </tr>
-            <tr th:if="${rows.isEmpty()}">
-                <td colspan="7" class="muted">
-                    조건에 맞는 공고가 없습니다. 필터를 바꾸거나 관리자 동기화(<code>POST /api/admin/sync</code>)를 먼저 실행하세요.
-                </td>
-            </tr>
-            </tbody>
-        </table>
+                </span>
+                <span class="fact hl" th:if="${row.totalSpecialSupply > 0}"
+                      th:text="|특공 ${#numbers.formatInteger(row.totalSpecialSupply, 1, 'COMMA')}세대|">특공 35세대</span>
+                <span class="fact zero" th:if="${row.totalSpecialSupply == 0}">특공 물량 없음</span>
+                <span class="fact" th:text="|주택형 ${row.unitTypeCount}개|">주택형 4개</span>
+            </div>
+        </a>
+    </div>
+
+    <div class="empty" th:if="${rows.isEmpty()}">
+        조건에 맞는 공고가 없습니다. 필터를 바꾸거나 관리자 동기화(<code>POST /api/admin/sync</code>)를 먼저 실행하세요.
     </div>
 
     <div th:replace="~{fragments/common :: disclaimer}"></div>

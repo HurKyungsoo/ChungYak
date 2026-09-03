@@ -7,17 +7,18 @@
 <main>
     <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="backlink">← 조건 다시 입력</a>
     <h1>자격 판정 결과</h1>
-    <p class="muted" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span th:text="${result.houseName}">공고명</span>
-        <span class="badge reg" th:if="${result.regulatedArea}">규제지역</span>
-    </p>
-
-    <div th:if="${result.hasAnyMatch}" class="banner good">
-        <div><span class="big">신청 가능한 주택형이 <span th:text="${result.matchedUnitTypes.size()}">1</span>개 있습니다.</span></div>
+    <div class="chips" style="margin-bottom:4px">
+        <span class="chip" th:text="${result.houseName}">공고명</span>
+        <span class="chip" style="color:var(--no)" th:if="${result.regulatedArea}">규제지역</span>
     </div>
-    <div th:unless="${result.hasAnyMatch}" class="banner bad">
-        <div><span class="big">현재 조건으로 신청 가능한 특별공급 유형이 없습니다.</span>
-            <p>아래 판정 근거에서 어떤 요건이 막았는지 확인하세요.</p></div>
+
+    <div th:if="${result.hasAnyMatch}" class="result-hero good">
+        <div class="headline">신청 가능한 주택형이 <span th:text="${result.matchedUnitTypes.size()}">1</span>개 있습니다</div>
+        <div class="sub">아래에서 주택형별 신청 가능 유형과 배정 세대를 확인하세요.</div>
+    </div>
+    <div th:unless="${result.hasAnyMatch}" class="result-hero bad">
+        <div class="headline">현재 조건으로 신청 가능한 특별공급 유형이 없습니다</div>
+        <div class="sub">아래 판정 근거에서 어떤 요건이 막았는지 확인하세요.</div>
     </div>
 
     <!-- LLM 요약 — 규칙 근거(아래)를 대체하지 않고 그 위에 얹는 읽기용 문단.
