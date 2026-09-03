@@ -102,6 +102,22 @@
             </label>
         </fieldset>
 
+        <fieldset>
+            <legend>재당첨 제한</legend>
+            <label class="row"><input type="checkbox" th:field="*{everWonSpecialSupply}">
+                과거에 특별공급에 당첨된 적이 있다 (본인 또는 세대원)
+                <span class="muted">(특별공급은 세대당 평생 1회)</span>
+            </label>
+            <label class="row">마지막 당첨일로부터 경과 개월
+                <input type="number" min="0" th:field="*{monthsSinceLastWin}" placeholder="예: 40">
+                <span class="muted">(당첨 이력이 없으면 비워 두세요)</span>
+            </label>
+            <label class="row"><input type="checkbox" th:field="*{pastWinInSpeculationArea}">
+                과거 당첨 주택이 투기과열지구·청약과열지역이었다
+                <span class="muted">(제한 기간이 10년으로 더 김)</span>
+            </label>
+        </fieldset>
+
         <button type="submit">판정하기</button>
     </form>
 

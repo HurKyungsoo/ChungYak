@@ -87,6 +87,21 @@ class EligibilityFormTest {
     }
 
     @Test
+    @DisplayName("재당첨 관련 필드도 그대로 프로필로 옮겨진다")
+    void mapsReWinFields() {
+        EligibilityForm form = new EligibilityForm();
+        form.setEverWonSpecialSupply(true);
+        form.setMonthsSinceLastWin(40);
+        form.setPastWinInSpeculationArea(true);
+
+        ApplicantProfile profile = form.toProfile();
+
+        assertThat(profile.isEverWonSpecialSupply()).isTrue();
+        assertThat(profile.getMonthsSinceLastWin()).isEqualTo(40);
+        assertThat(profile.isPastWinInSpeculationArea()).isTrue();
+    }
+
+    @Test
     @DisplayName("소득·자산을 비워 두면 null — 판정에서 '해당 요건 확인 불가'로 처리된다")
     void blankIncomeStaysNull() {
         ApplicantProfile profile = new EligibilityForm().toProfile();

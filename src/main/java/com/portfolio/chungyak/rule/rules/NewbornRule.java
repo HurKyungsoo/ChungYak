@@ -3,12 +3,13 @@ package com.portfolio.chungyak.rule.rules;
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.rule.ApplicantProfile;
-import com.portfolio.chungyak.rule.AssetRequirement;
+import com.portfolio.chungyak.rule.CommonRequirements;
 import com.portfolio.chungyak.rule.EligibilityDecision;
 import com.portfolio.chungyak.rule.EligibilityRule;
-import com.portfolio.chungyak.rule.IncomeRequirement;
 import com.portfolio.chungyak.rule.RequirementCheck;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * 신생아 특별공급.
@@ -16,8 +17,7 @@ import org.springframework.stereotype.Component;
  * 기본 요건
  *  - 2세 이하(입양 포함) 자녀가 있을 것
  *  - 무주택 세대구성원
- *  - 소득 요건 (도시근로자 대비 %, 맞벌이 완화 — 신생아는 완화폭이 크다)
- *  - 공공주택이면 자산 요건
+ *  - 공통 요건 (재당첨 제한 · 소득 · 자산 — 신생아는 소득 완화폭이 크다)
  *
  * 공급 대상: 2024년 제도 개편으로 공공·민영 모두에 배정된다.
  * 라이브 데이터로 확인 — 민영 공고 49건, 205개 주택형에 NWBB_HSHLDCO 가 채워져 있다.
@@ -27,12 +27,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class NewbornRule implements EligibilityRule {
 
-    private final IncomeRequirement incomeRequirement;
-    private final AssetRequirement assetRequirement;
+    private final CommonRequirements commonRequirements;
 
-    public NewbornRule(IncomeRequirement incomeRequirement, AssetRequirement assetRequirement) {
-        this.incomeRequirement = incomeRequirement;
-        this.assetRequirement = assetRequirement;
+    public NewbornRule(CommonRequirements commonRequirements) {
+        this.commonRequirements = commonRequirements;
     }
 
     @Override
@@ -45,10 +43,9 @@ public class NewbornRule implements EligibilityRule {
         boolean newbornOk = profile.isHasNewborn();
         boolean houselessOk = profile.isHouseless();
 
-        RequirementCheck income = incomeRequirement.check(profile, supportedType());
-        RequirementCheck asset = assetRequirement.check(profile, announcement);
+        List<RequirementCheck> common = commonRequirements.checkAll(profile, announcement, supportedType());
 
-        boolean pass = newbornOk && houselessOk && income.passed() && asset.passed();
+        boolean pass = newbornOk && houselessOk && CommonRequirements.allPassed(common);
         EligibilityDecision decision = pass
                 ? EligibilityDecision.eligible(supportedType())
                 : EligibilityDecision.ineligible(supportedType());
@@ -65,8 +62,7 @@ public class NewbornRule implements EligibilityRule {
             decision.failed("주택을 소유하고 있습니다.");
         }
 
-        income.describe(decision);
-        asset.describe(decision);
+        CommonRequirements.describeAll(common, decision);
 
         return decision;
     }

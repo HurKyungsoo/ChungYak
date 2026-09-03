@@ -69,6 +69,15 @@ public class ApplicantProfile {
     /** 자동차가액 (원). 공공주택 특별공급 자산 요건 — 총자산과 별개 상한. */
     private final Integer carValue;
 
+    /** 과거에 특별공급에 당첨된 적이 있는지 (본인 또는 세대원). 특별공급은 세대당 평생 1회. */
+    private final boolean everWonSpecialSupply;
+
+    /** 마지막 당첨일로부터 경과 개월 수. null 이면 당첨 이력 없음. 재당첨 제한 기간 계산에 쓴다. */
+    private final Integer monthsSinceLastWin;
+
+    /** 과거 당첨 주택이 투기과열지구·청약과열지역이었는지 — 재당첨 제한 기간이 더 길다(10년). */
+    private final boolean pastWinInSpeculationArea;
+
     public boolean hasChildren() {
         return childCount > 0;
     }

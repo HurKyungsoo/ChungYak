@@ -9,7 +9,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableConfigurationProperties({
         IncomeReferenceProperties.class,
-        SpecialSupplyRequirementProperties.class
+        SpecialSupplyRequirementProperties.class,
+        ReWinRestrictionProperties.class
 })
 public class RuleConfig {
 }

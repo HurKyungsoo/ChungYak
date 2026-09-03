@@ -58,11 +58,13 @@
 
 5. **새 특별공급 유형은 `EligibilityRule` 구현체를 추가한다.**
    기존 규칙에 if-else 를 덧붙이지 말 것.
-   소득·자산처럼 여러 유형에 공통인 요건은 `IncomeRequirement`/`AssetRequirement` 같은
-   공유 컴포넌트로 만들고 규칙이 주입받아 쓴다 (규칙마다 복붙 금지).
+   여러 유형에 공통인 요건(재당첨 제한·소득·자산)은 `CommonRequirements` 로 묶어
+   규칙이 주입받아 쓴다 (규칙마다 복붙 금지). 새 공통 요건은 여기에 추가.
+   각 요건은 `RequirementCheck`(PASS/FAIL/MISSING)를 사유와 함께 돌려준다.
 
-6. **제도 수치는 `application.yml` 에.** 소득 상한(%), 자산 상한, 도시근로자 소득표는
-   코드에 박지 말 것 — `special-supply`, `income-reference` 로 두어 배포 없이 갱신한다.
+6. **제도 수치는 `application.yml` 에.** 소득 상한(%), 자산 상한, 도시근로자 소득표,
+   재당첨 제한 기간은 코드에 박지 말 것 —
+   `special-supply`, `income-reference`, `re-win-restriction` 로 두어 배포 없이 갱신한다.
 
 ## 외부 API 규칙
 

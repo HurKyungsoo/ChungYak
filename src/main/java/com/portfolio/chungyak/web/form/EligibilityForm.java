@@ -62,6 +62,15 @@ public class EligibilityForm {
     /** 자동차가액 (원) — 공공주택 특공 자산 요건 */
     private Integer carValue;
 
+    /** 과거 특별공급 당첨 이력 (본인/세대원) — 특별공급은 평생 1회 */
+    private boolean everWonSpecialSupply;
+
+    /** 마지막 당첨일로부터 경과 개월 (없으면 비움) */
+    private Integer monthsSinceLastWin;
+
+    /** 과거 당첨 주택이 투기과열지구·청약과열지역이었는지 */
+    private boolean pastWinInSpeculationArea;
+
     /**
      * LLM 이 뽑은 값 중 <b>null 이 아닌 것만</b> 폼에 채운다.
      * null(= LLM 이 확인 못 한 값)은 건드리지 않는다 — 사용자가 화면에서 직접 고른다.
@@ -97,6 +106,9 @@ public class EligibilityForm {
                 .dualIncome(dualIncome)
                 .totalAssets(totalAssets)
                 .carValue(carValue)
+                .everWonSpecialSupply(everWonSpecialSupply)
+                .monthsSinceLastWin(monthsSinceLastWin)
+                .pastWinInSpeculationArea(pastWinInSpeculationArea)
                 .build();
     }
 
@@ -144,4 +156,13 @@ public class EligibilityForm {
 
     public Integer getCarValue() { return carValue; }
     public void setCarValue(Integer carValue) { this.carValue = carValue; }
+
+    public boolean isEverWonSpecialSupply() { return everWonSpecialSupply; }
+    public void setEverWonSpecialSupply(boolean everWonSpecialSupply) { this.everWonSpecialSupply = everWonSpecialSupply; }
+
+    public Integer getMonthsSinceLastWin() { return monthsSinceLastWin; }
+    public void setMonthsSinceLastWin(Integer monthsSinceLastWin) { this.monthsSinceLastWin = monthsSinceLastWin; }
+
+    public boolean isPastWinInSpeculationArea() { return pastWinInSpeculationArea; }
+    public void setPastWinInSpeculationArea(boolean pastWinInSpeculationArea) { this.pastWinInSpeculationArea = pastWinInSpeculationArea; }
 }

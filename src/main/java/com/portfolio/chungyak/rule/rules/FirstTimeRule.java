@@ -3,12 +3,13 @@ package com.portfolio.chungyak.rule.rules;
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.rule.ApplicantProfile;
-import com.portfolio.chungyak.rule.AssetRequirement;
+import com.portfolio.chungyak.rule.CommonRequirements;
 import com.portfolio.chungyak.rule.EligibilityDecision;
 import com.portfolio.chungyak.rule.EligibilityRule;
-import com.portfolio.chungyak.rule.IncomeRequirement;
 import com.portfolio.chungyak.rule.RequirementCheck;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * 생애최초 특별공급.
@@ -17,8 +18,7 @@ import org.springframework.stereotype.Component;
  *  - 세대 구성원 전원이 과거 주택을 소유한 적이 없음
  *  - 무주택 세대구성원
  *  - 청약통장 가입 6개월 이상 (규제지역 24개월)
- *  - 소득 요건 (도시근로자 대비 %, 맞벌이 완화)
- *  - 공공주택이면 자산 요건
+ *  - 공통 요건 (재당첨 제한 · 소득 · 자산)
  *  - 혼인 중이거나 미혼 자녀가 있을 것 (1인가구도 일부 물량 신청 가능)
  */
 @Component
@@ -27,12 +27,10 @@ public class FirstTimeRule implements EligibilityRule {
     private static final int MIN_ACCOUNT_MONTHS = 6;
     private static final int MIN_ACCOUNT_MONTHS_REGULATED = 24;
 
-    private final IncomeRequirement incomeRequirement;
-    private final AssetRequirement assetRequirement;
+    private final CommonRequirements commonRequirements;
 
-    public FirstTimeRule(IncomeRequirement incomeRequirement, AssetRequirement assetRequirement) {
-        this.incomeRequirement = incomeRequirement;
-        this.assetRequirement = assetRequirement;
+    public FirstTimeRule(CommonRequirements commonRequirements) {
+        this.commonRequirements = commonRequirements;
     }
 
     @Override
@@ -56,10 +54,9 @@ public class FirstTimeRule implements EligibilityRule {
         boolean accountOk = accountMonths != null && accountMonths >= requiredAccount;
         boolean houselessOk = profile.isHouseless();
 
-        RequirementCheck income = incomeRequirement.check(profile, supportedType());
-        RequirementCheck asset = assetRequirement.check(profile, announcement);
+        List<RequirementCheck> common = commonRequirements.checkAll(profile, announcement, supportedType());
 
-        boolean pass = accountOk && houselessOk && income.passed() && asset.passed();
+        boolean pass = accountOk && houselessOk && CommonRequirements.allPassed(common);
         EligibilityDecision decision = pass
                 ? EligibilityDecision.eligible(supportedType())
                 : EligibilityDecision.ineligible(supportedType());
@@ -81,8 +78,7 @@ public class FirstTimeRule implements EligibilityRule {
                     + requiredAccount + "개월)에 미달합니다.");
         }
 
-        income.describe(decision);
-        asset.describe(decision);
+        CommonRequirements.describeAll(common, decision);
 
         return decision;
     }

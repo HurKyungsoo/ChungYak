@@ -3,12 +3,13 @@ package com.portfolio.chungyak.rule.rules;
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.rule.ApplicantProfile;
-import com.portfolio.chungyak.rule.AssetRequirement;
+import com.portfolio.chungyak.rule.CommonRequirements;
 import com.portfolio.chungyak.rule.EligibilityDecision;
 import com.portfolio.chungyak.rule.EligibilityRule;
-import com.portfolio.chungyak.rule.IncomeRequirement;
 import com.portfolio.chungyak.rule.RequirementCheck;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * 신혼부부 특별공급.
@@ -17,8 +18,7 @@ import org.springframework.stereotype.Component;
  *  - 혼인기간 7년(84개월) 이내
  *  - 무주택 세대구성원
  *  - 청약통장 가입 6개월 이상 (규제지역은 24개월)
- *  - 소득 요건 (도시근로자 대비 %, 맞벌이 완화) — {@link IncomeRequirement}
- *  - 공공주택이면 자산 요건 — {@link AssetRequirement}
+ *  - 공통 요건 (재당첨 제한 · 소득 · 자산) — {@link CommonRequirements}
  *
  * 주의: 예비신혼부부·한부모가족 등 예외는 다루지 않는다. 화면에도 그렇게 고지한다.
  */
@@ -29,12 +29,10 @@ public class NewlywedRule implements EligibilityRule {
     private static final int MIN_ACCOUNT_MONTHS = 6;
     private static final int MIN_ACCOUNT_MONTHS_REGULATED = 24;
 
-    private final IncomeRequirement incomeRequirement;
-    private final AssetRequirement assetRequirement;
+    private final CommonRequirements commonRequirements;
 
-    public NewlywedRule(IncomeRequirement incomeRequirement, AssetRequirement assetRequirement) {
-        this.incomeRequirement = incomeRequirement;
-        this.assetRequirement = assetRequirement;
+    public NewlywedRule(CommonRequirements commonRequirements) {
+        this.commonRequirements = commonRequirements;
     }
 
     @Override
@@ -66,10 +64,9 @@ public class NewlywedRule implements EligibilityRule {
         Integer accountMonths = profile.getAccountMonths();
         boolean accountOk = accountMonths != null && accountMonths >= requiredAccount;
 
-        RequirementCheck income = incomeRequirement.check(profile, supportedType());
-        RequirementCheck asset = assetRequirement.check(profile, announcement);
+        List<RequirementCheck> common = commonRequirements.checkAll(profile, announcement, supportedType());
 
-        boolean pass = marriageOk && houselessOk && accountOk && income.passed() && asset.passed();
+        boolean pass = marriageOk && houselessOk && accountOk && CommonRequirements.allPassed(common);
         EligibilityDecision decision = pass
                 ? EligibilityDecision.eligible(supportedType())
                 : EligibilityDecision.ineligible(supportedType());
@@ -98,8 +95,7 @@ public class NewlywedRule implements EligibilityRule {
                         ? " 이 공고는 규제지역이라 24개월이 필요합니다." : ""));
         }
 
-        income.describe(decision);
-        asset.describe(decision);
+        CommonRequirements.describeAll(common, decision);
 
         return decision;
     }

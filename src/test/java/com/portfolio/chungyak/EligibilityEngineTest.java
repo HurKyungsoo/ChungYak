@@ -174,6 +174,44 @@ class EligibilityEngineTest {
     }
 
     @Test
+    @DisplayName("과거 특별공급 당첨 이력이 있으면 모든 특공에서 탈락 (평생 1회)")
+    void pastSpecialSupplyWinBlocksAll() {
+        ApplicantProfile profile = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
+                .everWonSpecialSupply(true)
+                .build();
+
+        EligibilityEngine.MatchResult result = engine.evaluate(profile, privateAnnouncement);
+        assertThat(result.decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
+        assertThat(result.decisions().get(SpecialSupplyType.FIRST_TIME).isEligible()).isFalse();
+        assertThat(result.decisions().get(SpecialSupplyType.NEWLYWED).getFailedReasons())
+                .anyMatch(r -> r.contains("평생 1회"));
+        assertThat(result.hasAnyMatch()).isFalse();
+    }
+
+    @Test
+    @DisplayName("재당첨 제한 기간 — 일반 60개월 경계, 투기과열은 120개월")
+    void reWinPeriodBoundary() {
+        ApplicantProfile at59 = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
+                .monthsSinceLastWin(59).build();
+        ApplicantProfile at60 = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
+                .monthsSinceLastWin(60).build();
+        ApplicantProfile spec100 = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
+                .monthsSinceLastWin(100).pastWinInSpeculationArea(true).build();
+
+        assertThat(engine.evaluate(at59, privateAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
+        assertThat(engine.evaluate(at60, privateAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
+        // 100개월이면 일반 지역은 풀렸지만 투기과열 당첨이면 아직 제한 중
+        assertThat(engine.evaluate(spec100, privateAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
+    }
+
+    @Test
     @DisplayName("소득 정보가 없으면 판정 불가 — 무엇이 빠졌는지 알린다")
     void missingIncomeIsUndetermined() {
         ApplicantProfile noIncome = ApplicantProfile.builder()

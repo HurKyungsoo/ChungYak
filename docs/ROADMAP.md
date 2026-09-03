@@ -42,7 +42,7 @@
 |---|---|---|---|
 | B1a | 소득·자산·거주 입력 스캐폴딩 | ✅ | `ApplicantProfile`+폼에 6개 필드(월소득·가구원수·맞벌이·총자산·자동차·지역거주개월). `IncomeReference` — 도시근로자 소득 대비 % 환산(기준표는 `application.yml`). 결과 화면에 "소득 대비 약 X%" 표시 |
 | B1b | 각 특공 규칙에 소득·자산 요건 | ✅ | `IncomeRequirement`(유형별 % 상한, 맞벌이 완화) + `AssetRequirement`(공공주택만, 총자산·자동차). 5개 규칙이 생성자 주입으로 사용. 기준값은 `application.yml`(special-supply). 경계값 테스트 |
-| B1c | 재당첨 제한 | ⬜ | 당첨 이력 → 일정 기간 신청 불가 |
+| B1c | 재당첨 제한 | ✅ | `ReWinRequirement` — 특공 평생 1회 + 재당첨 제한 기간(투기과열 10년/그외 5년). 소득·자산과 함께 `CommonRequirements` 로 묶어 5개 규칙이 주입 |
 | B1d | 청약통장 납입횟수/예치금 | ⬜ | 국민주택(횟수)·민영주택(지역별 예치금) |
 | B2 | 일반공급 가점 계산기 | ✅ | `GeneralSupplyScoreCalculator` (rule 패키지, 순수 함수). 무주택 32 + 부양가족 35 + 통장 17 = 84. `/general-supply` 화면. 경계값 테스트 |
 | B2b | 일반공급 추첨제 | ⬜ | 가점 외 추첨 물량 안내 |

@@ -3,12 +3,13 @@ package com.portfolio.chungyak.rule.rules;
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.rule.ApplicantProfile;
-import com.portfolio.chungyak.rule.AssetRequirement;
+import com.portfolio.chungyak.rule.CommonRequirements;
 import com.portfolio.chungyak.rule.EligibilityDecision;
 import com.portfolio.chungyak.rule.EligibilityRule;
-import com.portfolio.chungyak.rule.IncomeRequirement;
 import com.portfolio.chungyak.rule.RequirementCheck;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * 노부모부양 특별공급.
@@ -18,8 +19,7 @@ import org.springframework.stereotype.Component;
  *  - 세대주일 것
  *  - 무주택 세대구성원
  *  - 청약통장 가입 6개월 이상 (규제지역 24개월)
- *  - 소득 요건 (도시근로자 대비 %)
- *  - 공공주택이면 자산 요건
+ *  - 공통 요건 (재당첨 제한 · 소득 · 자산)
  */
 @Component
 public class OldParentsRule implements EligibilityRule {
@@ -27,12 +27,10 @@ public class OldParentsRule implements EligibilityRule {
     private static final int MIN_ACCOUNT_MONTHS = 6;
     private static final int MIN_ACCOUNT_MONTHS_REGULATED = 24;
 
-    private final IncomeRequirement incomeRequirement;
-    private final AssetRequirement assetRequirement;
+    private final CommonRequirements commonRequirements;
 
-    public OldParentsRule(IncomeRequirement incomeRequirement, AssetRequirement assetRequirement) {
-        this.incomeRequirement = incomeRequirement;
-        this.assetRequirement = assetRequirement;
+    public OldParentsRule(CommonRequirements commonRequirements) {
+        this.commonRequirements = commonRequirements;
     }
 
     @Override
@@ -54,11 +52,10 @@ public class OldParentsRule implements EligibilityRule {
         Integer accountMonths = profile.getAccountMonths();
         boolean accountOk = accountMonths != null && accountMonths >= requiredAccount;
 
-        RequirementCheck income = incomeRequirement.check(profile, supportedType());
-        RequirementCheck asset = assetRequirement.check(profile, announcement);
+        List<RequirementCheck> common = commonRequirements.checkAll(profile, announcement, supportedType());
 
         boolean pass = supportOk && headOk && houselessOk && accountOk
-                && income.passed() && asset.passed();
+                && CommonRequirements.allPassed(common);
         EligibilityDecision decision = pass
                 ? EligibilityDecision.eligible(supportedType())
                 : EligibilityDecision.ineligible(supportedType());
@@ -89,8 +86,7 @@ public class OldParentsRule implements EligibilityRule {
             decision.failed("청약통장 가입기간이 요건(" + requiredAccount + "개월)에 미달합니다.");
         }
 
-        income.describe(decision);
-        asset.describe(decision);
+        CommonRequirements.describeAll(common, decision);
 
         return decision;
     }

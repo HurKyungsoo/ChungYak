@@ -38,14 +38,17 @@ public final class RuleTestSupport {
 
     public static final IncomeRequirement INCOME = new IncomeRequirement(INCOME_REFERENCE, REQUIREMENTS);
     public static final AssetRequirement ASSET = new AssetRequirement(REQUIREMENTS);
+    public static final ReWinRequirement RE_WIN = new ReWinRequirement(
+            new ReWinRestrictionProperties(120, 60));
+    public static final CommonRequirements COMMON = new CommonRequirements(RE_WIN, INCOME, ASSET);
 
     public static List<EligibilityRule> allRules() {
         return List.of(
-                new NewlywedRule(INCOME, ASSET),
-                new FirstTimeRule(INCOME, ASSET),
-                new MultiChildRule(INCOME, ASSET),
-                new OldParentsRule(INCOME, ASSET),
-                new NewbornRule(INCOME, ASSET));
+                new NewlywedRule(COMMON),
+                new FirstTimeRule(COMMON),
+                new MultiChildRule(COMMON),
+                new OldParentsRule(COMMON),
+                new NewbornRule(COMMON));
     }
 
     /**
