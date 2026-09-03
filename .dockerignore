@@ -1,0 +1,16 @@
+.git
+.github
+.gradle
+build
+.idea
+*.iml
+out
+data
+*.log
+docs
+*.md
+!README.md
+.env
+.env.*
+!.env.example
+.claude

@@ -1,0 +1,12 @@
+# Caddy 2 — {$DOMAIN} 에 대해 Let's Encrypt 인증서 자동 발급 + HTTP→HTTPS 리다이렉트.
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy app:8080 {
+		health_uri /actuator/health
+		health_interval 15s
+	}
+	log {
+		output stdout
+		format console
+	}
+}

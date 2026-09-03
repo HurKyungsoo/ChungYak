@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - run: chmod +x gradlew
+
+      # LLM 통합테스트는 ANTHROPIC_API_KEY 가 없으면 자동 skip
+      - name: build + test
+        run: ./gradlew --no-daemon build
+
+      - name: publish test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-report
+          path: build/reports/tests/test/
+
+  docker:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # 지금은 빌드 검증만 (레지스트리 미설정). 배포 시 아래를 push: true 로 바꾸고
+      # docker/login-action + tags 를 ghcr.io/<owner>/chungyak 로 설정한다.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: chungyak:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

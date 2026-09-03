@@ -12,9 +12,12 @@
 ## 스택
 
 - Java 21 / Spring Boot 3.3.0 / Gradle
-- JPA(정적 CRUD·락) + MyBatis(동적 조회·집계)
-- MariaDB(prod) / H2(local, test)
+- JPA(정적 CRUD·락) + MyBatis(동적 조회·집계, 도입 예정)
+- MariaDB(prod) / H2 MODE=MySQL(local, test)
+- 스키마: **Flyway** (`db/migration/V{n}__*.sql`). `ddl-auto: validate`.
+  적용된 마이그레이션은 수정 금지 — 새 파일 추가. H2·MariaDB 공용 SQL 로 작성.
 - Thymeleaf
+- 배포: Docker Compose (app + MariaDB + Caddy). `docs/DEPLOYMENT.md`, 계획은 `docs/ROADMAP.md`
 - LLM: 공식 Anthropic Java SDK (`com.anthropic:anthropic-java`) — Spring AI 아님.
   자연어 추출 + 판정 요약. SDK 호출은 `llm/AnthropicProfileCaller`·`llm/AnthropicExplainer` 두 곳에만.
 

@@ -23,7 +23,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:sec-test;MODE=MySQL;DB_CLOSE_DELAY=-1",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
         "security.admin.username=admin",
         "security.admin.password=test-secret"
 })
@@ -65,5 +64,19 @@ class AdminSecurityTest {
     void publicScreensStayOpen() throws Exception {
         mvc.perform(get("/announcements"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("/actuator/health 는 인증 없이 200")
+    void healthIsPublic() throws Exception {
+        mvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("/actuator/env 같은 다른 actuator 는 열려 있지 않다 (2xx 아님)")
+    void otherActuatorBlocked() throws Exception {
+        mvc.perform(get("/actuator/env"))
+                .andExpect(status().is4xxClientError());
     }
 }

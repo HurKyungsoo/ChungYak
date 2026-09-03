@@ -16,6 +16,8 @@ LLM 은 앞(자연어 → 조건)과 뒤(판정 결과 → 설명)에만 쓰고,
 | DB | MariaDB (운영) / H2 파일 (로컬·테스트) | 로컬은 무설정 기동, 운영은 표준 RDBMS |
 | 화면 | Thymeleaf | 서버 렌더링, 판정 결과를 그대로 보여주는 정보 중심 화면 |
 | 빌드 | Gradle 8.10.2 | Spring Boot 3.3 Gradle 플러그인 호환 (9.x 는 `bootJar` 에서 깨짐) |
+| 스키마 | Flyway (`db/migration`) | `ddl-auto: validate`. H2·MariaDB 공용 SQL |
+| 배포 | Docker Compose (app + MariaDB + Caddy) | Caddy 가 Let's Encrypt 자동. CI: GitHub Actions |
 | 외부 API | 한국부동산원 청약홈 (odcloud), 한국토지주택공사 LH (승인 대기) | 공공데이터포털 |
 | LLM | 공식 Anthropic Java SDK (`com.anthropic:anthropic-java`) | Spring AI 는 2.x 가 Spring Boot 4.0 을 요구 — 버전에 묶이지 않게 SDK 직접 사용. 구조화 출력(`output_config.format`)으로 "애매하면 null" 을 파싱이 아니라 **스키마로 강제** |
 
@@ -177,8 +179,10 @@ PUBLICDATA_SERVICE_KEY=<발급키> ANTHROPIC_API_KEY=<발급키> ./gradlew bootR
 LLM_MODEL=claude-haiku-4-5 ./gradlew bootRun
 ```
 
-- 로컬 프로필은 H2 파일 DB(`./data/chungyak`)를 쓴다. `ddl-auto: update`.
+- 로컬 프로필은 H2 파일 DB(`./data/chungyak`). **스키마는 Flyway 가 만든다**
+  (`ddl-auto: validate` — Hibernate 는 검증만). `data/` 는 gitignore.
 - H2 콘솔: `http://localhost:8080/h2-console` (JDBC URL `jdbc:h2:file:./data/chungyak`)
+- `GET /actuator/health` 공개(모니터링용), 그 외 actuator 는 차단.
 - **키를 `application.yml` 이나 코드에 하드코딩하지 말 것.**
 
 ### 첫 데이터 수집
@@ -207,7 +211,24 @@ ANTHROPIC_API_KEY=<키> ./gradlew test --tests '*IntegrationTest*'
 ./gradlew build   # test 포함
 ```
 
+### 배포
+
+서버 배포는 Docker Compose (MariaDB + app + Caddy 자동 HTTPS).
+
+```bash
+cp .env.example .env    # DOMAIN, DB_PASSWORD, PUBLICDATA_SERVICE_KEY, ADMIN_PASSWORD ...
+docker compose up -d --build
+```
+
+전체 절차·업데이트·마이그레이션·백업은 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+`push`/`PR` 마다 GitHub Actions 가 `./gradlew build` + Docker 빌드를 검증한다.
+
 ---
+
+## 로드맵
+
+실사용 서비스로 가는 계획은 [`docs/ROADMAP.md`](docs/ROADMAP.md)
+(배포 인프라 / 판정 신뢰도 / 사용자 유지 / 운영).
 
 ## 알려진 한계 (정형 데이터 MVP 기준)
 
@@ -220,6 +241,8 @@ ANTHROPIC_API_KEY=<키> ./gradlew test --tests '*IntegrationTest*'
 
 ## 남은 작업
 
-1. **LH 연동** — 목록 API 활용신청 승인되면 `LhClient` 추가 (응답 구조가 청약홈과 완전히 다름)
-2. **벡터 검색** — LH 공고내용(4,000자) 임베딩 + 하이브리드 검색
-3. **Docker + CI + 배포**
+[`docs/ROADMAP.md`](docs/ROADMAP.md) 참고. 요약:
+- **A. 배포** — Flyway·Actuator·Docker·Compose·CI 완료. 실제 서버·도메인 연결만 남음
+- **B. 판정 신뢰도** — 규칙 확대(소득·자산·거주요건), 일반공급 가점 계산, 신혼희망타운
+- **C. 사용자 유지** — 회원·조건 저장, 새 공고 알림
+- **D. 운영** — MyBatis 동적 조회, 캐싱, LH 연동, 벡터 검색

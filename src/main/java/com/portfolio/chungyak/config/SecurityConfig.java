@@ -19,6 +19,7 @@ import org.springframework.security.web.SecurityFilterChain;
  * 보안 설정.
  *
  * - `/api/admin/**` 만 `ROLE_ADMIN` (HTTP Basic). 나머지 화면은 전부 공개.
+ * - `/actuator/health`·`/actuator/info` 공개, 그 외 actuator 는 차단(노출 목록도 이 둘로 제한).
  * - CSRF 비활성: 일반 사용자는 세션/쿠키 인증이 없고(전부 익명), 관리자 API 는
  *   stateless Basic 이라 CSRF 토큰이 의미 없다. 덕분에 `curl -X POST /api/admin/sync`
  *   워크플로우와 판정 폼(비상태변경 POST)이 그대로 동작한다.
@@ -33,6 +34,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/**").denyAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().permitAll())
                 .httpBasic(Customizer.withDefaults())

@@ -5,3 +5,6 @@ build/
 out/
 data/
 *.log
+.env
+.env.*
+!.env.example

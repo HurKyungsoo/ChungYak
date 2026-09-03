@@ -6,34 +6,42 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      # 스키마는 Flyway 가 관리한다. Hibernate 는 엔티티와 스키마가 맞는지 확인만.
+      ddl-auto: validate
     properties:
       hibernate:
         default_batch_fetch_size: 100
     open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
 
+# 운영 모니터링 — /actuator/health, /actuator/info 만 공개 (SecurityConfig 에서 permitAll)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    env:
+      enabled: true
+info:
+  app:
+    name: 청약나침반
+    description: 공공데이터 기반 특별공급 자격 확인
+
 # 공공데이터포털 인증키 - 절대 커밋하지 말 것
 publicdata:
   service-key: ${PUBLICDATA_SERVICE_KEY:REPLACE_ME}
-
-# LLM (자연어 -> ApplicantProfile 추출 전용). 절대 커밋하지 말 것.
-# ANTHROPIC_API_KEY 가 없으면(=REPLACE_ME) 이 기능만 비활성화되고 나머지는 정상 동작한다.
-llm:
-  anthropic:
-    api-key: ${ANTHROPIC_API_KEY:REPLACE_ME}
-    model: ${LLM_MODEL:claude-sonnet-5}
-
-# 관리자 계정 (/api/admin/** 보호). 비밀번호를 커밋하지 말 것.
-# ADMIN_PASSWORD 가 없으면 기동 시 임시 비밀번호를 생성해 로그에 남긴다.
-security:
-  admin:
-    username: ${ADMIN_USERNAME:admin}
-    password: ${ADMIN_PASSWORD:}
 
   # 한국부동산원 청약홈 (odcloud 게이트웨이)
   applyhome:
@@ -49,6 +57,20 @@ security:
     notice-list-url: https://apis.data.go.kr/B552555/lhopendata/lhNoticeList
     detail-url: https://apis.data.go.kr/B552555/lhLeaseNoticeBfhDtlInfo1/getLeaseNoticeBfhDtlInfo1
     supply-url: https://apis.data.go.kr/B552555/lhLeaseNoticeBfhSplInfo1/getLeaseNoticeBfhSplInfo1
+
+# LLM (자연어 -> ApplicantProfile 추출, 판정 결과 -> 요약). 절대 커밋하지 말 것.
+# ANTHROPIC_API_KEY 가 없으면(=REPLACE_ME) 이 기능만 비활성화되고 나머지는 정상 동작한다.
+llm:
+  anthropic:
+    api-key: ${ANTHROPIC_API_KEY:REPLACE_ME}
+    model: ${LLM_MODEL:claude-sonnet-5}
+
+# 관리자 계정 (/api/admin/** 보호). 비밀번호를 커밋하지 말 것.
+# ADMIN_PASSWORD 가 없으면 기동 시 임시 비밀번호를 생성해 로그에 남긴다.
+security:
+  admin:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:}
 
 ---
 spring:
@@ -73,10 +95,9 @@ spring:
     activate:
       on-profile: prod
   datasource:
-    url: jdbc:mariadb://localhost:3306/chungyak?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    url: jdbc:mariadb://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:chungyak}?characterEncoding=UTF-8
     driver-class-name: org.mariadb.jdbc.Driver
     username: ${DB_USER}
     password: ${DB_PASSWORD}
-  jpa:
-    hibernate:
-      ddl-auto: validate
+  thymeleaf:
+    cache: true
