@@ -67,10 +67,10 @@ class AdminSecurityTest {
     }
 
     @Test
-    @DisplayName("/actuator/health 는 인증 없이 200")
+    @DisplayName("/actuator/health 와 liveness 프로브는 인증 없이 200")
     void healthIsPublic() throws Exception {
-        mvc.perform(get("/actuator/health"))
-                .andExpect(status().isOk());
+        mvc.perform(get("/actuator/health")).andExpect(status().isOk());
+        mvc.perform(get("/actuator/health/liveness")).andExpect(status().isOk());
     }
 
     @Test

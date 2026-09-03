@@ -189,7 +189,9 @@ LLM_MODEL=claude-haiku-4-5 ./gradlew bootRun
 - 로컬 프로필은 H2 파일 DB(`./data/chungyak`). **스키마는 Flyway 가 만든다**
   (`ddl-auto: validate` — Hibernate 는 검증만). `data/` 는 gitignore.
 - H2 콘솔: `http://localhost:8080/h2-console` (JDBC URL `jdbc:h2:file:./data/chungyak`)
-- `GET /actuator/health` 공개(모니터링용), 그 외 actuator 는 차단.
+- `GET /actuator/health` 공개 — 수집이 실패·저조·오래되면(`sync` 지표) DOWN(503) 으로 바뀌어
+  알림이 걸린다. `/actuator/health/liveness` 는 앱 생존만 보므로 UP 이라 Caddy·compose 라우팅은
+  유지된다. 상세(`outcome`, `lastSuccessAt` 등)는 인증 필요. 그 외 actuator 는 차단.
 - **키를 `application.yml` 이나 코드에 하드코딩하지 말 것.**
 
 ### 첫 데이터 수집

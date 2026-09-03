@@ -48,7 +48,7 @@
 | B2b | 일반공급 추첨제 | ⬜ | 가점 외 추첨 물량 안내 |
 | B3 | 신혼희망타운 유형 | ⬜ | 별도 `SpecialSupplyType` + 규칙 (현재 엔진이 매칭 못 냄) |
 | B4 | 공고 원문 반영 | ⬜ | PDF(4,000자) 파싱 or "세부 요건은 공고문 확인" 고지 강화 |
-| B5 | 수집 실패 알림 | ⬜ | 전체 sync 실패 시 알림 (현재 조용히 낡은 데이터) |
+| B5 | 수집 실패 감지 | ✅ | `SyncStatus` + `SyncHealthIndicator`(bean `sync`) — 예외/저조수집/오래됨 → `/actuator/health` DOWN + ERROR 로그. `/actuator/health/liveness` 는 별개라 라우팅엔 영향 없음 |
 | B6 | 외부 API 계약 테스트 | ⬜ | 청약홈 응답 스키마 변경 감지 |
 | B7 | 거주요건 판정 | ✅ | `RegionResidenceRequirement` — 규제지역 24개월/수도권 12개월 계속 거주. 미충족은 FAIL("기타지역 물량은 가능" 안내). `CommonRequirements` 에 합류 |
 

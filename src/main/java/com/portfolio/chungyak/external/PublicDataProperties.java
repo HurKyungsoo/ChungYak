@@ -14,6 +14,16 @@ public class PublicDataProperties {
     private String serviceKey;
     private Applyhome applyhome = new Applyhome();
     private Lh lh = new Lh();
+    private Sync sync = new Sync();
+
+    /** 수집 상태 모니터링 임계값 (SyncHealthIndicator) */
+    @Getter @Setter
+    public static class Sync {
+        /** 이 건수 미만으로 수집되면 이상으로 본다 (API 키·응답 문제 의심) */
+        private int minExpectedRecords = 1000;
+        /** 마지막 성공 수집이 이 시간을 넘기면 health 를 DOWN (매일 04시 배치 기준 30) */
+        private long staleAfterHours = 30;
+    }
 
     @Getter @Setter
     public static class Applyhome {

@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -30,6 +31,8 @@ public class AnnouncementSyncScheduler {
     private final AnnouncementSyncService syncService;
     private final AnnouncementRepository announcementRepository;
     private final PublicDataProperties properties;
+    private final SyncStatus syncStatus;
+    private final Clock clock;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -39,6 +42,9 @@ public class AnnouncementSyncScheduler {
             runSync();
         } catch (SyncAlreadyRunningException e) {
             log.info("수동 동기화가 진행 중이라 이번 정기 배치는 건너뜁니다.");
+        } catch (RuntimeException e) {
+            // 이미 runSync 안에서 상태 기록·ERROR 로그를 남겼다. 배치 스레드는 계속 살려둔다.
+            log.error("정기 수집 배치가 실패했습니다 — 다음 배치까지 데이터가 낡습니다.");
         }
     }
 
@@ -46,8 +52,20 @@ public class AnnouncementSyncScheduler {
         if (!running.compareAndSet(false, true)) {
             throw new SyncAlreadyRunningException();
         }
+        syncStatus.recordAttempt(clock.instant());
         try {
-            return doSync();
+            SyncReport report = doSync();
+            int minExpected = properties.getSync().getMinExpectedRecords();
+            syncStatus.recordSuccess(report, minExpected, clock.instant());
+            if (report.received() < minExpected) {
+                log.error("공고 수집 이상 — {}건만 수집됨 (기대 최소 {}건). API 키·응답을 확인하세요. {}",
+                        report.received(), minExpected, report);
+            }
+            return report;
+        } catch (RuntimeException e) {
+            syncStatus.recordFailure(e);
+            log.error("공고 수집 실패 — {}", e.toString(), e);
+            throw e;
         } finally {
             running.set(false);
         }

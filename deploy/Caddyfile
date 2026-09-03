@@ -2,7 +2,8 @@
 {$DOMAIN} {
 	encode gzip
 	reverse_proxy app:8080 {
-		health_uri /actuator/health
+		# 앱 프로세스 생존만 확인 — 수집이 낡아도 라우팅은 유지 (그건 /actuator/health 가 DOWN)
+		health_uri /actuator/health/liveness
 		health_interval 15s
 	}
 	log {

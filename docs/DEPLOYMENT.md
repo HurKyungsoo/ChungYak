@@ -79,7 +79,10 @@ docker compose exec db sh -c 'mariadb-dump -u root -p"$MARIADB_ROOT_PASSWORD" ch
 
 ## 모니터링
 
-- `GET /actuator/health` — 로드밸런서/uptime 체크용 (공개)
-- 그 외 actuator 는 차단. 필요 시 `application.yml` 의 `management.endpoints.web.exposure.include`
-  확대 + `SecurityConfig` 에서 인증 걸고 노출.
-- 로그는 `docker compose logs`. 수집기(Loki/CloudWatch 등)는 트래픽 생기면 추가.
+- `GET /actuator/health/liveness` — 앱 프로세스 생존. Caddy·compose 헬스체크가 이걸 본다.
+- `GET /actuator/health` — 전체 상태. **수집이 실패·저조·30시간 이상 오래되면 DOWN(503)** 이 되므로
+  uptime 모니터(UptimeRobot 등)를 여기에 걸어두면 데이터가 낡을 때 알림이 온다.
+  (상세 `outcome`/`lastSuccessAt` 는 admin 인증 시 노출)
+- 임계값은 `application.yml` `publicdata.sync` (min-expected-records, stale-after-hours).
+- 그 외 actuator 는 차단. 로그는 `docker compose logs` — `공고 수집 실패` / `공고 수집 이상` ERROR 를
+  로그 수집기(Loki/CloudWatch 등)에서 알림 규칙으로 잡을 수 있다.
