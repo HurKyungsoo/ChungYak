@@ -21,6 +21,13 @@ mybatis:
 publicdata:
   service-key: ${PUBLICDATA_SERVICE_KEY:REPLACE_ME}
 
+# LLM (자연어 -> ApplicantProfile 추출 전용). 절대 커밋하지 말 것.
+# ANTHROPIC_API_KEY 가 없으면(=REPLACE_ME) 이 기능만 비활성화되고 나머지는 정상 동작한다.
+llm:
+  anthropic:
+    api-key: ${ANTHROPIC_API_KEY:REPLACE_ME}
+    model: ${LLM_MODEL:claude-sonnet-5}
+
   # 한국부동산원 청약홈 (odcloud 게이트웨이)
   applyhome:
     base-url: https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1

@@ -23,6 +23,12 @@ dependencies {
     // 청약홈은 JSON, LH 는 JSON. XML 은 나중에 소스가 늘면 추가
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
+    // LLM — 자연어 질문 -> ApplicantProfile 추출에만 쓴다 (판정에는 절대 관여하지 않음).
+    // Spring AI 가 아니라 공식 Anthropic Java SDK 를 직접 쓴다:
+    //  - Spring Boot 버전에 종속되지 않는다 (Spring AI 2.x 는 Boot 4.0 요구)
+    //  - output_config.format 스키마 강제로 "애매하면 null" 을 파싱이 아니라 스키마로 보장
+    implementation 'com.anthropic:anthropic-java:2.34.0'
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 

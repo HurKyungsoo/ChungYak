@@ -12,6 +12,31 @@
         모르는 항목은 비워 두면 "판정 불가"로 표시됩니다(추측하지 않습니다).
     </p>
 
+    <!-- 자연어로 물어보기 — LLM 은 폼을 채워주기만 하고 판정에는 관여하지 않습니다. -->
+    <fieldset th:if="${extractionAvailable}" style="background:#f0f4ff">
+        <legend>자연어로 물어보기 (선택)</legend>
+        <p class="muted" style="margin-top:0">
+            상황을 문장으로 쓰면 아래 폼을 대신 채워드립니다.
+            <strong>채운 값은 판정 전에 직접 확인·수정하세요.</strong>
+            AI 는 값만 추출하고 자격 판정에는 전혀 관여하지 않습니다.
+        </p>
+        <form method="post" th:action="@{/announcements/{id}/eligibility/extract(id=${announcement.id})}">
+            <textarea name="naturalText" rows="3" style="width:100%;box-sizing:border-box"
+                      placeholder="예: 결혼한 지 3년 됐고 아이가 둘이에요. 청약통장은 2년 넣었고 무주택입니다."
+                      th:text="${naturalText}"></textarea>
+            <button type="submit">폼 채우기</button>
+        </form>
+    </fieldset>
+
+    <div th:if="${extraction != null}"
+         th:classappend="${extraction.status.name() == 'EXTRACTED'} ? 'banner good' : 'banner bad'"
+         class="banner">
+        <p style="margin:0" th:text="${extraction.message}">안내</p>
+        <ul th:if="${!extraction.unknownFieldLabels.isEmpty()}" style="margin:6px 0 0">
+            <li th:each="f : ${extraction.unknownFieldLabels}" th:text="${f}">항목</li>
+        </ul>
+    </div>
+
     <form method="post" th:action="@{/announcements/{id}/eligibility(id=${announcement.id})}" th:object="${form}">
         <fieldset>
             <legend>혼인</legend>

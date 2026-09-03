@@ -1,5 +1,6 @@
 package com.portfolio.chungyak.web.form;
 
+import com.portfolio.chungyak.llm.ExtractedProfile;
 import com.portfolio.chungyak.rule.ApplicantProfile;
 
 /**
@@ -42,6 +43,23 @@ public class EligibilityForm {
 
     /** 세대주 여부 */
     private boolean householdHead;
+
+    /**
+     * LLM 이 뽑은 값 중 <b>null 이 아닌 것만</b> 폼에 채운다.
+     * null(= LLM 이 확인 못 한 값)은 건드리지 않는다 — 사용자가 화면에서 직접 고른다.
+     * 여기에 판단은 없다. 값 복사뿐이다.
+     */
+    public void applyExtracted(ExtractedProfile e) {
+        if (e.married() != null) this.married = e.married();
+        if (e.monthsSinceMarriage() != null) this.monthsSinceMarriage = e.monthsSinceMarriage();
+        if (e.childCount() != null) this.childCount = Math.max(0, e.childCount());
+        if (e.hasNewborn() != null) this.hasNewborn = e.hasNewborn();
+        if (e.houseless() != null) this.houseless = e.houseless();
+        if (e.accountMonths() != null) this.accountMonths = e.accountMonths();
+        if (e.everOwnedHouse() != null) this.everOwnedHouse = e.everOwnedHouse();
+        if (e.supportingOldParents() != null) this.supportingOldParents = e.supportingOldParents();
+        if (e.householdHead() != null) this.householdHead = e.householdHead();
+    }
 
     public ApplicantProfile toProfile() {
         return ApplicantProfile.builder()

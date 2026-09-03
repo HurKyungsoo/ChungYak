@@ -15,6 +15,8 @@
 - JPA(정적 CRUD·락) + MyBatis(동적 조회·집계)
 - MariaDB(prod) / H2(local, test)
 - Thymeleaf
+- LLM: 공식 Anthropic Java SDK (`com.anthropic:anthropic-java`) — Spring AI 아님.
+  자연어 -> `ExtractedProfile` 추출에만. SDK 호출은 `llm/AnthropicProfileCaller` 한 곳에 격리.
 
 ## 빌드 · 실행
 
@@ -25,6 +27,8 @@
 ```
 
 `PUBLICDATA_SERVICE_KEY` 가 없으면 외부 API 는 빈 리스트를 반환한다(앱은 정상 기동).
+`ANTHROPIC_API_KEY` 가 없으면 자연어 입력 기능만 꺼진다(`@ConditionalOnExpression`).
+통합테스트(`*ProfileExtractionIntegrationTest*`)는 키 없으면 skip.
 
 ## ★ 절대 규칙 — LLM 과 규칙 엔진의 경계
 
@@ -34,9 +38,11 @@
    LLM 호출 코드가 `EligibilityRule` 구현체나 `EligibilityEngine` 에 들어가면 안 된다.
 
 2. **LLM 의 역할은 앞뒤 두 곳뿐이다.**
-   - 앞: 자연어 질문 -> `ApplicantProfile` 추출
-   - 뒤: `EligibilityDecision` -> 자연어 설명
+   - 앞: 자연어 질문 -> `ExtractedProfile` 추출 (`llm` 패키지, 구현 완료)
+   - 뒤: `EligibilityDecision` -> 자연어 설명 (미구현)
    그 사이는 전부 결정론적이어야 한다.
+   앞쪽도 추출값이 판정으로 직행하면 안 된다 — 사용자가 폼에서 확인·수정한 뒤에만
+   `EligibilityEngine` 으로 들어간다. 애매한 필드는 추측하지 말고 null.
 
 3. **`EligibilityDecision` 은 반드시 이유를 남긴다.**
    `satisfied`/`failed`/`missing` 중 최소 하나는 채워져야 한다.
@@ -89,7 +95,8 @@
 ## 남은 작업
 
 1. LH 목록 API 활용신청 (포털 버튼 404 로 막혀 있음) -> 승인되면 `LhClient` 추가
-2. LLM 연동 — 자연어 -> `ApplicantProfile` 추출, 판정 결과 -> 설명 생성
+2. LLM 뒤쪽 — `EligibilityDecision` -> 자연어 설명 (앞쪽 추출은 `llm` 패키지에 구현 완료)
 3. 벡터 검색 — LH 공고내용(4000자) 임베딩 + 하이브리드 검색
-4. 화면 — 조건 입력 폼, 공고 목록, 판정 결과
-5. Docker + CI + 배포
+4. 신혼희망타운 — 별도 `SpecialSupplyType` + 규칙 (현재 엔진이 매칭 못 냄)
+5. Security — `/api/admin/**` 에 `ROLE_ADMIN`
+6. Docker + CI + 배포

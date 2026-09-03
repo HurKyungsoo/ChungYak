@@ -1,6 +1,8 @@
 package com.portfolio.chungyak.web;
 
 import com.portfolio.chungyak.domain.Announcement;
+import com.portfolio.chungyak.llm.ProfileExtractionResult;
+import com.portfolio.chungyak.llm.ProfileExtractionService;
 import com.portfolio.chungyak.rule.ApplicantProfile;
 import com.portfolio.chungyak.rule.EligibilityEngine;
 import com.portfolio.chungyak.rule.EligibilityEngine.MatchResult;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
@@ -26,6 +29,10 @@ import org.springframework.web.server.ResponseStatusException;
  *   2) EligibilityEngine.evaluate 호출
  *   3) 결과를 화면 모델로 재배열 (EligibilityResultAssembler)
  * 판정은 전부 2번의 rule 패키지 안에서 끝난다. 여기서 자격을 따지지 않는다.
+ *
+ * 자연어 입력(/extract)은 LLM 으로 폼을 <b>채워주기만</b> 한다.
+ * 채운 값은 사용자가 확인·수정한 뒤 위 1~3 플로우로 그대로 들어간다.
+ * LLM 은 판정에 관여하지 않는다(CLAUDE.md 절대 규칙).
  */
 @Slf4j
 @Controller
@@ -35,15 +42,45 @@ public class EligibilityController {
     private final AnnouncementQueryService queryService;
     private final EligibilityEngine eligibilityEngine;
     private final EligibilityResultAssembler resultAssembler;
+    private final ProfileExtractionService profileExtractionService;
 
     @GetMapping("/announcements/{id}/eligibility")
     public String form(@PathVariable Long id, Model model) {
         Announcement announcement = loadAnnouncement(id);
         model.addAttribute("announcement", announcement);
         model.addAttribute("status", queryService.statusOf(announcement));
+        model.addAttribute("extractionAvailable", profileExtractionService.isAvailable());
         if (!model.containsAttribute("form")) {
             model.addAttribute("form", new EligibilityForm());
         }
+        return "announcements/eligibility-form";
+    }
+
+    /**
+     * 자연어 문장에서 폼 값을 뽑아 채운 뒤 같은 폼 화면을 다시 보여준다.
+     * 판정은 하지 않는다 — 사용자가 값을 확인하고 "판정하기"를 눌러야 evaluate 로 간다.
+     */
+    @PostMapping("/announcements/{id}/eligibility/extract")
+    public String extract(@PathVariable Long id,
+                          @RequestParam("naturalText") String naturalText,
+                          Model model) {
+        Announcement announcement = loadAnnouncement(id);
+        ProfileExtractionResult result = profileExtractionService.extract(naturalText);
+
+        EligibilityForm form = new EligibilityForm();
+        if (result.isExtracted()) {
+            form.applyExtracted(result.profile());
+        }
+
+        log.info("자연어 폼 채우기 — 공고 #{}, 상태={}, 미확인 필드 {}개",
+                announcement.getId(), result.status(), result.unknownFieldLabels().size());
+
+        model.addAttribute("announcement", announcement);
+        model.addAttribute("status", queryService.statusOf(announcement));
+        model.addAttribute("extractionAvailable", profileExtractionService.isAvailable());
+        model.addAttribute("form", form);
+        model.addAttribute("extraction", result);
+        model.addAttribute("naturalText", naturalText);
         return "announcements/eligibility-form";
     }
 

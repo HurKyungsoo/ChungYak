@@ -1,5 +1,6 @@
 package com.portfolio.chungyak.web;
 
+import com.portfolio.chungyak.llm.ExtractedProfile;
 import com.portfolio.chungyak.rule.ApplicantProfile;
 import com.portfolio.chungyak.web.form.EligibilityForm;
 import org.junit.jupiter.api.DisplayName;
@@ -62,5 +63,34 @@ class EligibilityFormTest {
         form.setChildCount(-3);
 
         assertThat(form.toProfile().getChildCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("LLM 추출값 중 null 이 아닌 것만 폼에 채운다 — null 필드는 건드리지 않는다")
+    void applyExtractedFillsOnlyKnownFields() {
+        EligibilityForm form = new EligibilityForm();
+        // married/childCount 만 알아냈고 나머지는 모름(null)
+        ExtractedProfile extracted = new ExtractedProfile(
+                true, null, 2, null, null, null, null, null, null);
+
+        form.applyExtracted(extracted);
+
+        assertThat(form.isMarried()).isTrue();
+        assertThat(form.getChildCount()).isEqualTo(2);
+        // 채워지지 않은 항목은 기본값 그대로 (사용자가 직접 선택)
+        assertThat(form.getMonthsSinceMarriage()).isNull();
+        assertThat(form.getAccountMonths()).isNull();
+        assertThat(form.isHouseless()).isFalse();
+        assertThat(form.isHouseholdHead()).isFalse();
+    }
+
+    @Test
+    @DisplayName("음수 자녀 수는 추출값에서도 0 으로 보정한다")
+    void applyExtractedClampsNegativeChildCount() {
+        EligibilityForm form = new EligibilityForm();
+        form.applyExtracted(new ExtractedProfile(
+                null, null, -1, null, null, null, null, null, null));
+
+        assertThat(form.getChildCount()).isZero();
     }
 }
