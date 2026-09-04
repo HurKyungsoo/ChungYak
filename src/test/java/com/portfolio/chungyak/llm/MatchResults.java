@@ -57,6 +57,19 @@ final class MatchResults {
         return ENGINE.evaluate(p, a);
     }
 
+    /**
+     * 혼인기간이 7년(84개월)을 넘어 신혼부부는 탈락하지만, 생애최초는 조건을 채운다.
+     * → hasAnyMatch() == true, 신혼부부 failed 근거에 "개월 / 7년(84개월) 초과" 가 들어간다.
+     */
+    static MatchResult marriageExpired() {
+        Announcement a = announcement(SupplyBreakdown.builder()
+                .newlywed(20).firstTime(25).build());
+        ApplicantProfile p = RuleTestSupport.passingIncomeAndAssets()
+                .married(true).monthsSinceMarriage(100).childCount(1)
+                .houseless(true).accountMonths(24).everOwnedHouse(false).build();
+        return ENGINE.evaluate(p, a);
+    }
+
     /** 다자녀 자격은 되지만 공고에 다자녀 물량 0 → qualifiedButUnavailable 에 다자녀 */
     static MatchResult qualifiedButUnavailable() {
         Announcement a = announcement(SupplyBreakdown.builder()

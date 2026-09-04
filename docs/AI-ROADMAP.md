@@ -79,7 +79,7 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) + 첨부 HWP
 |---|---|---|
 | **AI 요약 캐시**  ✅ 완료 | — | `ExplanationService` 안에 Caffeine 캐시 — 키는 `ExplanationFacts.format()` 근거 텍스트(공고+모든 판정 근거를 통째로 담음), 값은 **성공한 AI 요약만**. maxSize 1000·TTL 24h·recordStats. 폼 재제출·새로고침이 LLM 재호출로 안 이어짐. FALLBACK(모순 반복·호출 실패)은 캐시 안 함. |
 | **AI 요약 온디맨드 버튼** | 반나절 | 남음. 결과 화면 로드 시가 아니라 "AI 설명 보기" 클릭 시 호출 — 별도 엔드포인트 + JS 필요. 캐시가 있어 급하진 않음. |
-| **eval 세트** | 반나절 | 추출/요약 품질 측정. 자연어 20문장 + 기대 필드값, 모순 케이스. `/claude-api build-eval`. 회귀 방지 + "측정했다" 근거 |
+| **eval 세트**  ✅ 완료 | — | 아래 "eval 실행법" 참고. 추출·요약 품질을 실 LLM 으로 측정, 임계값 미달 시 빌드 실패. 채점 로직은 오프라인 단위테스트로 검증. |
 | **모델 비용** | — | `llm.anthropic.model` 기본 `claude-sonnet-5`. 추출·요약은 단발이라 `claude-haiku-4-5` 로 낮추면 흐름 1회 ~6원 (Sonnet ~12원) |
 
 ---
@@ -88,9 +88,35 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) + 첨부 HWP
 
 1. ~~**2b-3a** (개선 경로 프롬프트)~~ ✅ 완료
 2. ~~**D3 요약 캐시**~~ ✅ 완료
-3. **eval 세트** — 위 둘 검증
-4. **2b-3b** (개선 경로 결정론적 계산) — 3a 문장 품질 보고 필요하면
+3. ~~**eval 세트**~~ ✅ 완료
+4. **2b-3b** (개선 경로 결정론적 계산) — 3a 문장 품질을 eval 로 보고, 필요하면
 5. **방향 3 (RAG)** — 별도 큰 프로젝트, 임베딩 provider 결정부터
+
+---
+
+## eval 실행법
+
+품질 회귀를 잡는 두 세트. **실 LLM 을 호출하므로 `ANTHROPIC_API_KEY` 가 있을 때만 돈다**
+(없으면 skip). CI 자동 실행은 안 한다 — 프롬프트·스키마·모델을 바꾼 뒤 수동으로 돌린다.
+
+```bash
+# 채점 로직만 (오프라인, 키 불필요) — 데이터셋 온전성 + 오라클/널 sanity
+./gradlew test --tests '*ExtractionEvalScorerTest*'
+
+# 품질 측정 (실 LLM, 유료) — 스코어카드가 표준출력에 찍힘
+ANTHROPIC_API_KEY=sk-... ./gradlew test --tests '*EvalTest' -i
+#   모델 바꾸기:   LLM_MODEL=claude-haiku-4-5
+#   요약 반복 수:  EVAL_REPS=3   (기본 2)
+```
+
+- **추출** (`ProfileExtractionEvalTest`, 데이터셋 `src/test/resources/eval/profile-extraction-cases.json`):
+  자연어 18문장 → `ExtractedProfile`. 필드 정확도 / **null 원칙 준수**(언급 없는 필드를 추측하지 않음) /
+  케이스 통과율. 개월 수는 허용구간, "애매" 케이스는 반드시 null.
+- **요약** (`ExplanationEvalTest`): 5 시나리오 × `EVAL_REPS`. `AnthropicExplainer` 원문을
+  규칙 엔진 결과와 대조 — **모순 없음 비율**(자격 유무 안 뒤집음)이 핵심, 그 외 기대는
+  `MatchResult` 에서 결정론적으로 끌어냄(기대값 하드코딩 없음).
+- 비용: 1회 ≈ 추출 18콜 + 요약 10콜 ≈ `claude-sonnet-5` 기준 수십 원.
+- 임계값은 각 테스트의 `MIN_*` 상수. **첫 실행 뒤 스코어카드를 보고 조정**한다.
 
 ## 착수 전 체크
 

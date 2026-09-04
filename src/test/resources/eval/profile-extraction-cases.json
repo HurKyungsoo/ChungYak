@@ -1,0 +1,177 @@
+[
+  {
+    "id": "clear-newlywed-2kids-head",
+    "text": "결혼한 지 3년 됐고 아이가 둘이에요. 청약통장은 2년 넣었고 무주택입니다. 제가 세대주예요.",
+    "note": "모든 값이 명시적. 언급 없는 신생아·주택소유이력·노부모는 null 이어야 한다.",
+    "expect": {
+      "married": true,
+      "monthsSinceMarriage": { "min": 34, "max": 38 },
+      "childCount": 2,
+      "houseless": true,
+      "accountMonths": 24,
+      "householdHead": true,
+      "hasNewborn": null,
+      "everOwnedHouse": null,
+      "supportingOldParents": null
+    }
+  },
+  {
+    "id": "explicit-zero-children",
+    "text": "저희 부부는 아이가 없습니다. 결혼은 재작년에 했어요.",
+    "note": "'아이 없음' 은 null 이 아니라 0. '재작년' 은 대략적이므로 혼인기간은 추측 금지(null).",
+    "expect": {
+      "married": true,
+      "childCount": 0,
+      "monthsSinceMarriage": null
+    }
+  },
+  {
+    "id": "ambiguous-marriage-date",
+    "text": "신혼인 것 같은데 정확히 언제 결혼했는지는 기억이 잘 안 나요.",
+    "note": "혼인 여부는 잡되 혼인 기간은 절대 추측하지 않는다 — 이 프로젝트의 핵심 원칙.",
+    "expect": {
+      "married": true,
+      "monthsSinceMarriage": null
+    }
+  },
+  {
+    "id": "married-word-only",
+    "text": "남편이랑 둘이 삽니다. 청약 넣어보려고요.",
+    "note": "'남편' 으로 혼인 여부는 true. 나머지는 근거 없음 → null.",
+    "expect": {
+      "married": true,
+      "monthsSinceMarriage": null,
+      "childCount": null,
+      "accountMonths": null,
+      "houseless": null
+    }
+  },
+  {
+    "id": "pregnant-and-houseless",
+    "text": "지금 임신 중이고 전세로 살고 있어요.",
+    "note": "'임신 중' → 신생아 있음(true). '전세' → 무주택(true).",
+    "expect": {
+      "hasNewborn": true,
+      "houseless": true
+    }
+  },
+  {
+    "id": "owns-home",
+    "text": "제 명의로 아파트 한 채 가지고 있습니다.",
+    "note": "주택 소유 중 → 무주택 false, 과거 소유 이력 true.",
+    "expect": {
+      "houseless": false,
+      "everOwnedHouse": true
+    }
+  },
+  {
+    "id": "never-owned",
+    "text": "태어나서 집을 사본 적이 한 번도 없어요. 계속 월세만 살았습니다.",
+    "note": "과거 소유 이력 없음 → everOwnedHouse false, 무주택 true.",
+    "expect": {
+      "everOwnedHouse": false,
+      "houseless": true
+    }
+  },
+  {
+    "id": "account-exists-duration-unknown",
+    "text": "청약통장은 예전부터 있는데 몇 년 됐는지는 잘 모르겠어요.",
+    "note": "가입은 했지만 기간 불명 → accountMonths 는 null (0 이 아니다).",
+    "expect": {
+      "accountMonths": null
+    }
+  },
+  {
+    "id": "old-parents-vague",
+    "text": "부모님을 모시고 함께 살고 있습니다.",
+    "note": "동거만으로는 만 65세 이상·3년 이상 부양 여부를 알 수 없다 → null.",
+    "expect": {
+      "supportingOldParents": null
+    }
+  },
+  {
+    "id": "old-parents-explicit",
+    "text": "일흔 넘으신 아버지를 5년째 제가 부양하며 같이 살고 있어요.",
+    "note": "나이(70대)·기간(5년) 모두 명시 → supportingOldParents true.",
+    "expect": {
+      "supportingOldParents": true
+    }
+  },
+  {
+    "id": "household-member",
+    "text": "저는 세대주가 아니라 세대원입니다. 세대주는 아버지예요.",
+    "note": "세대원 명시 → householdHead false.",
+    "expect": {
+      "householdHead": false
+    }
+  },
+  {
+    "id": "married-8-years",
+    "text": "결혼한 지 8년 됐고 무주택입니다.",
+    "note": "혼인 7년 경계 밖 케이스. 8년 → 약 96개월.",
+    "expect": {
+      "married": true,
+      "monthsSinceMarriage": { "min": 92, "max": 100 },
+      "houseless": true
+    }
+  },
+  {
+    "id": "three-children",
+    "text": "아이가 셋입니다. 다자녀 특별공급 되나요?",
+    "note": "'아이 셋' → 3. 판정 질문은 무시하고 값만 뽑는다.",
+    "expect": {
+      "childCount": 3
+    }
+  },
+  {
+    "id": "divorced-single-parent",
+    "text": "몇 년 전에 이혼했고 지금은 초등학생 아이 하나를 혼자 키우고 있어요.",
+    "note": "이혼 → 혼인 중 아님(false). 미성년 자녀 1명.",
+    "expect": {
+      "married": false,
+      "childCount": 1
+    }
+  },
+  {
+    "id": "account-6-months",
+    "text": "청약통장 만든 지 6개월 됐습니다.",
+    "note": "정확한 기간 명시 → accountMonths 6.",
+    "expect": {
+      "accountMonths": 6
+    }
+  },
+  {
+    "id": "single-no-children",
+    "text": "미혼이고 자녀도 없습니다. 무주택이고 청약통장은 3년 됐어요.",
+    "note": "미혼 → married false, 혼인기간 null. 자녀 0.",
+    "expect": {
+      "married": false,
+      "monthsSinceMarriage": null,
+      "childCount": 0,
+      "houseless": true,
+      "accountMonths": 36
+    }
+  },
+  {
+    "id": "long-mixed-sentence",
+    "text": "결혼 4년차 맞벌이 부부이고 만 2세 아기가 한 명 있습니다. 지금 사는 집은 전세이고 예전에도 집을 소유한 적은 없어요. 청약통장은 결혼 전부터 넣어서 7년 정도 됐고, 세대주는 접니다.",
+    "note": "여러 값이 한 문장에. 4년 → 약 48개월, 통장 7년 → 약 84개월.",
+    "expect": {
+      "married": true,
+      "monthsSinceMarriage": { "min": 44, "max": 52 },
+      "childCount": 1,
+      "hasNewborn": true,
+      "houseless": true,
+      "everOwnedHouse": false,
+      "accountMonths": { "min": 80, "max": 88 },
+      "householdHead": true
+    }
+  },
+  {
+    "id": "unrelated-text",
+    "text": "오늘 점심에 뭘 먹을지 고민이네요. 날씨도 좋고.",
+    "note": "청약 조건과 무관 → 아무 값도 못 뽑아 추출 실패(FAILED).",
+    "expectStatus": "FAILED",
+    "expect": {}
+  }
+]
