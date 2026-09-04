@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- 밝고 경쾌한 스카이/로열블루 그라데이션 -->
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+
+    <!-- 따뜻한 옐로우/골드 나침반 바늘 -->
+    <linearGradient id="yellowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+
+    <filter id="popShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#0f172a" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- 부드러운 둥근 스퀴클 배경 -->
+  <rect width="512" height="512" rx="120" fill="url(#skyGrad)"/>
+
+  <!-- 배경에 은은한 돔 라인 -->
+  <circle cx="256" cy="270" r="180" fill="#60A5FA" fill-opacity="0.3"/>
+
+  <!-- 귀여운 둥근 집 본체 (화이트) -->
+  <g filter="url(#popShadow)">
+    <path d="M 256 120 
+             C 268 120 278 126 286 134 
+             L 396 226 
+             C 406 234 408 248 400 258 
+             C 394 266 384 270 374 270 
+             H 364 
+             V 380 
+             C 364 400 348 416 328 416 
+             H 184 
+             C 164 416 148 400 148 380 
+             V 270 
+             H 138 
+             C 128 270 118 266 112 258 
+             C 104 248 106 234 116 226 
+             L 226 134 
+             C 234 126 244 120 256 120 Z" 
+          fill="#FFFFFF"/>
+
+    <!-- 둥근 문 -->
+    <path d="M 284 416 V 346 C 284 330 297 318 313 318 C 329 318 342 330 342 346 V 416 Z" fill="#DBEAFE"/>
+    <!-- 둥근 다락 창문 -->
+    <circle cx="206" cy="246" r="22" fill="#DBEAFE"/>
+
+    <!-- 통통한 스마일 나침반 바늘 (우상향을 가리키는 행운의 화살표) -->
+    <!-- 메인 바늘 화살표 -->
+    <g transform="rotate(38 256 280)">
+      <!-- 바늘 몸통 & 촉 -->
+      <path d="M 256 110 
+               L 300 220 
+               C 304 230 300 242 290 248 
+               L 266 260 
+               V 390 
+               C 266 396 261 400 256 400 
+               C 251 400 246 396 246 390 
+               V 260 
+               L 222 248 
+               C 212 242 208 230 212 220 
+               Z" 
+            fill="url(#yellowGrad)"/>
+
+      <!-- 바늘 하이라이트 -->
+      <path d="M 256 130 L 285 218 C 287 222 285 228 281 230 L 260 240 V 380 H 256 Z" 
+            fill="#FFFFFF" fill-opacity="0.35"/>
+
+      <!-- 귀여운 눈과 스마일 입 -->
+      <!-- 왼쪽 눈 -->
+      <ellipse cx="242" cy="275" rx="3.5" ry="5" fill="#78350F"/>
+      <!-- 오른쪽 눈 -->
+      <ellipse cx="270" cy="275" rx="3.5" ry="5" fill="#78350F"/>
+      <!-- 방긋 웃는 입 -->
+      <path d="M 246 295 Q 256 310 266 295" stroke="#78350F" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+      <!-- 볼터치 -->
+      <ellipse cx="236" cy="286" rx="5" ry="3" fill="#F43F5E" fill-opacity="0.6"/>
+      <ellipse cx="276" cy="286" rx="5" ry="3" fill="#F43F5E" fill-opacity="0.6"/>
+    </g>
+  </g>
+</svg>
