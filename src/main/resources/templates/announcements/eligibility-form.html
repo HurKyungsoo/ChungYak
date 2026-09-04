@@ -8,18 +8,19 @@
     <a th:href="@{/announcements/{id}(id=${announcement.id})}" class="backlink">
         ← <span th:text="${announcement.houseName}">공고</span>
     </a>
-    <h1>자격 판정 — 조건 입력</h1>
+    <h1>자격 판정</h1>
     <p class="muted">
-        내 조건을 입력하면 공식 청약 기준에 맞춰 신청 가능 여부를 정확히 판정합니다.
-        잘 모르거나 해당되지 않는 항목은 비워 두셔도 괜찮습니다.
+        입력하신 정보를 바탕으로 청약 신청 자격을 확인해 드립니다.
+        모르거나 해당되지 않는 항목은 입력하지 않아도 됩니다.
     </p>
 
-    <!-- 말하듯 입력 — LLM 은 폼을 채워주기만 하고 판정에는 관여하지 않습니다 -->
+    <!-- 상황 설명 입력 — LLM 은 폼을 채워주기만 하고 판정에는 관여하지 않습니다 -->
     <fieldset th:if="${extractionAvailable}" class="tint">
-        <legend>말하듯 입력하기 <span class="muted">(선택)</span></legend>
+        <legend>상황 설명 입력 <span class="muted">(선택)</span></legend>
         <p class="muted" style="margin-top:2px">
-            평소 말씀하시듯 상황을 적어주시면 필요한 항목을 자동으로 채워드립니다.
-            <strong>채워진 내용은 판정 전에 직접 확인하고 수정하실 수 있습니다.</strong>
+            현재 거주 형태, 세대 구성, 주택 소유 여부 등 본인의 상황을 자유롭게 입력해 주세요.
+            입력된 내용을 바탕으로 관련 항목이 자동으로 작성되며,
+            <strong>최종 판정 전에 내용을 확인하고 수정할 수 있습니다.</strong>
         </p>
         <form method="post" th:action="@{/announcements/{id}/eligibility/extract(id=${announcement.id})}">
             <textarea name="naturalText" rows="3"
