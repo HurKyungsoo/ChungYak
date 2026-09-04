@@ -1,6 +1,7 @@
 package com.portfolio.chungyak.external;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 공고 수집 소스. 청약홈(odcloud)·LH(data.go.kr)처럼 게이트웨이도 응답 구조도
@@ -25,4 +26,12 @@ public interface AnnouncementSource {
 
     /** 신규 공고의 주택형 목록 (공고당 추가 호출 1회). 소스가 제공하지 않으면 빈 리스트 */
     List<ExternalUnitType> fetchUnitTypes(ExternalAnnouncement announcement);
+
+    /**
+     * 신규 공고의 입주자모집공고문 원문(비정형 텍스트) — 벡터 검색 대상.
+     * 판정에는 쓰지 않는다. 소스가 제공하지 않으면 {@code Optional.empty()}.
+     */
+    default Optional<String> fetchNoticeContent(ExternalAnnouncement announcement) {
+        return Optional.empty();
+    }
 }

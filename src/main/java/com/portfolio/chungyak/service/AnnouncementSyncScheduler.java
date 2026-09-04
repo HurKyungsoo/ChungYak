@@ -111,7 +111,8 @@ public class AnnouncementSyncScheduler {
 
                 if (isNew) {
                     List<ExternalUnitType> unitTypes = source.fetchUnitTypes(announcement);
-                    enriched.add(withUnitTypes(announcement, unitTypes));
+                    String noticeContent = fetchNoticeContentSafely(source, announcement);
+                    enriched.add(withUnitTypes(announcement, unitTypes, noticeContent));
                 } else {
                     enriched.add(announcement);
                 }
@@ -126,8 +127,20 @@ public class AnnouncementSyncScheduler {
         return new SyncReport(pagesFetched, received, created, updated);
     }
 
+    /** 공고문 원문 조회 실패가 수집 전체를 막지 않도록 감싼다 (mock 이 null 을 줄 수도 있다). */
+    private String fetchNoticeContentSafely(AnnouncementSource source, ExternalAnnouncement announcement) {
+        try {
+            var result = source.fetchNoticeContent(announcement);
+            return result != null ? result.orElse(null) : null;
+        } catch (RuntimeException e) {
+            log.warn("{} 공고문 원문 조회 실패 — {}", source.sourceName(), e.toString());
+            return null;
+        }
+    }
+
     private ExternalAnnouncement withUnitTypes(ExternalAnnouncement source,
-                                               List<ExternalUnitType> unitTypes) {
+                                               List<ExternalUnitType> unitTypes,
+                                               String noticeContent) {
         return ExternalAnnouncement.builder()
                 .externalId(source.getExternalId())
                 .houseManageNo(source.getHouseManageNo())
@@ -153,7 +166,7 @@ public class AnnouncementSyncScheduler {
                 .developerName(source.getDeveloperName())
                 .constructorName(source.getConstructorName())
                 .moveInYearMonth(source.getMoveInYearMonth())
-                .noticeContent(source.getNoticeContent())
+                .noticeContent(noticeContent != null ? noticeContent : source.getNoticeContent())
                 .providerParams(source.getProviderParams())
                 .unitTypes(unitTypes)
                 .build();
