@@ -13,12 +13,18 @@
     </div>
 
     <div th:if="${result.hasAnyMatch}" class="result-hero good">
-        <div class="headline">신청 가능한 주택형이 <span th:text="${result.matchedUnitTypes.size()}">1</span>개 있습니다</div>
-        <div class="sub">아래에서 주택형별 신청 가능 유형과 배정 세대를 확인하세요.</div>
+        <div class="result-icon">✨</div>
+        <div class="result-body">
+            <div class="headline">신청 가능한 주택형이 <span th:text="${result.matchedUnitTypes.size()}">1</span>개 있습니다</div>
+            <div class="sub">아래에서 주택형별 신청 가능 유형과 배정 세대를 확인하세요.</div>
+        </div>
     </div>
     <div th:unless="${result.hasAnyMatch}" class="result-hero bad">
-        <div class="headline">현재 조건으로 신청 가능한 특별공급 유형이 없습니다</div>
-        <div class="sub">아래 판정 근거에서 어떤 요건이 막았는지 확인하세요.</div>
+        <div class="result-icon">🧭</div>
+        <div class="result-body">
+            <div class="headline">현재 조건으로 신청 가능한 특별공급 유형이 없습니다</div>
+            <div class="sub">아래 판정 근거에서 어떤 요건이 막았는지 확인하세요.</div>
+        </div>
     </div>
 
     <!-- LLM 요약 — 규칙 근거(아래)를 대체하지 않고 그 위에 얹는 읽기용 문단.
