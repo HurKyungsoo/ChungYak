@@ -299,16 +299,17 @@
         /* ── forms ─────────────────────────────────────────────────── */
         fieldset {
             border: 1px solid var(--border); border-radius: var(--r);
-            margin: 18px 0; padding: 14px 18px 16px; background: var(--surface);
+            margin: 18px 0; padding: 16px 18px; background: var(--surface);
         }
         fieldset.tint { background: var(--brand-weak); border-color: color-mix(in srgb, var(--brand) 20%, transparent); }
-        /* 테두리 선이 글자에 걸치지 않도록 legend 에 배경을 깔아 선을 가린다 */
+        /* legend 를 float 시키면 테두리 노치가 사라져 선이 글자에 걸치지 않는다.
+           legend 는 카드 안 상단의 일반 제목처럼 놓인다. */
         legend {
-            font-weight: 650; font-size: .95rem; line-height: 1.3;
-            padding: 1px 8px; margin-left: -2px;
-            background: var(--surface); border-radius: 5px;
+            float: left; width: 100%;
+            padding: 0; margin: 0 0 12px;
+            font-weight: 650; font-size: .95rem;
         }
-        fieldset.tint > legend { background: var(--brand-weak); }
+        legend + * { clear: both; }
         legend .muted { font-weight: 400; font-size: .82rem; }
         .field { display: block; margin: 12px 0; font-size: .9rem; }
         .field > span.lbl { display: block; margin-bottom: 5px; font-weight: 550; }
