@@ -25,6 +25,7 @@ public class DocumentQaService {
     private final Optional<DocumentAnswerer> answerer;
     private final int contextChunks;
     private final double minScore;
+    private final double keywordMinScore;
 
     public DocumentQaService(VectorSearch vectorSearch,
                              DocumentChunkRepository chunkRepository,
@@ -35,6 +36,7 @@ public class DocumentQaService {
         this.answerer = answerer;
         this.contextChunks = properties.qa().contextChunks();
         this.minScore = properties.qa().minScore();
+        this.keywordMinScore = properties.qa().keywordMinScore();
     }
 
     public boolean isEnabled() {
@@ -48,7 +50,7 @@ public class DocumentQaService {
 
     public enum Status { DISABLED, NO_INDEX, NO_MATCH, ANSWERED }
 
-    public record Citation(int chunkIndex, String excerpt, double score) {}
+    public record Citation(int chunkIndex, String excerpt, double score, double keywordScore) {}
 
     public record QaAnswer(Status status, String answer, List<Citation> citations) {
         public boolean isShown() { return status != Status.DISABLED; }
@@ -71,12 +73,13 @@ public class DocumentQaService {
         }
 
         List<Citation> citations = hits.stream()
-                .map(h -> new Citation(h.chunkIndex(), h.content(), h.score()))
+                .map(h -> new Citation(h.chunkIndex(), h.content(), h.score(), h.keywordScore()))
                 .toList();
 
-        if (hits.get(0).score() < minScore) {
-            log.info("공고 #{} Q&A — 최고 유사도 {} < {} 로 관련 발췌 없음", announcementId,
-                    String.format("%.2f", hits.get(0).score()), minScore);
+        Hit top = hits.get(0);
+        if (top.score() < minScore && top.keywordScore() < keywordMinScore) {
+            log.info("공고 #{} Q&A — 최고 발췌 코사인 {} · 키워드 {} 로 관련 발췌 없음", announcementId,
+                    String.format("%.2f", top.score()), String.format("%.2f", top.keywordScore()));
             return QaAnswer.noMatch(citations);
         }
 
