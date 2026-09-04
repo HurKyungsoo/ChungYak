@@ -43,9 +43,9 @@
     <form method="post" th:action="@{/announcements/{id}/eligibility(id=${announcement.id})}" th:object="${form}">
         <fieldset>
             <legend>혼인 · 자녀</legend>
-            <label class="check"><input type="checkbox" th:field="*{married}"> <span>혼인 중이다</span></label>
+            <label class="check"><input type="checkbox" th:field="*{married}" id="marriedCheck"> <span>혼인 중이다</span></label>
             <div class="field-grid">
-                <label class="field"><span class="lbl">혼인신고일로부터 경과 개월</span>
+                <label class="field" id="marriageMonthsField"><span class="lbl">혼인신고일로부터 경과 개월</span>
                     <input type="number" min="0" th:field="*{monthsSinceMarriage}" placeholder="예: 36">
                     <span class="hint">신혼부부 특공은 84개월 이내</span>
                 </label>
@@ -76,7 +76,8 @@
                     <span class="hint">국민주택 — 12회 이상, 규제지역 24회</span>
                 </label>
                 <label class="field"><span class="lbl">예치금 (원)</span>
-                    <input type="number" min="0" step="100000" th:field="*{accountDeposit}" placeholder="예: 3000000">
+                    <input type="number" min="0" step="100000" th:field="*{accountDeposit}" placeholder="예: 3000000" class="currency-input">
+                    <span class="currency-helper"></span>
                     <span class="hint">민영 — 서울·부산 전용 85㎡ 이하 300만</span>
                 </label>
             </div>
@@ -102,14 +103,17 @@
             <legend>소득 · 자산 <span class="muted">(민영은 소득만, 공공은 자산도)</span></legend>
             <div class="field-grid">
                 <label class="field"><span class="lbl">가구 월평균소득 (원, 세전)</span>
-                    <input type="number" min="0" step="10000" th:field="*{monthlyHouseholdIncome}" placeholder="예: 6000000">
+                    <input type="number" min="0" step="10000" th:field="*{monthlyHouseholdIncome}" placeholder="예: 6000000" class="currency-input">
+                    <span class="currency-helper"></span>
                 </label>
                 <label class="field"><span class="lbl">총자산 (원)</span>
-                    <input type="number" min="0" step="1000000" th:field="*{totalAssets}" placeholder="예: 300000000">
+                    <input type="number" min="0" step="1000000" th:field="*{totalAssets}" placeholder="예: 300000000" class="currency-input">
+                    <span class="currency-helper"></span>
                     <span class="hint">공공주택 특공만</span>
                 </label>
                 <label class="field"><span class="lbl">자동차가액 (원)</span>
-                    <input type="number" min="0" step="100000" th:field="*{carValue}" placeholder="예: 20000000">
+                    <input type="number" min="0" step="100000" th:field="*{carValue}" placeholder="예: 20000000" class="currency-input">
+                    <span class="currency-helper"></span>
                     <span class="hint">공공주택 특공만</span>
                 </label>
             </div>
@@ -119,13 +123,13 @@
 
         <fieldset>
             <legend>재당첨 제한</legend>
-            <label class="check"><input type="checkbox" th:field="*{everWonSpecialSupply}">
+            <label class="check"><input type="checkbox" th:field="*{everWonSpecialSupply}" id="everWonCheck">
                 <span>과거에 특별공급에 당첨된 적이 있다 (본인/세대원)
                     <span class="hint" style="display:inline">— 특별공급은 세대당 평생 1회</span></span></label>
-            <label class="check"><input type="checkbox" th:field="*{pastWinInSpeculationArea}">
+            <label class="check"><input type="checkbox" th:field="*{pastWinInSpeculationArea}" id="pastWinSpeculationCheck">
                 <span>과거 당첨 주택이 투기과열지구·청약과열지역이었다
                     <span class="hint" style="display:inline">— 제한 기간 10년</span></span></label>
-            <label class="field" style="max-width:280px"><span class="lbl">마지막 당첨일로부터 경과 개월</span>
+            <label class="field" id="lastWinMonthsField" style="max-width:280px"><span class="lbl">마지막 당첨일로부터 경과 개월</span>
                 <input type="number" min="0" th:field="*{monthsSinceLastWin}" placeholder="예: 40">
                 <span class="hint">당첨 이력이 없으면 비워 두세요</span>
             </label>
@@ -138,6 +142,62 @@
 
     <div th:replace="~{fragments/common :: disclaimer}"></div>
 </main>
+
+<script>
+    // 1. 한국 원화 단위 실시간 포맷팅 (억/만 원)
+    function formatKoreanWon(val) {
+        const num = parseInt(val, 10);
+        if (!num || isNaN(num) || num <= 0) return '';
+        let str = '';
+        const eok = Math.floor(num / 100000000);
+        const man = Math.floor((num % 100000000) / 10000);
+        const remainder = num % 10000;
+        if (eok > 0) str += eok.toLocaleString() + '억 ';
+        if (man > 0) str += man.toLocaleString() + '만 ';
+        if (remainder > 0 && eok === 0 && man === 0) str += remainder.toLocaleString() + ' ';
+        return str ? '≈ ' + str.trim() + '원' : '';
+    }
+
+    document.querySelectorAll('.currency-input').forEach(input => {
+        const helper = input.parentElement.querySelector('.currency-helper');
+        if (!helper) return;
+        const update = () => {
+            helper.textContent = formatKoreanWon(input.value);
+        };
+        input.addEventListener('input', update);
+        update();
+    });
+
+    // 2. 조건부 필드 스마트 토글 (혼인 여부 -> 혼인 경과 개월)
+    const marriedCheck = document.getElementById('marriedCheck');
+    const marriageMonthsField = document.getElementById('marriageMonthsField');
+    if (marriedCheck && marriageMonthsField) {
+        const monthsInput = marriageMonthsField.querySelector('input');
+        const updateMarriage = () => {
+            const hasValue = monthsInput && monthsInput.value && parseInt(monthsInput.value, 10) > 0;
+            const show = marriedCheck.checked || hasValue;
+            marriageMonthsField.style.display = show ? '' : 'none';
+        };
+        marriedCheck.addEventListener('change', updateMarriage);
+        updateMarriage();
+    }
+
+    // 3. 조건부 필드 스마트 토글 (과거 당첨 여부 -> 마지막 당첨 경과 개월)
+    const everWonCheck = document.getElementById('everWonCheck');
+    const pastWinCheck = document.getElementById('pastWinSpeculationCheck');
+    const lastWinField = document.getElementById('lastWinMonthsField');
+    if (lastWinField) {
+        const lastWinInput = lastWinField.querySelector('input');
+        const updatePastWin = () => {
+            const hasValue = lastWinInput && lastWinInput.value && parseInt(lastWinInput.value, 10) > 0;
+            const show = (everWonCheck && everWonCheck.checked) || (pastWinCheck && pastWinCheck.checked) || hasValue;
+            lastWinField.style.display = show ? '' : 'none';
+        };
+        if (everWonCheck) everWonCheck.addEventListener('change', updatePastWin);
+        if (pastWinCheck) pastWinCheck.addEventListener('change', updatePastWin);
+        updatePastWin();
+    }
+</script>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>
 </body>

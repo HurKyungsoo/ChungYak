@@ -234,7 +234,25 @@
         .result-hero.bad  .headline { color: color-mix(in srgb, var(--no) 85%, var(--text)); }
         .result-hero .sub { color: var(--text-muted); font-size: .9rem; }
         .result-hero .score-num { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
-        .result-hero .score-num small { font-size: 1rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0; }
+        /* ── next steps card (결과 하단 CTA) ─────────────────────── */
+        .next-steps-card {
+            background: var(--surface); border: 1px solid var(--border-strong);
+            border-radius: var(--r-lg); padding: 22px 24px; margin: 28px 0 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .next-steps-card .title {
+            font-size: 1.08rem; font-weight: 700; margin-bottom: 6px;
+            display: flex; align-items: center; gap: 8px; color: var(--text);
+        }
+        .next-steps-card .desc {
+            color: var(--text-muted); font-size: .9rem; margin-bottom: 16px; line-height: 1.55;
+        }
+
+        /* ── currency helper ───────────────────────────────────────── */
+        .currency-helper {
+            font-size: .8rem; font-weight: 650; color: var(--brand);
+            margin-top: 2px; display: block; min-height: 1.1em;
+        }
 
         /* ── buttons ───────────────────────────────────────────────── */
         .btn {

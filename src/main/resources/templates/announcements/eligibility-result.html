@@ -105,6 +105,44 @@
         </ul>
     </div>
 
+    <!-- ── 다음 단계 추천 (Next Steps CTA) ── -->
+    <div class="next-steps-card">
+        <div th:if="${result.hasAnyMatch}">
+            <div class="title">🎉 다음 단계 안내</div>
+            <div class="desc">
+                신청 가능한 특별공급 주택형을 확인하셨습니다. 청약 일정과 세부 자격 서류를 확인하고 청약홈에서 접수를 준비하세요.
+            </div>
+            <div class="btn-row">
+                <a href="https://www.applyhome.co.kr/" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                    청약홈 공식 접수 바로가기 ↗
+                </a>
+                <a th:href="@{/announcements/{id}(id=${announcement.id})}" class="btn btn-ghost">
+                    공고 세부 일정 보기
+                </a>
+                <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="btn btn-ghost">
+                    조건 수정하기
+                </a>
+            </div>
+        </div>
+        <div th:unless="${result.hasAnyMatch}">
+            <div class="title">💡 다음 추천 안내</div>
+            <div class="desc">
+                현재 공고에서는 특별공급 요건이 맞지 않더라도, <strong>일반공급 가점제</strong>로 신청하거나 <strong>다른 접수중 공고</strong>를 탐색해 보실 수 있습니다.
+            </div>
+            <div class="btn-row">
+                <a th:href="@{/announcements}" class="btn btn-primary">
+                    다른 접수중 공고 둘러보기 →
+                </a>
+                <a th:href="@{/general-supply}" class="btn btn-ghost">
+                    일반공급 가점 계산하기
+                </a>
+                <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="btn btn-ghost">
+                    조건 다시 입력
+                </a>
+            </div>
+        </div>
+    </div>
+
     <div th:replace="~{fragments/common :: disclaimer}"></div>
 </main>
 
