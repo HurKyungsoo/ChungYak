@@ -82,7 +82,7 @@ llm:
 rag:
   voyage:
     api-key: ${VOYAGE_API_KEY:REPLACE_ME}
-    model: ${VOYAGE_MODEL:voyage-3-lite}
+    model: ${VOYAGE_MODEL:voyage-4-lite}
     base-url: https://api.voyageai.com/v1/embeddings
     batch-size: 96
   chunk:
