@@ -77,7 +77,8 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) + 첨부 HWP
 
 | 항목 | 규모 | 메모 |
 |---|---|---|
-| **AI 요약 온디맨드/캐시** | 반나절 | `EligibilityController.evaluate()` 가 매 판정마다 `explanationService.explain()` 호출 중. "AI 설명 보기" 버튼 온디맨드 or `(공고ID + ApplicantProfile 해시) → 요약` 캐시(Caffeine) |
+| **AI 요약 캐시**  ✅ 완료 | — | `ExplanationService` 안에 Caffeine 캐시 — 키는 `ExplanationFacts.format()` 근거 텍스트(공고+모든 판정 근거를 통째로 담음), 값은 **성공한 AI 요약만**. maxSize 1000·TTL 24h·recordStats. 폼 재제출·새로고침이 LLM 재호출로 안 이어짐. FALLBACK(모순 반복·호출 실패)은 캐시 안 함. |
+| **AI 요약 온디맨드 버튼** | 반나절 | 남음. 결과 화면 로드 시가 아니라 "AI 설명 보기" 클릭 시 호출 — 별도 엔드포인트 + JS 필요. 캐시가 있어 급하진 않음. |
 | **eval 세트** | 반나절 | 추출/요약 품질 측정. 자연어 20문장 + 기대 필드값, 모순 케이스. `/claude-api build-eval`. 회귀 방지 + "측정했다" 근거 |
 | **모델 비용** | — | `llm.anthropic.model` 기본 `claude-sonnet-5`. 추출·요약은 단발이라 `claude-haiku-4-5` 로 낮추면 흐름 1회 ~6원 (Sonnet ~12원) |
 
@@ -86,7 +87,7 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) + 첨부 HWP
 ## 권장 순서
 
 1. ~~**2b-3a** (개선 경로 프롬프트)~~ ✅ 완료
-2. **D3 온디맨드/캐시** — 지금 실제 비용 새는 중
+2. ~~**D3 요약 캐시**~~ ✅ 완료
 3. **eval 세트** — 위 둘 검증
 4. **2b-3b** (개선 경로 결정론적 계산) — 3a 문장 품질 보고 필요하면
 5. **방향 3 (RAG)** — 별도 큰 프로젝트, 임베딩 provider 결정부터

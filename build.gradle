@@ -35,6 +35,9 @@ dependencies {
     //  - output_config.format 스키마 강제로 "애매하면 null" 을 파싱이 아니라 스키마로 보장
     implementation 'com.anthropic:anthropic-java:2.34.0'
 
+    // 판정 요약(LLM) 캐시 — 같은 판정 근거면 재호출하지 않는다. 버전은 Boot BOM 관리.
+    implementation 'com.github.ben-manes.caffeine:caffeine'
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 

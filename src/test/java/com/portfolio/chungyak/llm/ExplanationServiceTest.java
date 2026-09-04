@@ -95,4 +95,57 @@ class ExplanationServiceTest {
 
         assertThat(service.explain(MatchResults.withMatch()).status()).isEqualTo(Status.FALLBACK);
     }
+
+    @Test
+    @DisplayName("같은 판정을 두 번 요청하면 → LLM 은 한 번만 호출 (캐시 적중)")
+    void identicalRequestHitsCache() {
+        AtomicInteger calls = new AtomicInteger();
+        ExplanationService service = withExplainer(facts -> {
+            calls.incrementAndGet();
+            return "혼인·무주택·청약통장 요건을 충족해 신청 가능합니다.";
+        });
+
+        ExplanationResult first = service.explain(MatchResults.withMatch());
+        ExplanationResult second = service.explain(MatchResults.withMatch());
+
+        assertThat(calls.get()).isEqualTo(1);
+        assertThat(first.status()).isEqualTo(Status.AI);
+        assertThat(second).isEqualTo(first);
+    }
+
+    @Test
+    @DisplayName("판정이 다르면 → 캐시 키가 달라 각각 호출된다")
+    void differentVerdictMissesCache() {
+        AtomicInteger calls = new AtomicInteger();
+        ExplanationService service = withExplainer(facts -> {
+            // 판정과 모순되지 않도록, 근거 텍스트를 그대로 짧게 되돌려준다
+            calls.incrementAndGet();
+            return facts.contains("신청 가능한 특별공급: 없음")
+                    ? "신청 가능한 특별공급이 없습니다."
+                    : "신청 가능한 특별공급이 있습니다.";
+        });
+
+        service.explain(MatchResults.withMatch());
+        service.explain(MatchResults.noMatch());
+        service.explain(MatchResults.withMatch());  // 다시 withMatch → 캐시 적중
+
+        assertThat(calls.get()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("FALLBACK 은 캐시하지 않는다 → 다음 요청에서 다시 시도")
+    void fallbackIsNotCached() {
+        AtomicInteger calls = new AtomicInteger();
+        ExplanationService service = withExplainer(facts -> {
+            // 1회차: 예외로 폴백, 2회차: 정상 (폴백을 캐시했다면 2회차가 안 불림)
+            if (calls.incrementAndGet() < 2) {
+                throw new RuntimeException("503 overloaded");
+            }
+            return "요건을 충족해 신청 가능합니다.";
+        });
+
+        assertThat(service.explain(MatchResults.withMatch()).status()).isEqualTo(Status.FALLBACK);
+        assertThat(service.explain(MatchResults.withMatch()).status()).isEqualTo(Status.AI);
+        assertThat(calls.get()).isEqualTo(2);
+    }
 }
