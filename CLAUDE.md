@@ -106,6 +106,13 @@
 - 판정 결과를 이유 없이 반환
 - `application.yml` 에 실제 키·비밀번호 커밋
 
+## Git
+
+- **브랜치 없이 `master` 에 바로 커밋한다.** (1인 프로젝트, PR 리뷰 없음)
+- 작업 시작 전 `git pull --rebase`, 커밋 전 `./gradlew build` 그린 확인.
+- 예외 — 이때만 브랜치: 규칙 엔진 변경(`rule/`), 며칠짜리 큰 작업(RAG 등).
+- 여러 컴퓨터에서 작업하므로 오래된 base 위에 스택 쌓지 말 것.
+
 ## 보안
 
 - `/api/admin/**` = `ROLE_ADMIN` (HTTP Basic), `config/SecurityConfig`.
