@@ -84,7 +84,7 @@ rag:
     api-key: ${VOYAGE_API_KEY:REPLACE_ME}
     model: ${VOYAGE_MODEL:voyage-4-lite}
     base-url: https://api.voyageai.com/v1/embeddings
-    batch-size: 8   # 요청당 청크 수. 결제수단 미등록 계정의 10K TPM 제한을 넘지 않도록 작게
+    batch-size: 64  # 요청당 청크 수. 결제수단 등록(Usage tier 1) 후 16M TPM / 2000 RPM 이라 크게 묶어도 됨
   chunk:
     size: 900        # 청크 목표 길이(문자)
     overlap: 150     # 청크 간 겹침(문자) — 경계 문장 유실 방지
