@@ -35,7 +35,8 @@ public class AccountRequirement {
                             + required + "회 이상)을 충족합니다.")
                     : RequirementCheck.fail("청약통장 납입 " + count + "회로 국민주택 순위 요건("
                             + required + "회 이상)에 미달합니다."
-                            + (regulated ? " 규제지역이라 24회가 필요합니다." : ""));
+                            + (regulated ? " 규제지역이라 24회가 필요합니다." : ""),
+                            ImprovementHints.paymentCount(count, required));
         }
 
         // 민영주택 — 지역별 예치금 (전용 85㎡ 이하 기준)
@@ -50,6 +51,7 @@ public class AccountRequirement {
                         + ")을 충족합니다. 면적이 큰 주택형은 예치금이 더 필요합니다.")
                 : RequirementCheck.fail("청약통장 예치금 " + AssetRequirement.won(deposit)
                         + "으로 이 지역 예치금 기준(전용 85㎡ 이하 " + AssetRequirement.won(required)
-                        + ")에 미달합니다.");
+                        + ")에 미달합니다.",
+                        ImprovementHints.deposit(deposit, required));
     }
 }

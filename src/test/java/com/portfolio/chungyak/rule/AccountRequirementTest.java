@@ -81,4 +81,20 @@ class AccountRequirementTest {
         Announcement priv = announcement(HouseDetailType.PRIVATE, "서울", false);
         assertThat(req.check(account(null, 5_000_000), priv).reason()).contains("면적이 큰 주택형");
     }
+
+    @Test
+    @DisplayName("납입 횟수 미달 — '몇 회 더' 개선 안내가 붙는다")
+    void publicFailCarriesHint() {
+        Announcement pub = announcement(HouseDetailType.PUBLIC, "서울", false);
+        assertThat(req.check(account(6, null), pub).improvementHint())
+                .contains("6회 더").contains("12회");
+    }
+
+    @Test
+    @DisplayName("예치금 미달 — 부족분을 금액으로 개선 안내한다")
+    void privateFailCarriesHint() {
+        Announcement priv = announcement(HouseDetailType.PRIVATE, "서울", false);
+        assertThat(req.check(account(null, 2_000_000), priv).improvementHint())
+                .contains("100만원").contains("300만원");
+    }
 }

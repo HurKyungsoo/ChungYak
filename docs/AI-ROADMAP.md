@@ -53,10 +53,15 @@
   테스트: `ExplanationFactsTest`(프롬프트에 두 수치가 담기는지 결정론적 검증) +
   `MatchResults.shortfall()`(규제지역·통장 12/24개월 부분 매칭) +
   `ExplanationIntegrationTest.explainsShortfallWithoutFlippingVerdict`(실 LLM, 키 있을 때).
-- **3b (결정론적, 반나절~1일):** `EligibilityDecision.improvementHints` 를 각 규칙이 결정론적으로 계산
-  (예: `MIN_ACCOUNT_MONTHS_REGULATED - accountMonths` = 12). 엔진이 `ExplanationFacts` 로 전달, AI 는 문장화만.
-  → `EligibilityDecision` + 5개 규칙 + `EligibilityEngineTest` 수정. 이게 프로젝트 thesis 에 더 부합.
-  **먼저 3a 로 문장 품질 보고, 필요하면 3b.**
+- **3b (결정론적)  ✅ 완료:** `EligibilityDecision.improvementHints` — 각 규칙/공통요건이
+  수치 차이로 결정론적 계산. `ImprovementHints` 순수 함수 모음(복붙 방지),
+  `RequirementCheck.fail(reason, hint)` 로 공통요건에서 전달.
+  대상 격차: 통장 가입기간·해당지역 거주기간·재당첨 제한·예치금·납입 횟수 (시간/선택으로 메울 수 있는 것).
+  제외: 혼인 7년 초과(회복 불가)·소득/자산 초과(안내할 행동 없음).
+  `ExplanationFacts` 가 "개선:" 줄로 LLM 에 전달 + 결과 화면에도 `→` 로 노출(`r-hint`).
+  `AnthropicExplainer` 프롬프트: "개선:" 줄이 있으면 녹여 쓰고, 없으면 지어내지 마.
+  테스트: `ImprovementHintsTest` + `EligibilityEngineTest`(격차별 안내/회복불가 제외) +
+  각 요건 테스트 + `ExplanationFactsTest`.
 
 ---
 
@@ -89,8 +94,9 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) + 첨부 HWP
 1. ~~**2b-3a** (개선 경로 프롬프트)~~ ✅ 완료
 2. ~~**D3 요약 캐시**~~ ✅ 완료
 3. ~~**eval 세트**~~ ✅ 완료
-4. **2b-3b** (개선 경로 결정론적 계산) — 3a 문장 품질을 eval 로 보고, 필요하면
+4. ~~**2b-3b** (개선 경로 결정론적 계산)~~ ✅ 완료
 5. **방향 3 (RAG)** — 별도 큰 프로젝트, 임베딩 provider 결정부터
+6. 선택: AI 요약 온디맨드 버튼 · eval 임계값 실측 조정
 
 ---
 

@@ -342,6 +342,60 @@ class EligibilityEngineTest {
     }
 
     @Test
+    @DisplayName("개선 경로 — 통장 기간이 모자라면 '몇 개월 더' 안내가 결정론적으로 붙는다")
+    void improvementHintForAccountMonths() {
+        ApplicantProfile profile = passing()
+                .married(true).monthsSinceMarriage(24)
+                .houseless(true).accountMonths(12)   // 규제지역 24개월 요건에 12개월 부족
+                .residenceMonthsInRegion(36)
+                .build();
+
+        EligibilityDecision decision = engine.evaluate(profile, regulatedAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED);
+
+        assertThat(decision.isEligible()).isFalse();
+        assertThat(decision.getImprovementHints())
+                .anyMatch(h -> h.contains("12개월 더") && h.contains("24개월"));
+    }
+
+    @Test
+    @DisplayName("개선 경로 — 거주기간·재당첨 제한도 남은 개월을 안내한다")
+    void improvementHintForResidenceAndReWin() {
+        ApplicantProfile shortResidence = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(24)
+                .residenceMonthsInRegion(20)   // 규제지역 24개월에 4개월 부족
+                .build();
+        assertThat(engine.evaluate(shortResidence, regulatedAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED).getImprovementHints())
+                .anyMatch(h -> h.contains("4개월 더") && h.contains("거주"));
+
+        ApplicantProfile recentWin = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
+                .monthsSinceLastWin(48)   // 일반 60개월에 12개월 부족
+                .build();
+        assertThat(engine.evaluate(recentWin, privateAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED).getImprovementHints())
+                .anyMatch(h -> h.contains("12개월") && h.contains("재당첨 제한"));
+    }
+
+    @Test
+    @DisplayName("개선 경로 — 되돌릴 수 없는 격차(혼인 7년 초과)에는 안내를 붙이지 않는다")
+    void noHintForIrreversibleGap() {
+        ApplicantProfile expired = passing()
+                .married(true).monthsSinceMarriage(100)   // 7년 초과 — 회복 불가
+                .houseless(true).accountMonths(24)
+                .residenceMonthsInRegion(36)
+                .build();
+
+        EligibilityDecision decision = engine.evaluate(expired, privateAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED);
+
+        assertThat(decision.isEligible()).isFalse();
+        assertThat(decision.getFailedReasons()).anyMatch(r -> r.contains("혼인기간"));
+        assertThat(decision.getImprovementHints()).isEmpty();
+    }
+
+    @Test
     @DisplayName("입력이 부족하면 판정하지 않고 무엇이 빠졌는지 알린다")
     void missingInputIsReported() {
         ApplicantProfile profile = passing()

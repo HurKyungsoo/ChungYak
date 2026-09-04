@@ -40,5 +40,6 @@ public record EligibilityResultView(
             boolean undetermined,
             List<String> satisfiedReasons,
             List<String> failedReasons,
-            List<String> missingInputs) {}
+            List<String> missingInputs,
+            List<String> improvementHints) {}
 }

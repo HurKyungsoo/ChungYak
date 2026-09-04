@@ -56,6 +56,7 @@ public class EligibilityResultAssembler {
                 decision.isUndetermined(),
                 List.copyOf(decision.getSatisfiedReasons()),
                 List.copyOf(decision.getFailedReasons()),
-                List.copyOf(decision.getMissingInputs()));
+                List.copyOf(decision.getMissingInputs()),
+                List.copyOf(decision.getImprovementHints()));
     }
 }

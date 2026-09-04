@@ -6,6 +6,7 @@ import com.portfolio.chungyak.rule.ApplicantProfile;
 import com.portfolio.chungyak.rule.CommonRequirements;
 import com.portfolio.chungyak.rule.EligibilityDecision;
 import com.portfolio.chungyak.rule.EligibilityRule;
+import com.portfolio.chungyak.rule.ImprovementHints;
 import com.portfolio.chungyak.rule.RequirementCheck;
 import org.springframework.stereotype.Component;
 
@@ -83,7 +84,9 @@ public class OldParentsRule implements EligibilityRule {
         } else if (accountOk) {
             decision.satisfied("청약통장 가입 " + accountMonths + "개월입니다.");
         } else {
-            decision.failed("청약통장 가입기간이 요건(" + requiredAccount + "개월)에 미달합니다.");
+            decision.failed("청약통장 가입기간이 " + accountMonths + "개월로 요건("
+                    + requiredAccount + "개월)에 미달합니다.")
+                    .hint(ImprovementHints.accountMonths(accountMonths, requiredAccount));
         }
 
         CommonRequirements.describeAll(common, decision);
