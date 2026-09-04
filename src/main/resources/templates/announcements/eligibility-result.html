@@ -115,14 +115,17 @@
     <div th:each="d : ${result.qualifiedButUnavailable}" class="card decision-card">
         <div class="head"><strong th:text="${d.typeLabel}">신생아</strong>
             <span class="verdict ok">자격 충족</span></div>
-        <ul class="reasons">
-            <li th:each="r : ${d.satisfiedReasons}" class="r-ok" th:text="${r}">이유</li>
-        </ul>
+        <details th:if="${!d.satisfiedReasons.isEmpty()}" class="reasons-fold">
+            <summary th:text="|충족한 요건 ${d.satisfiedReasons.size()}개 보기|">충족한 요건 8개 보기</summary>
+            <ul class="reasons">
+                <li th:each="r : ${d.satisfiedReasons}" class="r-ok" th:text="${r}">이유</li>
+            </ul>
+        </details>
         <p class="muted" style="margin:6px 0 0">이 공고의 어떤 주택형에도 이 유형 배정 세대가 없습니다.</p>
     </div>
 
     <h2>전체 판정 근거</h2>
-    <p class="muted">모든 특별공급 유형에 대한 판정과 이유입니다.</p>
+    <p class="muted">유형별 판정 결과입니다. <strong>막은 요건</strong>과 <strong>입력이 필요한 항목</strong>을 먼저 보여주고, 이미 충족한 요건은 접어 두었습니다.</p>
     <div th:each="d : ${result.allDecisions}" class="card decision-card">
         <div class="head">
             <strong th:text="${d.typeLabel}">유형</strong>
@@ -131,12 +134,24 @@
                   th:classappend="${d.eligible} ? 'ok' : 'no'" class="verdict"
                   th:text="${d.eligible} ? '자격 충족' : '자격 미충족'">결과</span>
         </div>
-        <ul class="reasons">
-            <li th:each="r : ${d.satisfiedReasons}" class="r-ok" th:text="${r}">충족</li>
+
+        <!-- 막은 요건 · 입력 필요 · 개선 힌트 — 항상 펼쳐서 맨 위에 -->
+        <ul class="reasons" th:if="${!d.failedReasons.isEmpty() or !d.missingInputs.isEmpty() or !d.improvementHints.isEmpty()}">
             <li th:each="r : ${d.failedReasons}" class="r-no" th:text="${r}">미충족</li>
             <li th:each="r : ${d.missingInputs}" class="r-miss" th:text="${r} + ' — 입력이 필요합니다'">누락</li>
             <li th:each="h : ${d.improvementHints}" class="r-hint" th:text="${h}">이렇게 하면 충족</li>
         </ul>
+
+        <!-- 이미 충족한 요건 — 접어 둠 -->
+        <details th:if="${!d.satisfiedReasons.isEmpty()}" class="reasons-fold">
+            <summary th:text="|충족한 요건 ${d.satisfiedReasons.size()}개 보기|">충족한 요건 8개 보기</summary>
+            <ul class="reasons">
+                <li th:each="r : ${d.satisfiedReasons}" class="r-ok" th:text="${r}">충족</li>
+            </ul>
+        </details>
+
+        <p th:if="${d.satisfiedReasons.isEmpty() and d.failedReasons.isEmpty() and d.missingInputs.isEmpty() and d.improvementHints.isEmpty()}"
+           class="muted" style="margin:6px 0 0">표시할 판정 근거가 없습니다.</p>
     </div>
 
     <!-- ── 다음 단계 추천 (Next Steps CTA) ── -->
