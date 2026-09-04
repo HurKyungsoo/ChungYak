@@ -72,6 +72,9 @@ class LhClientTest {
             assertThat(a.getNoticeDate()).isEqualTo(LocalDate.of(2026, 9, 3));
             assertThat(a.getReceptEndDate()).isEqualTo(LocalDate.of(2026, 9, 17));
             assertThat(a.getHouseDetailType()).isEqualTo(HouseDetailType.PUBLIC);   // UPP_AIS_TP_CD=05 분양주택
+            // LH 는 규제지역 정보를 안 주지만 임베디드 값은 null 이면 안 된다(저장 시 NOT NULL 위반)
+            assertThat(a.getRegulationFlags()).isNotNull();
+            assertThat(a.getRegulationFlags().isRegulatedArea()).isFalse();
             assertThat(a.getProviderParams())
                     .containsEntry("SPL_INF_TP_CD", "050")
                     .containsEntry("CCR_CNNT_SYS_DS_CD", "02")

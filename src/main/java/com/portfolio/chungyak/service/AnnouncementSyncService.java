@@ -2,6 +2,7 @@ package com.portfolio.chungyak.service;
 
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.AnnouncementDocument;
+import com.portfolio.chungyak.domain.RegulationFlags;
 import com.portfolio.chungyak.domain.UnitType;
 import com.portfolio.chungyak.external.ExternalAnnouncement;
 import com.portfolio.chungyak.external.ExternalUnitType;
@@ -77,7 +78,9 @@ public class AnnouncementSyncService {
                 .specialReceptBeginDate(e.getSpecialReceptBeginDate())
                 .specialReceptEndDate(e.getSpecialReceptEndDate())
                 .winnerAnnounceDate(e.getWinnerAnnounceDate())
-                .regulationFlags(e.getRegulationFlags())
+                // 임베디드 값이 null 이면 저장 시 NOT NULL 위반 — 소스가 안 주면 전부 false(비규제)로
+                .regulationFlags(e.getRegulationFlags() != null
+                        ? e.getRegulationFlags() : RegulationFlags.builder().build())
                 .noticeUrl(e.getNoticeUrl())
                 .homepageUrl(e.getHomepageUrl())
                 .inquiryTel(e.getInquiryTel())

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.HouseType;
+import com.portfolio.chungyak.domain.RegulationFlags;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.domain.SupplyBreakdown;
 import lombok.RequiredArgsConstructor;
@@ -428,6 +429,9 @@ public class LhClient implements AnnouncementSource {
                 .houseDetailType(isHousing(providerParams.get("UPP_AIS_TP_CD"))
                         ? HouseDetailType.PUBLIC : HouseDetailType.UNKNOWN)
                 .regionName(parser.text(item, "CNP_CD_NM"))
+                // LH open API 는 규제지역 여부를 주지 않는다. 전부 false 로 둔다
+                // (규칙 엔진도 null 을 비규제로 취급하지만, 임베디드 값이 null 이면 저장 시 NOT NULL 위반).
+                .regulationFlags(RegulationFlags.builder().build())
                 .noticeDate(parser.date(item, "PAN_NT_ST_DT"))
                 .receptEndDate(parser.date(item, "CLSG_DT"))
                 .noticeUrl(parser.text(item, "DTL_URL"))

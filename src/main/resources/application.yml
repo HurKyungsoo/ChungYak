@@ -60,9 +60,9 @@ publicdata:
 
   # 한국토지주택공사 (data.go.kr B552555 게이트웨이)
   # 활용신청 대상 3종: 목록 15058530 / 상세 15057999 / 공급 15056765 (전부 자동승인)
-  # 승인·키 발급 후 PUBLICDATA_SERVICE_KEY 를 넣고 enabled: true 로 켠다
+  # PUBLICDATA_SERVICE_KEY 가 없으면 LhClient 가 빈 리스트를 반환한다(앱은 정상 기동).
   lh:
-    enabled: false
+    enabled: true
     notice-list-url: https://apis.data.go.kr/B552555/lhLeaseNoticeInfo1/lhLeaseNoticeInfo1
     detail-url: https://apis.data.go.kr/B552555/lhLeaseNoticeDtlInfo1/getLeaseNoticeDtlInfo1
     supply-url: https://apis.data.go.kr/B552555/lhLeaseNoticeSplInfo1/getLeaseNoticeSplInfo1
