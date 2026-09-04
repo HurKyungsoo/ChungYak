@@ -102,6 +102,7 @@
             <li th:each="r : ${d.satisfiedReasons}" class="r-ok" th:text="${r}">충족</li>
             <li th:each="r : ${d.failedReasons}" class="r-no" th:text="${r}">미충족</li>
             <li th:each="r : ${d.missingInputs}" class="r-miss" th:text="${r} + ' — 입력이 필요합니다'">누락</li>
+            <li th:each="h : ${d.improvementHints}" class="r-hint" th:text="${h}">이렇게 하면 충족</li>
         </ul>
     </div>
 

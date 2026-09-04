@@ -41,6 +41,7 @@ public class RegionResidenceRequirement {
                         + scope + " 거주요건(" + required + "개월)을 충족합니다.")
                 : RequirementCheck.fail("해당 공급지역 거주 " + months + "개월로 " + scope
                         + " 우선공급 거주요건(" + required + "개월)에 미달합니다. "
-                        + "기타지역 물량으로는 신청할 수 있습니다.");
+                        + "기타지역 물량으로는 신청할 수 있습니다.",
+                        ImprovementHints.residenceMonths(months, required, scope));
     }
 }

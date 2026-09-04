@@ -38,6 +38,7 @@ public class ReWinRequirement {
                 ? RequirementCheck.pass("마지막 당첨일로부터 " + months + "개월이 지나 재당첨 제한("
                         + scope + " " + limit + "개월)이 풀렸습니다.")
                 : RequirementCheck.fail("마지막 당첨일로부터 " + months + "개월로 재당첨 제한 기간("
-                        + scope + " " + limit + "개월)이 지나지 않았습니다.");
+                        + scope + " " + limit + "개월)이 지나지 않았습니다.",
+                        ImprovementHints.reWinMonths(months, limit));
     }
 }

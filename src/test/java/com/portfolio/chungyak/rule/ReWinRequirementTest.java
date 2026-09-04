@@ -60,4 +60,18 @@ class ReWinRequirementTest {
         RequirementCheck c = req.check(profile(false, 30, false), SpecialSupplyType.NEWLYWED);
         assertThat(c.reason()).contains("30개월").contains("60개월");
     }
+
+    @Test
+    @DisplayName("기간 미경과면 '몇 개월 더 지나면 풀린다' 개선 안내가 붙는다")
+    void failCarriesImprovementHint() {
+        RequirementCheck c = req.check(profile(false, 48, false), SpecialSupplyType.NEWLYWED);  // 60개월에 12개월 부족
+        assertThat(c.improvementHint()).contains("12개월").contains("풀립니다");
+    }
+
+    @Test
+    @DisplayName("평생 1회 하드 FAIL 에는 개선 안내가 없다 (되돌릴 수 없음)")
+    void lifetimeFailHasNoHint() {
+        assertThat(req.check(profile(true, 300, false), SpecialSupplyType.NEWLYWED).improvementHint())
+                .isNull();
+    }
 }

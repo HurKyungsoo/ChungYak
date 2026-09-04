@@ -59,11 +59,13 @@ final class ExplanationFacts {
             d.getSatisfiedReasons().forEach(r -> sb.append("  - 충족: ").append(r).append('\n'));
             d.getFailedReasons().forEach(r -> sb.append("  - 미충족: ").append(r).append('\n'));
             d.getMissingInputs().forEach(r -> sb.append("  - 미확인: ").append(r).append('\n'));
+            d.getImprovementHints().forEach(h -> sb.append("  - 개선: ").append(h).append('\n'));
         }
 
         sb.append("\n이 근거들을 자연스러운 문장으로 정리해줘. 판정 결과나 숫자를 새로 만들지 말 것. ");
-        sb.append("미충족·미확인 항목은 위 근거에 이미 있는 수치만 이용해 ");
-        sb.append("얼마나 모자라는지와 무엇을 채우면 요건을 충족하는지도 덧붙여줘.");
+        sb.append("'개선:' 으로 표시된 안내가 있으면 그 내용을 자연스럽게 녹여서 알려주고, ");
+        sb.append("없으면 미충족 항목은 근거에 있는 수치로 얼마나 모자라는지 정도만 말해줘 ");
+        sb.append("('개선:' 이 없는데 무엇을 하면 되는지를 지어내지는 마).");
         return sb.toString();
     }
 }

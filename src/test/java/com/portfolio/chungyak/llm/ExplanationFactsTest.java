@@ -35,12 +35,14 @@ class ExplanationFactsTest {
     }
 
     @Test
-    @DisplayName("미충족·미확인 항목은 개선 경로까지 설명하도록 지시한다")
-    void asksForImprovementPath() {
+    @DisplayName("규칙이 계산한 개선 안내가 '개선:' 줄로 프롬프트에 실린다 (3b)")
+    void carriesImprovementHints() {
         String facts = ExplanationFacts.format(MatchResults.shortfall());
 
-        assertThat(facts).contains("무엇을 채우면 요건을 충족하는지");
-        assertThat(facts).contains("이미 있는 수치만");
+        // 규제지역·통장 12개월 → 신혼부부에 "12개월 더" 개선 안내
+        assertThat(facts).contains("- 개선: ").contains("12개월 더");
+        // LLM 에게 그 줄을 쓰라고 지시
+        assertThat(facts).contains("'개선:'");
     }
 
     @Test

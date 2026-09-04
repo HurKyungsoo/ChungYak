@@ -59,6 +59,13 @@ class RegionResidenceRequirementTest {
     }
 
     @Test
+    @DisplayName("미달이면 '몇 개월 더' 개선 안내가 붙는다")
+    void failCarriesImprovementHint() {
+        RequirementCheck c = req.check(residence(20), announcement("서울", true));  // 24개월에 4개월 부족
+        assertThat(c.improvementHint()).contains("4개월 더").contains("24개월");
+    }
+
+    @Test
     @DisplayName("미충족이어도 기타지역 물량은 가능하다는 안내가 들어간다")
     void failNotesOtherRegion() {
         assertThat(req.check(residence(6), announcement("서울", true)).reason())
