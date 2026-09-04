@@ -225,6 +225,15 @@
         h1 .ai-chip, h2 .ai-chip { font-size: .5em; }
         legend .ai-chip { font-size: .78rem; }
 
+        /* 이 값이 없으면 판정 엔진이 "입력 부족"으로 멈추는 항목 — rule 코드의 .missing() 호출과 1:1 대응.
+           체크박스는 안 눌러도 false 라는 확정값이 되므로(=MISSING이 아님) 붙이지 않는다. */
+        .req-badge {
+            display: inline-flex; align-items: center; vertical-align: middle;
+            padding: 1px 7px; border-radius: var(--r-pill); line-height: 1.6;
+            font-size: .68rem; font-weight: 700;
+            color: var(--warn); background: var(--warn-weak);
+        }
+
         /* ── result hero (판정/가점 결과 상단) ────────────────────── */
         .result-hero {
             border-radius: var(--r-lg); padding: 22px 24px; margin: 16px 0 20px;
