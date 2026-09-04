@@ -48,7 +48,12 @@ public class DocumentQaService {
         return chunkRepository.existsByAnnouncementId(announcementId);
     }
 
-    public enum Status { DISABLED, NO_INDEX, NO_MATCH, ANSWERED }
+    /**
+     * NO_MATCH = 검색 자체가 관련 발췌를 못 찾음(질문이 공고문과 무관).
+     * ANSWER_FAILED = 관련 발췌는 찾았지만 응답기(LLM) 호출이 실패함(크레딧·네트워크 등).
+     * 화면에서 둘을 같은 문구로 뭉개면 "발췌를 찾긴 했는데 왜 답이 없지?"가 "관련 내용이 없다"로 오해된다.
+     */
+    public enum Status { DISABLED, NO_INDEX, NO_MATCH, ANSWER_FAILED, ANSWERED }
 
     public record Citation(int chunkIndex, String excerpt, double score, double keywordScore) {}
 
@@ -59,6 +64,7 @@ public class DocumentQaService {
         static QaAnswer disabled()  { return new QaAnswer(Status.DISABLED, null, List.of()); }
         static QaAnswer noIndex()   { return new QaAnswer(Status.NO_INDEX, null, List.of()); }
         static QaAnswer noMatch(List<Citation> c) { return new QaAnswer(Status.NO_MATCH, null, c); }
+        static QaAnswer answerFailed(List<Citation> c) { return new QaAnswer(Status.ANSWER_FAILED, null, c); }
         static QaAnswer answered(String a, List<Citation> c) { return new QaAnswer(Status.ANSWERED, a, c); }
     }
 
@@ -90,10 +96,10 @@ public class DocumentQaService {
 
         try {
             String text = answerer.get().answer(question.strip(), numbered);
-            return text.isBlank() ? QaAnswer.noMatch(citations) : QaAnswer.answered(text, citations);
+            return text.isBlank() ? QaAnswer.answerFailed(citations) : QaAnswer.answered(text, citations);
         } catch (RuntimeException e) {
             log.warn("공고 #{} Q&A 응답 생성 실패 — {}", announcementId, e.toString());
-            return QaAnswer.noMatch(citations);
+            return QaAnswer.answerFailed(citations);
         }
     }
 }

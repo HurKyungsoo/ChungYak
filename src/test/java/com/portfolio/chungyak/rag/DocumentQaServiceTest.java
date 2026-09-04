@@ -111,7 +111,7 @@ class DocumentQaServiceTest {
     }
 
     @Test
-    @DisplayName("응답기가 예외를 던지면 → NO_MATCH (발췌는 유지)")
+    @DisplayName("응답기가 예외를 던지면 → ANSWER_FAILED (NO_MATCH 와 구분, 발췌는 유지)")
     void answererFailureIsGraceful() {
         when(search.searchWithin(eq(1L), anyString(), anyInt())).thenReturn(List.of(
                 new Hit(1L, 0, "관련 높은 발췌", 0.9, 0.3)));
@@ -119,7 +119,19 @@ class DocumentQaServiceTest {
 
         QaAnswer a = service(Optional.of(boom)).answer(1L, "질문");
 
-        assertThat(a.status()).isEqualTo(Status.NO_MATCH);
+        assertThat(a.status()).isEqualTo(Status.ANSWER_FAILED);
+        assertThat(a.citations()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("응답기가 빈 문자열을 돌려주면 → ANSWER_FAILED (관련 발췌는 찾았으니 NO_MATCH 가 아님)")
+    void blankAnswerIsAnswerFailedNotNoMatch() {
+        when(search.searchWithin(eq(1L), anyString(), anyInt())).thenReturn(List.of(
+                new Hit(1L, 0, "관련 높은 발췌", 0.9, 0.3)));
+
+        QaAnswer a = service(Optional.of(answerer("  "))).answer(1L, "질문");
+
+        assertThat(a.status()).isEqualTo(Status.ANSWER_FAILED);
         assertThat(a.citations()).hasSize(1);
     }
 
