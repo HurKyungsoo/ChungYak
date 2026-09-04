@@ -12,6 +12,7 @@
     <p class="muted">
         입력하신 정보를 바탕으로 청약 신청 자격을 확인해 드립니다.
         모르거나 해당되지 않는 항목은 입력하지 않아도 됩니다.
+        <span class="req-badge">필수</span> 표시는 비워두면 해당 유형을 판정할 수 없는 항목입니다.
     </p>
 
     <!-- 상황 설명 입력 — LLM 은 폼을 채워주기만 하고 판정에는 관여하지 않습니다 -->
@@ -46,9 +47,9 @@
             <legend>혼인 · 자녀</legend>
             <label class="check"><input type="checkbox" th:field="*{married}" id="marriedCheck"> <span>혼인 중이다</span></label>
             <div class="field-grid">
-                <label class="field" id="marriageMonthsField"><span class="lbl">혼인신고일로부터 경과 개월</span>
+                <label class="field" id="marriageMonthsField"><span class="lbl">혼인신고일로부터 경과 개월 <span class="req-badge">필수</span></span>
                     <input type="number" min="0" th:field="*{monthsSinceMarriage}" placeholder="예: 36">
-                    <span class="hint">신혼부부 특공은 84개월 이내</span>
+                    <span class="hint">신혼부부 특공은 84개월 이내 — 비우면 신혼부부만 판정 불가</span>
                 </label>
                 <label class="field"><span class="lbl">미성년 자녀 수</span>
                     <input type="number" min="0" th:field="*{childCount}" placeholder="0">
@@ -65,18 +66,19 @@
             </label>
         </fieldset>
 
-        <fieldset>
+        <fieldset th:with="isPublic=${announcement.houseDetailType.name() == 'PUBLIC'}">
             <legend>청약통장</legend>
             <div class="field-grid">
-                <label class="field"><span class="lbl">가입 기간 (개월)</span>
+                <label class="field"><span class="lbl">가입 기간 (개월) <span class="req-badge">필수</span></span>
                     <input type="number" min="0" th:field="*{accountMonths}" placeholder="예: 12">
-                    <span class="hint">비규제 6개월 / 규제지역 24개월</span>
+                    <span class="hint">비규제 6개월 / 규제지역 24개월 — 신생아 특공은 확인하지 않음</span>
                 </label>
-                <label class="field"><span class="lbl">납입 횟수</span>
+                <!-- 국민주택은 납입 횟수, 민영주택은 예치금만 본다 (AccountRequirement) — 안 쓰는 쪽은 숨긴다 -->
+                <label class="field" th:if="${isPublic}"><span class="lbl">납입 횟수 <span class="req-badge">필수</span></span>
                     <input type="number" min="0" th:field="*{accountPaymentCount}" placeholder="예: 24">
                     <span class="hint">국민주택 — 12회 이상, 규제지역 24회</span>
                 </label>
-                <label class="field"><span class="lbl">예치금 (원)</span>
+                <label class="field" th:unless="${isPublic}"><span class="lbl">예치금 (원) <span class="req-badge">필수</span></span>
                     <input type="number" min="0" step="100000" th:field="*{accountDeposit}" placeholder="예: 3000000" class="currency-input">
                     <span class="currency-helper"></span>
                     <span class="hint">민영 — 서울·부산 전용 85㎡ 이하 300만</span>
@@ -84,18 +86,20 @@
             </div>
         </fieldset>
 
-        <fieldset>
+        <fieldset th:with="regulated=${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}">
             <legend>세대 · 거주</legend>
             <label class="check"><input type="checkbox" th:field="*{householdHead}"> <span>세대주이다</span></label>
             <label class="check"><input type="checkbox" th:field="*{supportingOldParents}">
                 <span>만 65세 이상 직계존속을 3년 이상 부양 중이다</span></label>
             <div class="field-grid">
-                <label class="field"><span class="lbl">가구원 수 (본인 포함)</span>
+                <label class="field"><span class="lbl">가구원 수 (본인 포함) <span class="req-badge">필수</span></span>
                     <input type="number" min="1" th:field="*{householdSize}" placeholder="예: 3">
                 </label>
-                <label class="field"><span class="lbl">해당 공급지역 계속 거주 기간 (개월)</span>
+                <label class="field"><span class="lbl">해당 공급지역 계속 거주 기간 (개월)
+                    <span class="req-badge" th:if="${regulated}">필수</span></span>
                     <input type="number" min="0" th:field="*{residenceMonthsInRegion}" placeholder="예: 24">
-                    <span class="hint">투기과열지구 등은 1·2년 이상 거주해야 1순위</span>
+                    <span class="hint" th:if="${regulated}">이 공고는 규제지역 — 비우면 판정 불가</span>
+                    <span class="hint" th:unless="${regulated}">투기과열지구 등은 1·2년 이상 거주해야 1순위</span>
                 </label>
             </div>
         </fieldset>
@@ -106,16 +110,16 @@
                 <span class="muted" th:unless="${isPublic}">(민영주택 — 소득만 확인합니다)</span>
             </legend>
             <div class="field-grid">
-                <label class="field"><span class="lbl">가구 월평균소득 (원, 세전)</span>
+                <label class="field"><span class="lbl">가구 월평균소득 (원, 세전) <span class="req-badge">필수</span></span>
                     <input type="number" min="0" step="10000" th:field="*{monthlyHouseholdIncome}" placeholder="예: 6000000" class="currency-input">
                     <span class="currency-helper"></span>
                 </label>
                 <!-- 자산 요건은 공공주택 특공에만 있다 (AssetRequirement) — 민영 공고에서는 안 쓰는 입력을 숨긴다 -->
-                <label class="field" th:if="${isPublic}"><span class="lbl">총자산 (원)</span>
+                <label class="field" th:if="${isPublic}"><span class="lbl">총자산 (원) <span class="req-badge">필수</span></span>
                     <input type="number" min="0" step="1000000" th:field="*{totalAssets}" placeholder="예: 300000000" class="currency-input">
                     <span class="currency-helper"></span>
                 </label>
-                <label class="field" th:if="${isPublic}"><span class="lbl">자동차가액 (원)</span>
+                <label class="field" th:if="${isPublic}"><span class="lbl">자동차가액 (원) <span class="req-badge">필수</span></span>
                     <input type="number" min="0" step="100000" th:field="*{carValue}" placeholder="예: 20000000" class="currency-input">
                     <span class="currency-helper"></span>
                 </label>
@@ -134,7 +138,7 @@
                     <span class="hint" style="display:inline">— 제한 기간 10년</span></span></label>
             <label class="field" id="lastWinMonthsField" style="max-width:280px"><span class="lbl">마지막 당첨일로부터 경과 개월</span>
                 <input type="number" min="0" th:field="*{monthsSinceLastWin}" placeholder="예: 40">
-                <span class="hint">당첨 이력이 없으면 비워 두세요</span>
+                <span class="hint">당첨 이력이 없으면 비워 두세요 — 비워도 판정은 진행됩니다</span>
             </label>
         </fieldset>
 
