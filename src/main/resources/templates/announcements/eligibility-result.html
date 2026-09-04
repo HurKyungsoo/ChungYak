@@ -51,15 +51,24 @@
                 <td th:text="${m.typeName}">084.9730A</td>
                 <td class="num" th:text="${m.supplyArea} ?: '-'">84.97</td>
                 <td>
-                    <span th:each="t, it : ${m.applicableTypes}"
-                          th:text="${t.typeLabel} + ' ' + ${t.allocatedCount} + '세대' + (${it.last} ? '' : ',  ')">신혼 47세대</span>
+                    <span th:each="t, it : ${m.applicableTypes}" th:with="sep=${it.last} ? '' : ',  '">
+                        <span th:if="${m.allocationCountKnown}"
+                              th:text="${t.typeLabel} + ' ' + ${t.allocatedCount} + '세대' + ${sep}">신혼 47세대</span>
+                        <span th:unless="${m.allocationCountKnown}" th:text="${t.typeLabel} + ${sep}">신혼</span>
+                    </span>
                 </td>
-                <td class="num"><strong th:text="|${m.totalAllocated}세대|">47세대</strong></td>
+                <td class="num">
+                    <strong th:if="${m.allocationCountKnown}" th:text="|${m.totalAllocated}세대|">47세대</strong>
+                    <span th:unless="${m.allocationCountKnown}" class="muted">미상<sup>*</sup></span>
+                </td>
             </tr>
             </tbody>
         </table>
     </div>
     <p th:if="${result.matchedUnitTypes.isEmpty()}" class="muted">없음</p>
+    <p th:if="${result.matchedUnitTypes.?[!allocationCountKnown].size() > 0}" class="muted">
+        <sup>*</sup> LH 공고는 특별공급 유형별 배정 세대수를 공개 API 로 제공하지 않습니다. 정확한 세대수는 입주자모집공고문을 확인하세요.
+    </p>
 
     <h2>자격은 되지만 이 공고에 물량이 없는 유형</h2>
     <p class="muted">다른 공고에서는 신청할 수 있습니다.</p>

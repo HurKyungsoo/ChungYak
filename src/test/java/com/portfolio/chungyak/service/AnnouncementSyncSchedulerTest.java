@@ -32,13 +32,16 @@ class AnnouncementSyncSchedulerTest {
     @BeforeEach
     void setUp() {
         applyhomeClient = Mockito.mock(ApplyhomeClient.class);
+        when(applyhomeClient.isEnabled()).thenReturn(true);
+        when(applyhomeClient.sourceName()).thenReturn("청약홈");
+        when(applyhomeClient.maxPages()).thenReturn(3);
         syncService = Mockito.mock(AnnouncementSyncService.class);
         AnnouncementRepository repo = Mockito.mock(AnnouncementRepository.class);
         PublicDataProperties props = new PublicDataProperties();
         props.getApplyhome().setMaxPages(3);
         props.getSync().setMinExpectedRecords(1000);
         syncStatus = new SyncStatus();
-        scheduler = new AnnouncementSyncScheduler(applyhomeClient, syncService, repo, props,
+        scheduler = new AnnouncementSyncScheduler(List.of(applyhomeClient), syncService, repo, props,
                 syncStatus, Clock.fixed(Instant.parse("2026-09-03T04:00:00Z"), ZoneOffset.UTC));
     }
 

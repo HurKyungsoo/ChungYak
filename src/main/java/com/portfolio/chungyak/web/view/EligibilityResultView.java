@@ -20,10 +20,14 @@ public record EligibilityResultView(
         List<TypeDecision> qualifiedButUnavailable,
         List<TypeDecision> allDecisions) {
 
-    /** 신청 가능한 주택형 하나 — 어떤 유형으로, 몇 세대 배정인지 */
+    /**
+     * 신청 가능한 주택형 하나 — 어떤 유형으로, 몇 세대 배정인지.
+     * allocationCountKnown=false 면 세대수는 미상이고 totalAllocated·allocatedCount 는 0 이다(LH).
+     */
     public record MatchedUnitType(
             String typeName,
             String supplyArea,
+            boolean allocationCountKnown,
             int totalAllocated,
             List<AllocatedType> applicableTypes) {}
 

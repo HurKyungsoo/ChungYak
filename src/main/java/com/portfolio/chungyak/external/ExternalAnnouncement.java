@@ -8,7 +8,9 @@ import lombok.Getter;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 소스 중립 공고 모델.
@@ -50,6 +52,14 @@ public class ExternalAnnouncement {
 
     /** LH 소스에서만 채워진다 — 벡터 검색 대상이 될 비정형 텍스트 */
     private String noticeContent;
+
+    /**
+     * 소스별 재조회용 파라미터 — 어댑터가 채우고 어댑터가 읽는다.
+     * (예: LH 상세/공급 API 가 요구하는 SPL_INF_TP_CD / UPP_AIS_TP_CD / AIS_TP_CD)
+     * 서비스·도메인 계층은 이 맵을 건드리지 않는다.
+     */
+    @Builder.Default
+    private Map<String, String> providerParams = new HashMap<>();
 
     @Builder.Default
     private List<ExternalUnitType> unitTypes = new ArrayList<>();

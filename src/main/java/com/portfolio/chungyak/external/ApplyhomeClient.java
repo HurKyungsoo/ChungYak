@@ -30,7 +30,7 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ApplyhomeClient {
+public class ApplyhomeClient implements AnnouncementSource {
 
     private static final String SOURCE_PREFIX = "APPLYHOME-";
 
@@ -39,7 +39,28 @@ public class ApplyhomeClient {
     private final PublicDataParser parser;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Override
+    public String sourceName() {
+        return "청약홈";
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;   // 키가 없으면 각 호출이 빈 리스트를 반환하므로 항상 켜둔다
+    }
+
+    @Override
+    public int maxPages() {
+        return properties.getApplyhome().getMaxPages();
+    }
+
+    @Override
+    public List<ExternalUnitType> fetchUnitTypes(ExternalAnnouncement announcement) {
+        return fetchUnitTypes(announcement.getHouseManageNo(), announcement.getPblancNo());
+    }
+
     /** 공고 목록 (주택형은 아직 안 채워진 상태) */
+    @Override
     public List<ExternalAnnouncement> fetchAnnouncements(int page) {
         PublicDataProperties.Applyhome config = properties.getApplyhome();
 

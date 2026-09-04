@@ -73,8 +73,18 @@ public class EligibilityEngine {
 
     public record UnitMatch(UnitType unitType, List<SpecialSupplyType> applicableTypes) {
 
-        /** 이 주택형에서 신청 가능한 유형들의 배정 세대수 합 */
+        /**
+         * 배정 세대수를 아는 소스인지(청약홈 true / LH false).
+         * false 면 "유형은 있으나 몇 세대인지 모른다"는 뜻이고 totalAllocated 는 0 이다.
+         */
+        public boolean allocationCountKnown() {
+            return unitType.getSupplyBreakdown() != null
+                    && unitType.getSupplyBreakdown().isCountsKnown();
+        }
+
+        /** 이 주택형에서 신청 가능한 유형들의 배정 세대수 합. 세대수 미상이면 0. */
         public int totalAllocated() {
+            if (!allocationCountKnown()) return 0;
             return applicableTypes.stream()
                     .mapToInt(t -> unitType.getSupplyBreakdown().countOf(t))
                     .sum();

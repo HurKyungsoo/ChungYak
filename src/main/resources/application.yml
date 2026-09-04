@@ -58,12 +58,17 @@ publicdata:
     min-expected-records: 1000   # 이 미만이면 이상으로 보고 health DOWN + ERROR 로그
     stale-after-hours: 30        # 마지막 성공 수집이 이보다 오래되면 health DOWN
 
-  # 한국토지주택공사 (data.go.kr 게이트웨이) - 목록 API 활용신청 대기 중
+  # 한국토지주택공사 (data.go.kr B552555 게이트웨이)
+  # 활용신청 대상 3종: 목록 15058530 / 상세 15057999 / 공급 15056765 (전부 자동승인)
+  # 승인·키 발급 후 PUBLICDATA_SERVICE_KEY 를 넣고 enabled: true 로 켠다
   lh:
     enabled: false
-    notice-list-url: https://apis.data.go.kr/B552555/lhopendata/lhNoticeList
-    detail-url: https://apis.data.go.kr/B552555/lhLeaseNoticeBfhDtlInfo1/getLeaseNoticeBfhDtlInfo1
-    supply-url: https://apis.data.go.kr/B552555/lhLeaseNoticeBfhSplInfo1/getLeaseNoticeBfhSplInfo1
+    notice-list-url: https://apis.data.go.kr/B552555/lhLeaseNoticeInfo1/lhLeaseNoticeInfo1
+    detail-url: https://apis.data.go.kr/B552555/lhLeaseNoticeDtlInfo1/getLeaseNoticeDtlInfo1
+    supply-url: https://apis.data.go.kr/B552555/lhLeaseNoticeSplInfo1/getLeaseNoticeSplInfo1
+    per-page: 100
+    max-pages: 30
+    lookback-months: 6
 
 # LLM (자연어 -> ApplicantProfile 추출, 판정 결과 -> 요약). 절대 커밋하지 말 것.
 # ANTHROPIC_API_KEY 가 없으면(=REPLACE_ME) 이 기능만 비활성화되고 나머지는 정상 동작한다.

@@ -5,6 +5,10 @@ build/
 out/
 data/
 *.log
+
+# 로컬 시크릿 — 절대 커밋 금지 (PUBLICDATA_SERVICE_KEY, ANTHROPIC_API_KEY 등)
 .env
 .env.*
 !.env.example
+application-local.yml
+application-local.properties

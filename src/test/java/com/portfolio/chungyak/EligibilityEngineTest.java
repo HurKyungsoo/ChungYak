@@ -376,6 +376,41 @@ class EligibilityEngineTest {
     }
 
     @Test
+    @DisplayName("LH 공고 — 유형 존재만 알고 세대수는 미상이어도 매칭은 된다")
+    void lhStyleMatchesWithoutCounts() {
+        // LH 상세 API 로 확인된 특별공급 유형 집합 (세대수 없음)
+        Announcement lh = Announcement.builder()
+                .externalId("LH-TEST").houseManageNo("02").pblancNo("0000061168")
+                .houseName("양주회천 A-26BL 공공분양").houseType(HouseType.UNKNOWN)
+                .houseDetailType(HouseDetailType.PUBLIC).regionName("경기도")
+                .receptEndDate(LocalDate.now().plusDays(10))
+                .build();
+        lh.addUnitType(UnitType.builder()
+                .modelNo("01").typeName("59.7400A").generalSupplyCount(262)
+                .supplyBreakdown(SupplyBreakdown.ofPresentTypes(java.util.Set.of(
+                        SpecialSupplyType.NEWLYWED, SpecialSupplyType.MULTI_CHILD,
+                        SpecialSupplyType.FIRST_TIME, SpecialSupplyType.NEWBORN)))
+                .build());
+
+        ApplicantProfile profile = passing()
+                .married(true).monthsSinceMarriage(24)
+                .childCount(2).hasNewborn(true)
+                .houseless(true).accountMonths(12)
+                .accountPaymentCount(24).accountDeposit(10_000_000).residenceMonthsInRegion(36)
+                .build();
+
+        EligibilityEngine.MatchResult result = engine.evaluate(profile, lh);
+
+        assertThat(result.hasAnyMatch()).isTrue();
+        assertThat(result.bestMatch().applicableTypes())
+                .contains(SpecialSupplyType.NEWLYWED, SpecialSupplyType.MULTI_CHILD,
+                          SpecialSupplyType.NEWBORN);
+        // 세대수는 미상 — 랭킹용 합계는 0
+        assertThat(result.bestMatch().allocationCountKnown()).isFalse();
+        assertThat(result.bestMatch().totalAllocated()).isZero();
+    }
+
+    @Test
     @DisplayName("같은 입력이면 항상 같은 결과 — 결정론성 확인")
     void deterministic() {
         ApplicantProfile profile = passing()

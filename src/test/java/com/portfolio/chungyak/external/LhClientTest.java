@@ -1,0 +1,213 @@
+package com.portfolio.chungyak.external;
+
+import com.portfolio.chungyak.domain.HouseDetailType;
+import com.portfolio.chungyak.domain.SpecialSupplyType;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * LH 파서 검증. 픽스처는 2026-09-04 라이브 응답에서 뽑았다.
+ *
+ * 활용신청 승인 전이라 통합 호출은 못 하고, 응답 봉투/필드 파싱만 검증한다:
+ *  - 목록 봉투 [{dsSch},{dsList}] + 재조회 코드 → providerParams
+ *  - 상세 dsSplScdl → 특별공급 유형 집합 (countsKnown=false)
+ *  - 공급 dsList01~04 → 주택형(필드명 그룹 차이 흡수)
+ */
+class LhClientTest {
+
+    private final PublicDataParser parser = new PublicDataParser();
+    private final LhSpecialSupplyMapper mapper = new LhSpecialSupplyMapper();
+
+    private LhClient client(PublicDataProperties properties) {
+        return new LhClient(null, properties, parser, mapper);
+    }
+
+    private PublicDataProperties props(boolean lhEnabled) {
+        PublicDataProperties p = new PublicDataProperties();
+        p.getLh().setEnabled(lhEnabled);
+        return p;
+    }
+
+    @Nested
+    @DisplayName("parseAnnouncements — 목록")
+    class ListParsing {
+
+        @Test
+        @DisplayName("실제 봉투 [{dsSch},{dsList}] 파싱 + 재조회 코드를 providerParams 로")
+        void parsesRealEnvelope() throws Exception {
+            String json = """
+                [
+                  {"dsSch":[{"PG_SZ":"3","PAGE":"1"}]},
+                  {"dsList":[
+                    {
+                      "PAN_ID":"0000061168",
+                      "PAN_NM":"[정정공고]양주회천 A-26BL 공공분양주택 입주자모집공고",
+                      "PAN_NT_ST_DT":"2026.09.03",
+                      "CLSG_DT":"2026.09.17",
+                      "CNP_CD_NM":"경기도",
+                      "AIS_TP_CD":"05","UPP_AIS_TP_CD":"05",
+                      "SPL_INF_TP_CD":"050","CCR_CNNT_SYS_DS_CD":"02",
+                      "DTL_URL":"https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061168&ccrCnntSysDsCd=02"
+                    }
+                  ]}
+                ]
+                """;
+
+            List<ExternalAnnouncement> result =
+                    client(props(true)).parseAnnouncements(json.getBytes(StandardCharsets.UTF_8));
+
+            assertThat(result).hasSize(1);
+            ExternalAnnouncement a = result.get(0);
+            assertThat(a.getExternalId()).isEqualTo("LH-0000061168");
+            assertThat(a.getHouseManageNo()).isEqualTo("02");
+            assertThat(a.getRegionName()).isEqualTo("경기도");
+            assertThat(a.getNoticeDate()).isEqualTo(LocalDate.of(2026, 9, 3));
+            assertThat(a.getReceptEndDate()).isEqualTo(LocalDate.of(2026, 9, 17));
+            assertThat(a.getHouseDetailType()).isEqualTo(HouseDetailType.PUBLIC);   // UPP_AIS_TP_CD=05 분양주택
+            assertThat(a.getProviderParams())
+                    .containsEntry("SPL_INF_TP_CD", "050")
+                    .containsEntry("CCR_CNNT_SYS_DS_CD", "02")
+                    .containsEntry("UPP_AIS_TP_CD", "05")
+                    .containsEntry("AIS_TP_CD", "05");
+        }
+
+        @Test
+        @DisplayName("토지(01)·상가는 주택이 아니라 houseDetailType=UNKNOWN")
+        void landIsNotHousing() throws Exception {
+            String json = """
+                [{"dsList":[{"PAN_ID":"BN-1","PAN_NM":"부산 명지 토지","UPP_AIS_TP_CD":"01","SPL_INF_TP_CD":"010"}]}]
+                """;
+            List<ExternalAnnouncement> result =
+                    client(props(true)).parseAnnouncements(json.getBytes(StandardCharsets.UTF_8));
+            assertThat(result.get(0).getHouseDetailType()).isEqualTo(HouseDetailType.UNKNOWN);
+        }
+
+        @Test
+        @DisplayName("헤더만 오거나 빈 본문이면 빈 리스트")
+        void emptyCases() throws Exception {
+            assertThat(client(props(true)).parseAnnouncements(
+                    "[{\"dsSch\":[{\"PAGE\":\"1\"}]}]".getBytes(StandardCharsets.UTF_8))).isEmpty();
+            assertThat(client(props(true)).parseAnnouncements(new byte[0])).isEmpty();
+            assertThat(client(props(true)).parseAnnouncements(null)).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("parseOfferedSpecialTypes — 상세 dsSplScdl")
+    class DetailParsing {
+
+        @Test
+        @DisplayName("분양주택 dsSplScdl 의 청약대상 라벨을 특별공급 유형으로 정규화")
+        void parsesSaleHousingTypes() throws Exception {
+            String json = """
+                [
+                  {"dsSch":[{"PAN_ID":"0000061168"}]},
+                  {"dsSplScdl":[
+                    {"HS_SBSC_ACP_TRG_CD_NM":"다자녀특별(85㎡이하)"},
+                    {"HS_SBSC_ACP_TRG_CD_NM":"신혼부부특별"},
+                    {"HS_SBSC_ACP_TRG_CD_NM":"생애최초특별"},
+                    {"HS_SBSC_ACP_TRG_CD_NM":"노부모부양특별(85㎡이하)"},
+                    {"HS_SBSC_ACP_TRG_CD_NM":"기관추천"},
+                    {"HS_SBSC_ACP_TRG_CD_NM":"신생아특별"},
+                    {"HS_SBSC_ACP_TRG_CD_NM":"일반공급(우선)"},
+                    {"HS_SBSC_ACP_TRG_CD_NM":"일반공급(추첨)"}
+                  ]}
+                ]
+                """;
+
+            Set<SpecialSupplyType> types = client(props(true))
+                    .parseOfferedSpecialTypes(json.getBytes(StandardCharsets.UTF_8));
+
+            assertThat(types).containsExactlyInAnyOrder(
+                    SpecialSupplyType.MULTI_CHILD, SpecialSupplyType.NEWLYWED,
+                    SpecialSupplyType.FIRST_TIME, SpecialSupplyType.OLD_PARENTS,
+                    SpecialSupplyType.INSTITUTION_RECOMMEND, SpecialSupplyType.NEWBORN);
+            // 일반공급은 특별공급이 아니므로 제외
+        }
+
+        @Test
+        @DisplayName("신혼희망타운 라벨(예비신혼부부/신혼부부)도 NEWLYWED 로")
+        void parsesHopeTownTypes() throws Exception {
+            String json = """
+                [{"dsSplScdl":[
+                  {"HS_SBSC_ACP_TRG_CD_NM":"예비신혼부부"},
+                  {"HS_SBSC_ACP_TRG_CD_NM":"신혼부부"}
+                ]}]
+                """;
+            assertThat(client(props(true)).parseOfferedSpecialTypes(json.getBytes(StandardCharsets.UTF_8)))
+                    .containsExactly(SpecialSupplyType.NEWLYWED);
+        }
+
+        @Test
+        @DisplayName("토지(dsSplScdl01/02)는 특별공급 유형 없음")
+        void landHasNoSpecialTypes() throws Exception {
+            String json = """
+                [{"dsSplScdl01":[{"RNK":"1"}]},{"dsSplScdl02":[{"RNK":"1"}]}]
+                """;
+            assertThat(client(props(true)).parseOfferedSpecialTypes(json.getBytes(StandardCharsets.UTF_8)))
+                    .isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("parseSupplyRows — 공급 dsList01~04")
+    class SupplyParsing {
+
+        @Test
+        @DisplayName("분양주택 dsList01 을 주택형 행으로")
+        void parsesSaleRows() throws Exception {
+            String json = """
+                [
+                  {"dsSch":[{"PAN_ID":"0000061168"}]},
+                  {
+                    "dsList01Nm":[{"HTY_NM":"주택형"}],
+                    "dsList02":[],
+                    "dsList01":[
+                      {"HTY_NM":"59.7400A","RSDN_DDO_AR":"59.74","SPL_AR":"82.6719","SIL_HSH_CNT":"262","TOT_HSH_CNT":"262","SIL_AMT":"353694000"},
+                      {"HTY_NM":"84.8600A","RSDN_DDO_AR":"84.86","SPL_AR":"117.4346","SIL_HSH_CNT":"230","TOT_HSH_CNT":"230","SIL_AMT":"487731000"}
+                    ],
+                    "resHeader":[{"SS_CODE":"Y"}]
+                  }
+                ]
+                """;
+
+            List<com.fasterxml.jackson.databind.JsonNode> rows =
+                    client(props(true)).parseSupplyRows(json.getBytes(StandardCharsets.UTF_8));
+
+            assertThat(rows).hasSize(2);
+            assertThat(rows.get(0).get("HTY_NM").asText()).isEqualTo("59.7400A");
+        }
+
+        @Test
+        @DisplayName("행복주택은 필드명이 달라도(HTY_NNA/NOW_HSH_CNT) 흡수")
+        void parsesHappyHouseRows() throws Exception {
+            String json = """
+                [{"dsList01":[
+                  {"HTY_NNA":"25A(대학생,청년)","DDO_AR":"25.01","SPL_AR":"38.5041","NOW_HSH_CNT":"48","HSH_CNT":"242"}
+                ]}]
+                """;
+            List<com.fasterxml.jackson.databind.JsonNode> rows =
+                    client(props(true)).parseSupplyRows(json.getBytes(StandardCharsets.UTF_8));
+            assertThat(rows).hasSize(1);
+            assertThat(rows.get(0).get("HTY_NNA").asText()).contains("청년");
+        }
+    }
+
+    @Test
+    @DisplayName("lh.enabled=false 면 호출 없이 빈 리스트 (RestClient=null 이어도 NPE 없음)")
+    void disabledReturnsEmptyWithoutCall() {
+        LhClient disabled = client(props(false));
+
+        assertThat(disabled.fetchAnnouncements(1)).isEmpty();
+        assertThat(disabled.fetchUnitTypes(ExternalAnnouncement.builder()
+                .externalId("LH-1").houseName("x").pblancNo("1").build())).isEmpty();
+    }
+}

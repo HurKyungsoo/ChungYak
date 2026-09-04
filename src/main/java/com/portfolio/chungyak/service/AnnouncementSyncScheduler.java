@@ -1,6 +1,6 @@
 package com.portfolio.chungyak.service;
 
-import com.portfolio.chungyak.external.ApplyhomeClient;
+import com.portfolio.chungyak.external.AnnouncementSource;
 import com.portfolio.chungyak.external.ExternalAnnouncement;
 import com.portfolio.chungyak.external.ExternalUnitType;
 import com.portfolio.chungyak.external.PublicDataProperties;
@@ -18,6 +18,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * 매일 새벽 4시 공고 수집.
  *
+ * 수집 소스는 {@link AnnouncementSource} 구현체 전부(청약홈·LH…)를 순회한다.
+ * 각 소스가 게이트웨이·응답 구조 차이를 흡수해 ExternalAnnouncement 로 정규화한다.
+ *
  * 수동 호출(/api/admin/sync)과 정기 배치가 겹치면 같은 행을 동시에 갱신해
  * 커넥션이 깨진다. 단일 인스턴스 전제로 JVM 플래그로 막는다.
  * (여러 인스턴스로 늘면 분산 락으로 교체)
@@ -27,10 +30,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RequiredArgsConstructor
 public class AnnouncementSyncScheduler {
 
-    private final ApplyhomeClient applyhomeClient;
+    private final List<AnnouncementSource> sources;
     private final AnnouncementSyncService syncService;
     private final AnnouncementRepository announcementRepository;
-    private final PublicDataProperties properties;
+    private final PublicDataProperties properties;   // sync.minExpectedRecords 확인용
     private final SyncStatus syncStatus;
     private final Clock clock;
 
@@ -72,16 +75,30 @@ public class AnnouncementSyncScheduler {
     }
 
     private SyncReport doSync() {
-        int maxPages = properties.getApplyhome().getMaxPages();
-        int totalReceived = 0;
-        int totalCreated = 0;
-        int totalUpdated = 0;
-        int pagesFetched = 0;
+        SyncReport total = SyncReport.empty();
+        for (AnnouncementSource source : sources) {
+            if (!source.isEnabled()) {
+                log.info("{} 소스 비활성 — 건너뜀", source.sourceName());
+                continue;
+            }
+            SyncReport one = syncSource(source);
+            log.info("{} 동기화 완료. {}", source.sourceName(), one);
+            total = total.plus(one);
+        }
+        log.info("전체 동기화 완료. {}", total);
+        return total;
+    }
 
-        for (int page = 1; page <= maxPages; page++) {
-            List<ExternalAnnouncement> announcements = applyhomeClient.fetchAnnouncements(page);
+    private SyncReport syncSource(AnnouncementSource source) {
+        int pagesFetched = 0;
+        int received = 0;
+        int created = 0;
+        int updated = 0;
+
+        for (int page = 1; page <= source.maxPages(); page++) {
+            List<ExternalAnnouncement> announcements = source.fetchAnnouncements(page);
             if (announcements.isEmpty()) {
-                log.info("청약홈 {}페이지에서 결과 없음 — 수집 종료", page);
+                log.info("{} {}페이지에서 결과 없음 — 수집 종료", source.sourceName(), page);
                 break;
             }
             pagesFetched++;
@@ -93,8 +110,7 @@ public class AnnouncementSyncScheduler {
                         .findByExternalId(announcement.getExternalId()).isEmpty();
 
                 if (isNew) {
-                    List<ExternalUnitType> unitTypes = applyhomeClient.fetchUnitTypes(
-                            announcement.getHouseManageNo(), announcement.getPblancNo());
+                    List<ExternalUnitType> unitTypes = source.fetchUnitTypes(announcement);
                     enriched.add(withUnitTypes(announcement, unitTypes));
                 } else {
                     enriched.add(announcement);
@@ -102,14 +118,12 @@ public class AnnouncementSyncScheduler {
             }
 
             AnnouncementSyncService.SyncStat stat = syncService.sync(enriched);
-            totalReceived += stat.received();
-            totalCreated += stat.created();
-            totalUpdated += stat.updated();
+            received += stat.received();
+            created += stat.created();
+            updated += stat.updated();
         }
 
-        SyncReport report = new SyncReport(pagesFetched, totalReceived, totalCreated, totalUpdated);
-        log.info("청약홈 동기화 완료. {}", report);
-        return report;
+        return new SyncReport(pagesFetched, received, created, updated);
     }
 
     private ExternalAnnouncement withUnitTypes(ExternalAnnouncement source,
@@ -140,11 +154,22 @@ public class AnnouncementSyncScheduler {
                 .constructorName(source.getConstructorName())
                 .moveInYearMonth(source.getMoveInYearMonth())
                 .noticeContent(source.getNoticeContent())
+                .providerParams(source.getProviderParams())
                 .unitTypes(unitTypes)
                 .build();
     }
 
-    public record SyncReport(int pagesFetched, int received, int created, int updated) {}
+    public record SyncReport(int pagesFetched, int received, int created, int updated) {
+
+        static SyncReport empty() {
+            return new SyncReport(0, 0, 0, 0);
+        }
+
+        SyncReport plus(SyncReport o) {
+            return new SyncReport(pagesFetched + o.pagesFetched, received + o.received,
+                    created + o.created, updated + o.updated);
+        }
+    }
 
     public static class SyncAlreadyRunningException extends RuntimeException {
         public SyncAlreadyRunningException() {

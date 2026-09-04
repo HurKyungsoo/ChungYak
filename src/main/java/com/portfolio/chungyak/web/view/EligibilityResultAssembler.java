@@ -44,6 +44,7 @@ public class EligibilityResultAssembler {
         return new EligibilityResultView.MatchedUnitType(
                 match.unitType().getTypeName(),
                 match.unitType().getSupplyArea(),
+                match.allocationCountKnown(),
                 match.totalAllocated(),
                 allocated);
     }

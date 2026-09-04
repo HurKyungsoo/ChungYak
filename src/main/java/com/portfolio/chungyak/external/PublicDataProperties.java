@@ -36,10 +36,14 @@ public class PublicDataProperties {
 
     @Getter @Setter
     public static class Lh {
-        /** 목록 API 활용신청 대기 중이라 기본 비활성 */
+        /** 목록 API 활용신청 승인 전까지 기본 비활성 — 켜기 전엔 LhClient 가 빈 리스트를 반환 */
         private boolean enabled = false;
         private String noticeListUrl;
         private String detailUrl;
         private String supplyUrl;
+        private int perPage = 100;
+        private int maxPages = 30;
+        /** 목록 API 필수 파라미터인 공고게시일 범위를 오늘 기준 몇 달 전부터 볼지 */
+        private int lookbackMonths = 6;
     }
 }
