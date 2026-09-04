@@ -92,9 +92,15 @@ public class EligibilityController {
         return "announcements/eligibility-form";
     }
 
+    /**
+     * @param explain true 면 판정 근거를 LLM 요약까지 한다. 기본은 false —
+     *   요약은 결과 화면의 "AI 요약 보기" 버튼(같은 폼 재제출)으로 온디맨드 호출한다.
+     *   매 판정마다 LLM 을 태우지 않기 위한 것. (판정 자체는 explain 값과 무관하게 결정론)
+     */
     @PostMapping("/announcements/{id}/eligibility")
     public String evaluate(@PathVariable Long id,
                            @ModelAttribute("form") EligibilityForm form,
+                           @RequestParam(name = "explain", defaultValue = "false") boolean explain,
                            Model model) {
         Announcement announcement = loadAnnouncement(id);
         ApplicantProfile profile = form.toProfile();
@@ -117,13 +123,18 @@ public class EligibilityController {
                 result.qualifiedButUnavailable().size());
 
         // 뒷단 LLM: 확정된 판정 근거를 문장으로 재구성만 한다 (판정에는 관여하지 않음).
-        var explanation = explanationService.explain(result);
-        log.info("판정 요약 — 공고 #{}: {}", announcement.getId(), explanation.status());
+        // "AI 요약 보기" 를 눌렀을 때만 호출 — 매 판정마다 태우지 않는다.
+        if (explain) {
+            var explanation = explanationService.explain(result);
+            log.info("판정 요약 — 공고 #{}: {}", announcement.getId(), explanation.status());
+            model.addAttribute("explanation", explanation);
+        }
 
         model.addAttribute("announcement", announcement);
         model.addAttribute("status", queryService.statusOf(announcement));
         model.addAttribute("result", resultAssembler.assemble(result));
-        model.addAttribute("explanation", explanation);
+        model.addAttribute("form", form);   // "AI 요약 보기" 버튼이 폼을 그대로 재제출할 수 있도록
+        model.addAttribute("explanationAvailable", explanationService.isAvailable());
         model.addAttribute("incomePercent", incomeReference.percentOf(
                 profile.getMonthlyHouseholdIncome(), profile.getHouseholdSize()));
         model.addAttribute("incomeBasisYear", incomeReference.basisYear());
