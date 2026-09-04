@@ -13,7 +13,14 @@
       "Bash(curl -s -o /dev/null -w *)",
       "Bash(curl -s http://localhost:8080/*)",
       "Bash(curl -s \"http://localhost:8080/*)",
-      "Bash(gh run watch *)"
+      "Bash(curl -s -m*)",
+      "Bash(gh run watch *)",
+      "Bash(git fetch*)",
+      "Bash(git pull --rebase*)",
+      "Bash(jps)",
+      "Bash(jps *)",
+      "Bash(taskkill //PID *)",
+      "Bash(taskkill //F //PID *)"
     ]
   }
 }
