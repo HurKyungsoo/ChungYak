@@ -140,7 +140,7 @@
 | 항목 | 규모 | 메모 |
 |---|---|---|
 | **AI 요약 캐시**  ✅ 완료 | — | `ExplanationService` 안에 Caffeine 캐시 — 키는 `ExplanationFacts.format()` 근거 텍스트(공고+모든 판정 근거를 통째로 담음), 값은 **성공한 AI 요약만**. maxSize 1000·TTL 24h·recordStats. 폼 재제출·새로고침이 LLM 재호출로 안 이어짐. FALLBACK(모순 반복·호출 실패)은 캐시 안 함. |
-| **AI 요약 온디맨드 버튼** | 반나절 | 남음. 결과 화면 로드 시가 아니라 "AI 설명 보기" 클릭 시 호출 — 별도 엔드포인트 + JS 필요. 캐시가 있어 급하진 않음. |
+| **AI 요약 온디맨드 버튼**  ✅ 완료 | — | 결과 화면이 로드될 때가 아니라 "🔎 AI 요약 보기" 버튼을 눌렀을 때만 `explain()` 호출. JS 없이 — 버튼이 폼을 `explain=true` 로 재제출, 판정은 결정론적으로 다시 이뤄지고 이번엔 요약까지. `EligibilityController` `explain` 파라미터 + `eligibility-result.html` 히든 폼. 크레딧 없으면 FALLBACK(결정론적 요약)로 표시. |
 | **eval 세트**  ✅ 완료 | — | 아래 "eval 실행법" 참고. 추출·요약 품질을 실 LLM 으로 측정, 임계값 미달 시 빌드 실패. 채점 로직은 오프라인 단위테스트로 검증. |
 | **모델 비용** | — | `llm.anthropic.model` 기본 `claude-sonnet-5`. 추출·요약은 단발이라 `claude-haiku-4-5` 로 낮추면 흐름 1회 ~6원 (Sonnet ~12원) |
 

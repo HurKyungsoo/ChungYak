@@ -39,6 +39,38 @@
         <p style="margin:0" th:text="${explanation.text}">요약 문장</p>
     </div>
 
+    <!-- AI 요약 온디맨드 — 결과 화면 로드 시가 아니라 버튼을 눌렀을 때만 LLM 을 호출한다.
+         같은 폼 값을 그대로 재제출하고, 판정은 다시 결정론적으로 이뤄진 뒤 이번엔 요약까지 한다. -->
+    <form th:if="${explanation == null and explanationAvailable}" method="post"
+          th:action="@{/announcements/{id}/eligibility(id=${announcement.id})}"
+          th:object="${form}" class="card tint" style="margin:0">
+        <input type="hidden" name="explain" value="true"/>
+        <input type="hidden" th:field="*{married}"/>
+        <input type="hidden" th:field="*{monthsSinceMarriage}"/>
+        <input type="hidden" th:field="*{childCount}"/>
+        <input type="hidden" th:field="*{hasNewborn}"/>
+        <input type="hidden" th:field="*{houseless}"/>
+        <input type="hidden" th:field="*{accountMonths}"/>
+        <input type="hidden" th:field="*{accountPaymentCount}"/>
+        <input type="hidden" th:field="*{accountDeposit}"/>
+        <input type="hidden" th:field="*{everOwnedHouse}"/>
+        <input type="hidden" th:field="*{supportingOldParents}"/>
+        <input type="hidden" th:field="*{householdHead}"/>
+        <input type="hidden" th:field="*{residenceMonthsInRegion}"/>
+        <input type="hidden" th:field="*{monthlyHouseholdIncome}"/>
+        <input type="hidden" th:field="*{householdSize}"/>
+        <input type="hidden" th:field="*{dualIncome}"/>
+        <input type="hidden" th:field="*{totalAssets}"/>
+        <input type="hidden" th:field="*{carValue}"/>
+        <input type="hidden" th:field="*{everWonSpecialSupply}"/>
+        <input type="hidden" th:field="*{monthsSinceLastWin}"/>
+        <input type="hidden" th:field="*{pastWinInSpeculationArea}"/>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <button type="submit" class="btn btn-ghost">🔎 AI 요약 보기</button>
+            <span class="muted">아래 판정 근거를 AI 가 한 문단으로 정리합니다 (판정은 이미 끝났습니다).</span>
+        </div>
+    </form>
+
     <p th:if="${incomePercent != null}" class="muted">
         입력한 가구 월평균소득은 도시근로자 대비 약
         <strong th:text="${incomePercent} + '%'">120%</strong> (<span th:text="${incomeBasisYear}">2024</span>년 기준).
