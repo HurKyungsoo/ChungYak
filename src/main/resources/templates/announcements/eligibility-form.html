@@ -100,22 +100,24 @@
             </div>
         </fieldset>
 
-        <fieldset>
-            <legend>소득 · 자산 <span class="muted">(민영은 소득만, 공공은 자산도)</span></legend>
+        <fieldset th:with="isPublic=${announcement.houseDetailType.name() == 'PUBLIC'}">
+            <legend>소득 · 자산
+                <span class="muted" th:if="${isPublic}">(공공주택 — 소득·자산 모두 확인합니다)</span>
+                <span class="muted" th:unless="${isPublic}">(민영주택 — 소득만 확인합니다)</span>
+            </legend>
             <div class="field-grid">
                 <label class="field"><span class="lbl">가구 월평균소득 (원, 세전)</span>
                     <input type="number" min="0" step="10000" th:field="*{monthlyHouseholdIncome}" placeholder="예: 6000000" class="currency-input">
                     <span class="currency-helper"></span>
                 </label>
-                <label class="field"><span class="lbl">총자산 (원)</span>
+                <!-- 자산 요건은 공공주택 특공에만 있다 (AssetRequirement) — 민영 공고에서는 안 쓰는 입력을 숨긴다 -->
+                <label class="field" th:if="${isPublic}"><span class="lbl">총자산 (원)</span>
                     <input type="number" min="0" step="1000000" th:field="*{totalAssets}" placeholder="예: 300000000" class="currency-input">
                     <span class="currency-helper"></span>
-                    <span class="hint">공공주택 특공만</span>
                 </label>
-                <label class="field"><span class="lbl">자동차가액 (원)</span>
+                <label class="field" th:if="${isPublic}"><span class="lbl">자동차가액 (원)</span>
                     <input type="number" min="0" step="100000" th:field="*{carValue}" placeholder="예: 20000000" class="currency-input">
                     <span class="currency-helper"></span>
-                    <span class="hint">공공주택 특공만</span>
                 </label>
             </div>
             <label class="check"><input type="checkbox" th:field="*{dualIncome}">
