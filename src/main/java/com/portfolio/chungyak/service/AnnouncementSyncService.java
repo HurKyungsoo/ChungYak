@@ -1,15 +1,18 @@
 package com.portfolio.chungyak.service;
 
 import com.portfolio.chungyak.domain.Announcement;
+import com.portfolio.chungyak.domain.AnnouncementDocument;
 import com.portfolio.chungyak.domain.UnitType;
 import com.portfolio.chungyak.external.ExternalAnnouncement;
 import com.portfolio.chungyak.external.ExternalUnitType;
+import com.portfolio.chungyak.repository.AnnouncementDocumentRepository;
 import com.portfolio.chungyak.repository.AnnouncementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.util.List;
 
 /**
@@ -24,6 +27,8 @@ import java.util.List;
 public class AnnouncementSyncService {
 
     private final AnnouncementRepository announcementRepository;
+    private final AnnouncementDocumentRepository documentRepository;
+    private final Clock clock;
 
     @Transactional
     public SyncStat sync(List<ExternalAnnouncement> externals) {
@@ -38,6 +43,7 @@ public class AnnouncementSyncService {
             if (existing == null) {
                 Announcement saved = announcementRepository.save(toEntity(external));
                 attachUnitTypes(saved, external.getUnitTypes());
+                saveNoticeContent(saved, external);
                 created++;
             } else {
                 existing.updateFromExternal(
@@ -93,6 +99,23 @@ public class AnnouncementSyncService {
                     .topAmount(e.getTopAmount())
                     .build());
         }
+    }
+
+    /**
+     * 공고문 원문을 별도 테이블에 저장 — 벡터 검색(RAG) 소스.
+     * 원문이 없으면(대부분의 청약홈 공고) 아무것도 안 한다. 인덱싱은 별도 배치가 한다.
+     */
+    private void saveNoticeContent(Announcement saved, ExternalAnnouncement external) {
+        String content = external.getNoticeContent();
+        if (content == null || content.isBlank()) return;
+
+        String source = external.getExternalId() != null && external.getExternalId().startsWith("LH")
+                ? "LH" : "APPLYHOME";
+        documentRepository.findByAnnouncementId(saved.getId())
+                .ifPresentOrElse(
+                        doc -> doc.replaceText(content, clock.instant()),
+                        () -> documentRepository.save(new AnnouncementDocument(
+                                saved.getId(), source, content, clock.instant())));
     }
 
     public record SyncStat(int received, int created, int updated) {}

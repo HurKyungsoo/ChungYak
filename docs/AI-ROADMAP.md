@@ -60,16 +60,41 @@
 
 ---
 
-## 방향 3 — 공고문 RAG Q&A (LH 4000자)  ⬜ 미착수 (큰 작업)
+## 방향 3 — 공고문 RAG Q&A (LH 4000자)  🚧 진행 중
 
-LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) + 첨부 HWP/PDF 임베딩:
+LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) 임베딩:
 > "이 공고 잔여세대 신청 조건이 뭐야?" → 공고문 근거 인용해서 답변
 
 판정이 아니라 **정보 검색**이라 LLM 을 자유롭게. 근거(공고문 위치) 인용 필수.
 
-- ⚠️ **Anthropic 은 임베딩 API 가 없다.** Voyage AI(Anthropic 파트너) 또는 로컬 한국어 임베딩(`bge-m3`, `ko-sroberta` 등) + pgvector 필요. **provider 결정부터.**
-- LH 원천은 이미 확보 (`LhClient` 가 상세 API 를 호출함, 현재는 유형만 쓰고 `PAN_DTL_CTS` 는 미사용).
-- 하이브리드 검색 (BM25 + 벡터). `docs/ROADMAP.md` B4 / 남은작업 #2.
+**결정 (2026-09-04):** 임베딩 provider = **Voyage AI**(`voyage-3-lite`), 벡터 저장소 = **앱 메모리 코사인**
+(공고 수백 건 규모 — 벡터는 DB에 JSON 문자열로, 네이티브 벡터 타입/pgvector 는 과잉).
+
+### 슬라이스 1 — 수집→인덱싱 파이프라인  ✅ 완료 (PR: feat/rag-ingestion)
+
+- 스키마 `V3__announcement_documents.sql`: `announcement_document`(원문 1:1, text_hash) +
+  `document_chunk`(청크 + 임베딩 JSON, `(announcement_id, chunk_index)` 유일)
+- `LhClient.fetchNoticeContent` — 상세 응답에서 `PAN_DTL_CTS` (없으면 최장 텍스트),
+  HTML 벗겨 평문. `AnnouncementSource` 에 default 메서드 추가(청약홈은 empty).
+- 수집 시 신규 공고면 원문도 받아 `AnnouncementDocument` 저장 (스케줄러·SyncService)
+- `com.portfolio.chungyak.rag`:
+  - `ChunkSplitter` — 문단·문장 경계 존중 + overlap (순수 함수)
+  - `embedding/EmbeddingClient` + `VoyageEmbeddingClient`(raw HTTP) — `VOYAGE_API_KEY` 없으면 빈 `Optional`
+  - `AnnouncementIndexer.indexPending()` — 원문/모델 바뀐 공고만 재인덱싱 (idempotent)
+  - `VectorSearch` — 전체 청크 메모리 코사인 top-K, `searchWithin(announcementId, ...)`
+- 관리자 API: `POST /api/admin/rag/reindex`, `GET /api/admin/rag/status|search`
+- 설정 `rag.voyage.*` / `rag.chunk.*` / `rag.search.top-k`
+- 테스트: `ChunkSplitterTest` `CosineTest` `FloatArrayJsonConverterTest`
+  `VoyageEmbeddingClientTest`(응답 파싱) `AnnouncementIndexerTest`(오케스트레이션·idempotency·실패격리)
+  `VectorSearchTest`(랭킹) `LhClientTest`(공고문 파싱) + `VoyageEmbeddingIntegrationTest`(키 있을 때)
+
+### 슬라이스 2 — Q&A 화면  ⬜ 남음
+
+- 공고 상세에 "이 공고에 물어보기" 입력창 → `VectorSearch.searchWithin` → 상위 청크를
+  컨텍스트로 `AnthropicExplainer` 스타일 답변 (근거 청크 인용 필수, 새 사실 금지)
+- 하이브리드(BM25 + 벡터)는 그 다음. `docs/ROADMAP.md` B4.
+- ⚠️ 실제 인덱싱 1회 = LH 공고 수 × 청크 ≈ Voyage `voyage-3-lite` 기준 극소($0.01~0.05).
+  LH `enabled: true` + `PUBLICDATA_SERVICE_KEY` + `VOYAGE_API_KEY` 필요.
 
 ---
 

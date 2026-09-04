@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -160,6 +161,100 @@ public class LhClient implements AnnouncementSource {
                     .build());
         }
         return result;
+    }
+
+    /**
+     * 상세 API 응답에서 입주자모집공고문 원문(dsEtcInfo.PAN_DTL_CTS)을 꺼낸다.
+     * 필드명이 유형그룹마다 다를 수 있어, PAN_DTL_CTS 키를 먼저 찾고 없으면
+     * 응답에서 가장 긴 텍스트 값을 쓴다. HTML 태그·엔티티는 벗겨서 평문으로 만든다.
+     */
+    @Override
+    public Optional<String> fetchNoticeContent(ExternalAnnouncement announcement) {
+        if (!properties.getLh().isEnabled()) return Optional.empty();
+        Map<String, String> p = announcement.getProviderParams();
+        if (p == null || p.get("SPL_INF_TP_CD") == null) return Optional.empty();
+
+        URI uri = detailUri(properties.getLh().getDetailUrl(), announcement.getPblancNo(), p);
+        try {
+            byte[] body = publicDataRestClient.get().uri(uri).retrieve().body(byte[].class);
+            return parseNoticeContent(body);
+        } catch (Exception e) {
+            log.warn("LH 공고문 원문 조회 실패. panId={}, msg={}", announcement.getPblancNo(), e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /** package-private — 오프라인 테스트가 픽스처로 검증. */
+    Optional<String> parseNoticeContent(byte[] body) throws Exception {
+        if (body == null || body.length == 0) return Optional.empty();
+        JsonNode root = objectMapper.readTree(body);
+
+        // 1) PAN_DTL_CTS 키를 명시적으로 찾으면 신뢰한다 (짧아도 라벨은 아니다)
+        String explicit = firstByKey(root, "pan_dtl_cts");
+        if (explicit != null && !explicit.isBlank()) {
+            String plain = stripHtml(explicit).strip();
+            if (plain.length() >= 40) return Optional.of(plain);
+        }
+
+        // 2) 없으면 응답에서 가장 긴 텍스트 — 본문이라 할 만큼 길 때만
+        String longest = longestText(root, 200);
+        if (longest != null) {
+            String plain = stripHtml(longest).strip();
+            if (plain.length() >= 100) return Optional.of(plain);
+        }
+        return Optional.empty();
+    }
+
+    /** 키 이름이 소문자 기준 일치하는 첫 문자열 값 (트리 전체 탐색). */
+    private String firstByKey(JsonNode node, String lowerKey) {
+        if (node.isObject()) {
+            Iterator<Map.Entry<String, JsonNode>> it = node.fields();
+            while (it.hasNext()) {
+                Map.Entry<String, JsonNode> e = it.next();
+                if (e.getKey().toLowerCase().equals(lowerKey) && e.getValue().isTextual()) {
+                    return e.getValue().asText();
+                }
+                String found = firstByKey(e.getValue(), lowerKey);
+                if (found != null) return found;
+            }
+        } else if (node.isArray()) {
+            for (JsonNode child : node) {
+                String found = firstByKey(child, lowerKey);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private String longestText(JsonNode node, int minLen) {
+        String best = null;
+        if (node.isObject()) {
+            Iterator<Map.Entry<String, JsonNode>> it = node.fields();
+            while (it.hasNext()) {
+                best = longer(best, longestText(it.next().getValue(), minLen));
+            }
+        } else if (node.isArray()) {
+            for (JsonNode child : node) best = longer(best, longestText(child, minLen));
+        } else if (node.isTextual() && node.asText().length() >= minLen) {
+            best = node.asText();
+        }
+        return best;
+    }
+
+    private String longer(String a, String b) {
+        if (a == null) return b;
+        if (b == null) return a;
+        return b.length() > a.length() ? b : a;
+    }
+
+    private String stripHtml(String s) {
+        return s.replaceAll("(?is)<br\\s*/?>", "\n")
+                .replaceAll("(?is)</p>|</div>|</li>|</tr>", "\n")
+                .replaceAll("(?is)<[^>]+>", "")
+                .replace("&nbsp;", " ").replace("&amp;", "&")
+                .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"")
+                .replaceAll("[ \\t]+", " ")
+                .replaceAll("\\n{3,}", "\n\n");
     }
 
     private Set<SpecialSupplyType> fetchOfferedSpecialTypes(String panId, Map<String, String> p) {

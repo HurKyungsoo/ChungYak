@@ -209,5 +209,46 @@ class LhClientTest {
         assertThat(disabled.fetchAnnouncements(1)).isEmpty();
         assertThat(disabled.fetchUnitTypes(ExternalAnnouncement.builder()
                 .externalId("LH-1").houseName("x").pblancNo("1").build())).isEmpty();
+        assertThat(disabled.fetchNoticeContent(ExternalAnnouncement.builder()
+                .externalId("LH-1").houseName("x").pblancNo("1").build())).isEmpty();
+    }
+
+    @Nested
+    @DisplayName("parseNoticeContent — 상세 dsEtcInfo.PAN_DTL_CTS")
+    class NoticeContentParsing {
+
+        private final LhClient c = client(props(true));
+
+        @Test
+        @DisplayName("PAN_DTL_CTS 키를 찾아 HTML 을 벗겨 평문으로")
+        void extractsAndStripsHtml() throws Exception {
+            String json = """
+                [{"dsEtcInfo":[{"PAN_DTL_CTS":"<p>입주자모집공고</p><br/>1. 신청자격: 무주택세대구성원<br/>2. 잔여세대 신청은 마감일 이후 별도 안내합니다. 자세한 사항은 공고문을 확인하세요.&nbsp;문의: 1600-1004"}]}]
+                """;
+            var content = c.parseNoticeContent(json.getBytes(StandardCharsets.UTF_8));
+
+            assertThat(content).isPresent();
+            assertThat(content.get()).doesNotContain("<p>").doesNotContain("<br")
+                    .contains("입주자모집공고").contains("잔여세대").contains("1600-1004");
+        }
+
+        @Test
+        @DisplayName("PAN_DTL_CTS 가 없으면 응답에서 가장 긴 텍스트를 쓴다")
+        void fallsBackToLongestText() throws Exception {
+            String body = "가나다라마바사아자차카타파하 ".repeat(20);
+            String json = "[{\"dsEtcInfo\":[{\"SOME_OTHER_FIELD\":\"" + body + "\",\"SHORT\":\"짧음\"}]}]";
+            var content = c.parseNoticeContent(json.getBytes(StandardCharsets.UTF_8));
+
+            assertThat(content).isPresent();
+            assertThat(content.get()).contains("가나다라마바사");
+        }
+
+        @Test
+        @DisplayName("본문이라 할 만한 텍스트가 없으면 empty")
+        void emptyWhenNoBody() throws Exception {
+            String json = "[{\"dsSplScdl\":[{\"RNK\":\"1\"}]}]";
+            assertThat(c.parseNoticeContent(json.getBytes(StandardCharsets.UTF_8))).isEmpty();
+            assertThat(c.parseNoticeContent(new byte[0])).isEmpty();
+        }
     }
 }
