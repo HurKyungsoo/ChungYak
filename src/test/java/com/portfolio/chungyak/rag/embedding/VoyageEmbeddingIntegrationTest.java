@@ -32,7 +32,7 @@ class VoyageEmbeddingIntegrationTest {
         RestClient rc = RestClient.builder().requestFactory(f).build();
         client = new VoyageEmbeddingClient(rc, new VoyageProperties(
                 System.getenv("VOYAGE_API_KEY"),
-                System.getenv().getOrDefault("VOYAGE_MODEL", "voyage-3-lite"), null, 0));
+                System.getenv().getOrDefault("VOYAGE_MODEL", "voyage-4-lite"), null, 0));
     }
 
     @Test

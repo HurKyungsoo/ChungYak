@@ -50,7 +50,7 @@ class AnnouncementIndexerTest {
         embedCalls = new AtomicInteger();
         Clock clock = Clock.fixed(Instant.parse("2026-09-04T00:00:00Z"), ZoneOffset.UTC);
         indexer = new AnnouncementIndexer(docRepo, chunkRepo, new ChunkSplitter(120, 20),
-                Optional.of(fakeEmbedder("voyage-3-lite")), clock);
+                Optional.of(fakeEmbedder("voyage-4-lite")), clock);
     }
 
     private AnnouncementDocument doc(long annId, String text) {
@@ -91,7 +91,7 @@ class AnnouncementIndexerTest {
         when(docRepo.findAll()).thenReturn(List.of(d));
         when(chunkRepo.findByAnnouncementId(1L)).thenReturn(List.of(
                 new DocumentChunk(1L, 0, "짧은 공고문 내용입니다.", new float[]{1, 1},
-                        "voyage-3-lite", d.getTextHash(), Instant.now())));
+                        "voyage-4-lite", d.getTextHash(), Instant.now())));
 
         RagIndexReport report = indexer.indexPending();
 
@@ -108,7 +108,7 @@ class AnnouncementIndexerTest {
         when(docRepo.findAll()).thenReturn(List.of(d));
         when(chunkRepo.findByAnnouncementId(1L)).thenReturn(List.of(
                 new DocumentChunk(1L, 0, "옛 내용", new float[]{1, 1},
-                        "voyage-3-lite", "old-hash", Instant.now())));
+                        "voyage-4-lite", "old-hash", Instant.now())));
 
         RagIndexReport report = indexer.indexPending();
 
@@ -137,7 +137,7 @@ class AnnouncementIndexerTest {
                 if (texts.get(0).contains("BOOM")) throw new RuntimeException("503");
                 return texts.stream().map(t -> new float[]{1f, 0f}).toList();
             }
-            @Override public String model() { return "voyage-3-lite"; }
+            @Override public String model() { return "voyage-4-lite"; }
         }), Clock.systemUTC());
 
         when(docRepo.findAll()).thenReturn(List.of(doc(1L, "BOOM 폭발"), doc(2L, "정상 공고문")));

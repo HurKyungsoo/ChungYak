@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class VoyageEmbeddingClientTest {
 
     private final VoyageEmbeddingClient client =
-            new VoyageEmbeddingClient(null, new VoyageProperties("k", "voyage-3-lite", null, 0));
+            new VoyageEmbeddingClient(null, new VoyageProperties("k", "voyage-4-lite", null, 0));
 
     @Test
     @DisplayName("data[].index 순서대로 벡터를 되돌린다 (응답이 뒤섞여 와도)")
@@ -24,7 +24,7 @@ class VoyageEmbeddingClientTest {
             {"object":"list","data":[
               {"object":"embedding","index":1,"embedding":[0.4,0.5,0.6]},
               {"object":"embedding","index":0,"embedding":[0.1,0.2,0.3]}
-            ],"model":"voyage-3-lite","usage":{"total_tokens":10}}
+            ],"model":"voyage-4-lite","usage":{"total_tokens":10}}
             """;
 
         List<float[]> vectors = client.parseEmbeddings(json, 2);
@@ -48,6 +48,6 @@ class VoyageEmbeddingClientTest {
     @Test
     @DisplayName("model() 은 설정값")
     void modelFromProps() {
-        assertThat(client.model()).isEqualTo("voyage-3-lite");
+        assertThat(client.model()).isEqualTo("voyage-4-lite");
     }
 }

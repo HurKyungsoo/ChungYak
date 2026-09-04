@@ -72,7 +72,7 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) 임베딩:
 
 판정이 아니라 **정보 검색**이라 LLM 을 자유롭게. 근거(공고문 위치) 인용 필수.
 
-**결정 (2026-09-04):** 임베딩 provider = **Voyage AI**(`voyage-3-lite`), 벡터 저장소 = **앱 메모리 코사인**
+**결정 (2026-09-04):** 임베딩 provider = **Voyage AI**(`voyage-4-lite`), 벡터 저장소 = **앱 메모리 코사인**
 (공고 수백 건 규모 — 벡터는 DB에 JSON 문자열로, 네이티브 벡터 타입/pgvector 는 과잉).
 
 ### 슬라이스 1 — 수집→인덱싱 파이프라인  ✅ 완료 (PR: feat/rag-ingestion)
@@ -106,7 +106,7 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) 임베딩:
 - 상태: DISABLED(키 없음) / NO_INDEX(이 공고 원문 없음) / NO_MATCH / ANSWERED
 - 테스트: `DocumentQaServiceTest`(관련 없으면 LLM 미호출·발췌는 유지·번호 붙인 발췌 전달·
   응답기 예외 graceful).
-- ⚠️ 실제 인덱싱 1회 = LH 공고 수 × 청크 ≈ Voyage `voyage-3-lite` 기준 극소($0.01~0.05).
+- ⚠️ 실제 인덱싱 1회 = LH 공고 수 × 청크 ≈ Voyage `voyage-4-lite` 기준 극소($0.01~0.05).
   LH `enabled: true` + `PUBLICDATA_SERVICE_KEY` + `VOYAGE_API_KEY` 필요. Q&A 답변은 질문당 Anthropic 1콜.
 
 ### 슬라이스 3 — 하이브리드 검색 (BM25 + 벡터)  ✅ 완료 (PR: feat/rag-hybrid)

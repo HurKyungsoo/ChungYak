@@ -11,7 +11,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record VoyageProperties(String apiKey, String model, String baseUrl, int batchSize) {
 
     public VoyageProperties {
-        if (model == null || model.isBlank()) model = "voyage-3-lite";
+        if (model == null || model.isBlank()) model = "voyage-4-lite";
         if (baseUrl == null || baseUrl.isBlank()) baseUrl = "https://api.voyageai.com/v1/embeddings";
         if (batchSize <= 0) batchSize = 96;
     }
