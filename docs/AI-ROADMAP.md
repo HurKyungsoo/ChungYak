@@ -65,12 +65,21 @@
 
 ---
 
-## 방향 3 — 공고문 RAG Q&A (LH 4000자)  ✅ 슬라이스 1·2·3 완료
+## 방향 3 — 공고문 RAG Q&A  ✅ 슬라이스 1·2·3 완료, 원천 데이터 한계 확인
 
-LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) 임베딩:
-> "이 공고 잔여세대 신청 조건이 뭐야?" → 공고문 근거 인용해서 답변
+> "이 공고 잔여세대 신청 조건이 뭐야?" → 공고문 근거 인용해서 답변.
+> 판정이 아니라 **정보 검색**이라 LLM 을 자유롭게. 근거(공고문 위치) 인용 필수.
 
-판정이 아니라 **정보 검색**이라 LLM 을 자유롭게. 근거(공고문 위치) 인용 필수.
+### ⚠️ 원천 데이터 — LH `PAN_DTL_CTS` 는 4000자 전문이 아니다 (2026-09-04 실측)
+
+실제 LH `enabled:true` + sync 돌려보니 (`feat/lh-enable`):
+- `PAN_DTL_CTS` 는 임대·잔여세대 공고 기준 **600~1600자짜리 "신청 시 유의사항" 짧은 안내문**이다
+  (소득검증 대상 입력 방법, 계약 일정, 문의처 등). 자격요건·세대수·평면도 등 상세는 **첨부 HWP/PDF** 에 있다.
+- 8개 LH 공고 중 5개만 100자 이상 본문이 나옴. 청약홈 공고는 원문 필드가 아예 없음.
+- 결론: **RAG 파이프라인은 완성**됐으나, 지금 인덱싱되는 텍스트는 얕다.
+  진짜 값을 뽑으려면 `docs/ROADMAP.md` B4 — 첨부 PDF/HWP 파싱이 필요. (별도 작업)
+- sync 중 발견·수정한 버그: `LhClient` 가 `RegulationFlags` 를 안 채워 저장 시 NOT NULL 위반
+  (`speculation_overheated`). LH·기본 둘 다 all-false 로 채우도록 수정 + 회귀 테스트.
 
 **결정 (2026-09-04):** 임베딩 provider = **Voyage AI**(`voyage-4-lite`), 벡터 저장소 = **앱 메모리 코사인**
 (공고 수백 건 규모 — 벡터는 DB에 JSON 문자열로, 네이티브 벡터 타입/pgvector 는 과잉).
@@ -81,6 +90,7 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) 임베딩:
   `document_chunk`(청크 + 임베딩 JSON, `(announcement_id, chunk_index)` 유일)
 - `LhClient.fetchNoticeContent` — 상세 응답에서 `PAN_DTL_CTS` (없으면 최장 텍스트),
   HTML 벗겨 평문. `AnnouncementSource` 에 default 메서드 추가(청약홈은 empty).
+  (실측: 이 필드는 600~1600자 유의사항 안내문 — 위 "원천 데이터 한계" 참고)
 - 수집 시 신규 공고면 원문도 받아 `AnnouncementDocument` 저장 (스케줄러·SyncService)
 - `com.portfolio.chungyak.rag`:
   - `ChunkSplitter` — 문단·문장 경계 존중 + overlap (순수 함수)
