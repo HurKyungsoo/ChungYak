@@ -65,7 +65,7 @@
 
 ---
 
-## 방향 3 — 공고문 RAG Q&A (LH 4000자)  🚧 진행 중
+## 방향 3 — 공고문 RAG Q&A (LH 4000자)  🚧 슬라이스 1·2 완료, 하이브리드 검색 남음
 
 LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) 임베딩:
 > "이 공고 잔여세대 신청 조건이 뭐야?" → 공고문 근거 인용해서 답변
@@ -93,13 +93,22 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) 임베딩:
   `VoyageEmbeddingClientTest`(응답 파싱) `AnnouncementIndexerTest`(오케스트레이션·idempotency·실패격리)
   `VectorSearchTest`(랭킹) `LhClientTest`(공고문 파싱) + `VoyageEmbeddingIntegrationTest`(키 있을 때)
 
-### 슬라이스 2 — Q&A 화면  ⬜ 남음
+### 슬라이스 2 — Q&A 화면  ✅ 완료 (PR: feat/rag-qa)
 
-- 공고 상세에 "이 공고에 물어보기" 입력창 → `VectorSearch.searchWithin` → 상위 청크를
-  컨텍스트로 `AnthropicExplainer` 스타일 답변 (근거 청크 인용 필수, 새 사실 금지)
+- 공고 상세(`detail.html`)에 "이 공고에 물어보기" 입력창 → `POST /announcements/{id}/qa`
+- `rag/DocumentQaService`: `VectorSearch.searchWithin` → 최고 유사도 < `rag.qa.min-score`(0.25)면
+  LLM 호출 없이 NO_MATCH. 그 이상이면 상위 발췌 N개(`rag.qa.context-chunks`)를 `[1] [2]` 로 번호 붙여
+  `rag/DocumentAnswerer` 에 전달.
+- `rag/AnthropicDocumentAnswerer`: 시스템 프롬프트로 "발췌에 없으면 지어내지 말고 확인 안 됨,
+  근거 [n] 표기, 자격 판정 금지". `ANTHROPIC_API_KEY` 없으면 빈 `Optional` → 입력창 숨김.
+  (SDK 호출 3번째 지점 — CLAUDE.md "두 곳에만"을 "세 곳"으로. Q&A는 판정 아님)
+- 답변은 **항상 근거 발췌와 함께** 화면에 표시(`<details>` 토글, 유사도 점수 포함).
+- 상태: DISABLED(키 없음) / NO_INDEX(이 공고 원문 없음) / NO_MATCH / ANSWERED
+- 테스트: `DocumentQaServiceTest`(관련 없으면 LLM 미호출·발췌는 유지·번호 붙인 발췌 전달·
+  응답기 예외 graceful).
 - 하이브리드(BM25 + 벡터)는 그 다음. `docs/ROADMAP.md` B4.
 - ⚠️ 실제 인덱싱 1회 = LH 공고 수 × 청크 ≈ Voyage `voyage-3-lite` 기준 극소($0.01~0.05).
-  LH `enabled: true` + `PUBLICDATA_SERVICE_KEY` + `VOYAGE_API_KEY` 필요.
+  LH `enabled: true` + `PUBLICDATA_SERVICE_KEY` + `VOYAGE_API_KEY` 필요. Q&A 답변은 질문당 Anthropic 1콜.
 
 ---
 
@@ -120,8 +129,9 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) 임베딩:
 2. ~~**D3 요약 캐시**~~ ✅ 완료
 3. ~~**eval 세트**~~ ✅ 완료
 4. ~~**2b-3b** (개선 경로 결정론적 계산)~~ ✅ 완료
-5. **방향 3 (RAG)** — 별도 큰 프로젝트, 임베딩 provider 결정부터
-6. 선택: AI 요약 온디맨드 버튼 · eval 임계값 실측 조정
+5. ~~**방향 3 (RAG)** 슬라이스 1(수집·인덱싱) · 2(Q&A 화면)~~ ✅ 완료
+6. **방향 3 하이브리드 검색** (BM25 + 벡터) — 인덱싱 규모 커지면
+7. 선택: AI 요약 온디맨드 버튼 · eval 임계값 실측 조정
 
 ---
 

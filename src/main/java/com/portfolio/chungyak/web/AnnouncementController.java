@@ -2,6 +2,7 @@ package com.portfolio.chungyak.web;
 
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.HouseDetailType;
+import com.portfolio.chungyak.rag.DocumentQaService;
 import com.portfolio.chungyak.service.AnnouncementQueryService;
 import com.portfolio.chungyak.web.view.AnnouncementListRow;
 import com.portfolio.chungyak.web.view.Dday;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -28,6 +30,7 @@ import java.util.List;
 public class AnnouncementController {
 
     private final AnnouncementQueryService queryService;
+    private final DocumentQaService qaService;
 
     @GetMapping("/announcements")
     public String list(@RequestParam(required = false) String region,
@@ -62,6 +65,23 @@ public class AnnouncementController {
 
     @GetMapping("/announcements/{id}")
     public String detail(@PathVariable Long id, Model model) {
+        return renderDetail(id, model);
+    }
+
+    /**
+     * 공고문 Q&A — 질문을 받아 공고문 발췌 근거로 답한다.
+     * 판정이 아니라 정보 검색이다. 답변은 항상 근거 발췌와 함께 표시된다.
+     */
+    @PostMapping("/announcements/{id}/qa")
+    public String ask(@PathVariable Long id,
+                      @RequestParam("question") String question,
+                      Model model) {
+        model.addAttribute("qa", qaService.answer(id, question));
+        model.addAttribute("question", question);
+        return renderDetail(id, model);
+    }
+
+    private String renderDetail(Long id, Model model) {
         Announcement announcement = queryService.findDetail(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "공고를 찾을 수 없습니다."));
 
@@ -70,6 +90,8 @@ public class AnnouncementController {
         model.addAttribute("status", status);
         model.addAttribute("dday", Dday.of(status, announcement.getReceptBeginDate(),
                 announcement.getReceptEndDate(), queryService.today()));
+        model.addAttribute("qaEnabled", qaService.isEnabled());
+        model.addAttribute("qaIndexed", qaService.hasIndex(id));
         return "announcements/detail";
     }
 }

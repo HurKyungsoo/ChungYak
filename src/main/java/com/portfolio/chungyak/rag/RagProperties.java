@@ -6,11 +6,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * RAG 인덱싱·검색 파라미터 (rag.*). 코드에 박지 않고 배포 없이 조정한다.
  */
 @ConfigurationProperties(prefix = "rag")
-public record RagProperties(Chunk chunk, Search search) {
+public record RagProperties(Chunk chunk, Search search, Qa qa) {
 
     public RagProperties {
         if (chunk == null) chunk = new Chunk(0, 0);
         if (search == null) search = new Search(0);
+        if (qa == null) qa = new Qa(0, 0.0);
     }
 
     /** 청크 목표 길이·겹침 (문자 수). */
@@ -24,6 +25,14 @@ public record RagProperties(Chunk chunk, Search search) {
     public record Search(int topK) {
         public Search {
             if (topK <= 0) topK = 5;
+        }
+    }
+
+    /** Q&A: 답변에 넣을 발췌 개수 / 최소 코사인(이보다 낮으면 "관련 내용 없음"으로 LLM 호출 생략). */
+    public record Qa(int contextChunks, double minScore) {
+        public Qa {
+            if (contextChunks <= 0) contextChunks = 4;
+            if (minScore <= 0) minScore = 0.25;
         }
     }
 }

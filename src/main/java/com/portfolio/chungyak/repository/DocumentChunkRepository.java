@@ -14,4 +14,6 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, Lo
     void deleteByAnnouncementId(Long announcementId);
 
     long countByAnnouncementId(Long announcementId);
+
+    boolean existsByAnnouncementId(Long announcementId);
 }
