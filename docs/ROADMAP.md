@@ -49,7 +49,7 @@ AI(LLM) 활용을 더 밀어붙이는 계획은 → **`docs/AI-ROADMAP.md`**
 | B2 | 일반공급 가점 계산기 | ✅ | `GeneralSupplyScoreCalculator` (rule 패키지, 순수 함수). 무주택 32 + 부양가족 35 + 통장 17 = 84. `/general-supply` 화면. 경계값 테스트 |
 | B2b | 일반공급 추첨제 | ⬜ | 가점 외 추첨 물량 안내 |
 | B3 | 신혼희망타운 유형 | ⬜ | 별도 `SpecialSupplyType` + 규칙 (현재 엔진이 매칭 못 냄) |
-| B4 | 공고 원문 반영 | ⬜ | PDF(4,000자) 파싱 or "세부 요건은 공고문 확인" 고지 강화 |
+| B4 | 공고 원문 반영 | ✅ | LH 첨부 공고문 PDF 파싱(`PdfNoticeExtractor`, PDFBox) → RAG 인덱싱. 6천~4.5만 자 추출. 상세는 `docs/AI-ROADMAP.md` 방향 3 B4 |
 | B5 | 수집 실패 감지 | ✅ | `SyncStatus` + `SyncHealthIndicator`(bean `sync`) — 예외/저조수집/오래됨 → `/actuator/health` DOWN + ERROR 로그. `/actuator/health/liveness` 는 별개라 라우팅엔 영향 없음 |
 | B6 | 외부 API 계약 테스트 | ✅ | `ApplyhomeParseContractTest`(오프라인 픽스처 — 파서 필드명 회귀 방지) + `ApplyhomeApiContractTest`(`@EnabledIfEnvironmentVariable` — 실제 응답이 핵심 필드를 채우는지) |
 | B7 | 거주요건 판정 | ✅ | `RegionResidenceRequirement` — 규제지역 24개월/수도권 12개월 계속 거주. 미충족은 FAIL("기타지역 물량은 가능" 안내). `CommonRequirements` 에 합류 |

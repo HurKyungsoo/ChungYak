@@ -71,6 +71,7 @@ public class LhClient implements AnnouncementSource {
     private final PublicDataProperties properties;
     private final PublicDataParser parser;
     private final LhSpecialSupplyMapper specialSupplyMapper;
+    private final PdfNoticeExtractor pdfNoticeExtractor;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -165,9 +166,11 @@ public class LhClient implements AnnouncementSource {
     }
 
     /**
-     * 상세 API 응답에서 입주자모집공고문 원문(dsEtcInfo.PAN_DTL_CTS)을 꺼낸다.
-     * 필드명이 유형그룹마다 다를 수 있어, PAN_DTL_CTS 키를 먼저 찾고 없으면
-     * 응답에서 가장 긴 텍스트 값을 쓴다. HTML 태그·엔티티는 벗겨서 평문으로 만든다.
+     * 입주자모집공고문 본문 텍스트 — 벡터 검색(RAG) 소스.
+     *
+     * 우선순위:
+     *  1) 상세 응답 {@code dsAhflInfo} 의 <b>공고문 PDF 첨부</b>를 내려받아 본문 추출 (자격요건·세대수·일정 상세)
+     *  2) 실패하면 {@code PAN_DTL_CTS}(짧은 유의사항 안내문)로 폴백
      */
     @Override
     public Optional<String> fetchNoticeContent(ExternalAnnouncement announcement) {
@@ -176,11 +179,58 @@ public class LhClient implements AnnouncementSource {
         if (p == null || p.get("SPL_INF_TP_CD") == null) return Optional.empty();
 
         URI uri = detailUri(properties.getLh().getDetailUrl(), announcement.getPblancNo(), p);
+        byte[] detailBody;
         try {
-            byte[] body = publicDataRestClient.get().uri(uri).retrieve().body(byte[].class);
-            return parseNoticeContent(body);
+            detailBody = publicDataRestClient.get().uri(uri).retrieve().body(byte[].class);
         } catch (Exception e) {
-            log.warn("LH 공고문 원문 조회 실패. panId={}, msg={}", announcement.getPblancNo(), e.getMessage());
+            log.warn("LH 공고문 상세 조회 실패. panId={}, msg={}", announcement.getPblancNo(), e.getMessage());
+            return Optional.empty();
+        }
+
+        Optional<String> fromPdf = parseNoticePdfUrl(detailBody)
+                .flatMap(url -> downloadPdfText(url, announcement.getPblancNo()));
+        if (fromPdf.isPresent()) return fromPdf;
+
+        try {
+            return parseNoticeContent(detailBody);
+        } catch (Exception e) {
+            log.warn("LH PAN_DTL_CTS 파싱 실패. panId={}, msg={}", announcement.getPblancNo(), e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /** 상세 응답 dsAhflInfo 에서 "공고문" PDF 첨부 URL 을 찾는다. package-private — 오프라인 테스트. */
+    Optional<String> parseNoticePdfUrl(byte[] detailBody) {
+        if (detailBody == null || detailBody.length == 0) return Optional.empty();
+        try {
+            JsonNode arr = findFieldArray(objectMapper.readTree(detailBody), "dsahflinfo");
+            if (arr == null) return Optional.empty();
+            for (JsonNode row : arr) {
+                String kind = parser.text(row, "SL_PAN_AHFL_DS_CD_NM");
+                String name = parser.text(row, "CMN_AHFL_NM");
+                String url = parser.text(row, "AHFL_URL");
+                if (url == null || name == null) continue;
+                boolean isPdf = name.toLowerCase().endsWith(".pdf");
+                boolean isNotice = (kind != null && kind.contains("공고문"))
+                        || (name.contains("공고문") && !name.contains("팸플릿") && !name.contains("동호"));
+                if (isPdf && isNotice) return Optional.of(url);
+            }
+        } catch (Exception e) {
+            log.warn("LH dsAhflInfo 파싱 실패 — {}", e.toString());
+        }
+        return Optional.empty();
+    }
+
+    private Optional<String> downloadPdfText(String url, String panId) {
+        try {
+            byte[] pdf = publicDataRestClient.get().uri(url).retrieve().body(byte[].class);
+            Optional<String> text = pdfNoticeExtractor.extract(pdf);
+            if (text.isPresent()) {
+                log.info("LH 공고문 PDF 본문 추출 — panId={}, {}자", panId, text.get().length());
+            }
+            return text;
+        } catch (Exception e) {
+            log.warn("LH 공고문 PDF 내려받기/파싱 실패. panId={}, msg={}", panId, e.getMessage());
             return Optional.empty();
         }
     }

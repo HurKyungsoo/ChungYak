@@ -34,7 +34,14 @@ public class AnnouncementDocument {
     @Column(nullable = false, length = 20)
     private String source;
 
-    @Column(name = "raw_text", nullable = false, length = 20000)
+    /**
+     * 공고문 본문(첨부 PDF 추출 or PAN_DTL_CTS). 컬럼은 VARCHAR(20000) 이라
+     * 수집 시 {@code MAX_LEN} 로 잘라 넣는다 — 앞부분(자격요건·세대수·일정)이 핵심이라 충분하다.
+     * (전체 원문 보존이 필요해지면 TEXT 컬럼으로 마이그레이션.)
+     */
+    public static final int MAX_LEN = 19_500;
+
+    @Column(name = "raw_text", nullable = false, length = 20_000)
     private String rawText;
 
     @Column(name = "text_hash", nullable = false, length = 64)
@@ -46,16 +53,20 @@ public class AnnouncementDocument {
     public AnnouncementDocument(Long announcementId, String source, String rawText, Instant fetchedAt) {
         this.announcementId = announcementId;
         this.source = source;
-        this.rawText = rawText;
-        this.textHash = sha256(rawText);
+        this.rawText = clip(rawText);
+        this.textHash = sha256(this.rawText);
         this.fetchedAt = fetchedAt;
     }
 
     /** 원문 교체 — 해시가 바뀌면 인덱서가 재인덱싱한다. */
     public void replaceText(String rawText, Instant fetchedAt) {
-        this.rawText = rawText;
-        this.textHash = sha256(rawText);
+        this.rawText = clip(rawText);
+        this.textHash = sha256(this.rawText);
         this.fetchedAt = fetchedAt;
+    }
+
+    private static String clip(String s) {
+        return s.length() <= MAX_LEN ? s : s.substring(0, MAX_LEN);
     }
 
     public static String sha256(String s) {

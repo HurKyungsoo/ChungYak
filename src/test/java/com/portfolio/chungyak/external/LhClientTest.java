@@ -27,7 +27,7 @@ class LhClientTest {
     private final LhSpecialSupplyMapper mapper = new LhSpecialSupplyMapper();
 
     private LhClient client(PublicDataProperties properties) {
-        return new LhClient(null, properties, parser, mapper);
+        return new LhClient(null, properties, parser, mapper, new PdfNoticeExtractor());
     }
 
     private PublicDataProperties props(boolean lhEnabled) {
@@ -252,6 +252,40 @@ class LhClientTest {
             String json = "[{\"dsSplScdl\":[{\"RNK\":\"1\"}]}]";
             assertThat(c.parseNoticeContent(json.getBytes(StandardCharsets.UTF_8))).isEmpty();
             assertThat(c.parseNoticeContent(new byte[0])).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("parseNoticePdfUrl — dsAhflInfo 첨부에서 공고문 PDF")
+    class AttachmentParsing {
+
+        private final LhClient c = client(props(true));
+
+        /** 2026-09-04 실측 응답 형태. */
+        private static final String DETAIL = """
+            [{"dsAhflInfo":[
+              {"AHFL_URL":"https://apply.lh.or.kr/lhapply/lhFile.do?fileid=1","SL_PAN_AHFL_DS_CD_NM":"기타 첨부파일","CMN_AHFL_NM":"(양식)위임장.hwpx"},
+              {"AHFL_URL":"https://apply.lh.or.kr/lhapply/lhFile.do?fileid=2","SL_PAN_AHFL_DS_CD_NM":"공고문(hwp)","CMN_AHFL_NM":"입주자모집공고문(최종).hwpx"},
+              {"AHFL_URL":"https://apply.lh.or.kr/lhapply/lhFile.do?fileid=3","SL_PAN_AHFL_DS_CD_NM":"공고문(PDF)","CMN_AHFL_NM":"입주자모집공고문(최종).pdf"},
+              {"AHFL_URL":"https://apply.lh.or.kr/lhapply/lhFile.do?fileid=4","SL_PAN_AHFL_DS_CD_NM":"기타 첨부파일","CMN_AHFL_NM":"팸플릿.pdf"},
+              {"AHFL_URL":"https://apply.lh.or.kr/lhapply/lhFile.do?fileid=5","SL_PAN_AHFL_DS_CD_NM":"기타 첨부파일","CMN_AHFL_NM":"잔여세대동호표.pdf"}
+            ]}]
+            """;
+
+        @Test
+        @DisplayName("공고문 PDF 첨부의 다운로드 URL 을 고른다 (hwp·팸플릿·동호표 아님)")
+        void picksNoticePdf() {
+            assertThat(c.parseNoticePdfUrl(DETAIL.getBytes(StandardCharsets.UTF_8)))
+                    .contains("https://apply.lh.or.kr/lhapply/lhFile.do?fileid=3");
+        }
+
+        @Test
+        @DisplayName("공고문 PDF 첨부가 없으면 empty")
+        void emptyWhenNoNoticePdf() {
+            String json = "[{\"dsAhflInfo\":[{\"AHFL_URL\":\"u\",\"SL_PAN_AHFL_DS_CD_NM\":\"공고문(hwp)\",\"CMN_AHFL_NM\":\"공고문.hwpx\"}]}]";
+            assertThat(c.parseNoticePdfUrl(json.getBytes(StandardCharsets.UTF_8))).isEmpty();
+            assertThat(c.parseNoticePdfUrl("[{\"dsSplScdl\":[]}]".getBytes(StandardCharsets.UTF_8))).isEmpty();
+            assertThat(c.parseNoticePdfUrl(new byte[0])).isEmpty();
         }
     }
 }

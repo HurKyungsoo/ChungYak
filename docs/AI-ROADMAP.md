@@ -65,7 +65,7 @@
 
 ---
 
-## 방향 3 — 공고문 RAG Q&A  ✅ 슬라이스 1·2·3 완료, 원천 데이터 한계 확인
+## 방향 3 — 공고문 RAG Q&A  ✅ 슬라이스 1·2·3 + B4(PDF 첨부 파싱)
 
 > "이 공고 잔여세대 신청 조건이 뭐야?" → 공고문 근거 인용해서 답변.
 > 판정이 아니라 **정보 검색**이라 LLM 을 자유롭게. 근거(공고문 위치) 인용 필수.
@@ -76,10 +76,27 @@
 - `PAN_DTL_CTS` 는 임대·잔여세대 공고 기준 **600~1600자짜리 "신청 시 유의사항" 짧은 안내문**이다
   (소득검증 대상 입력 방법, 계약 일정, 문의처 등). 자격요건·세대수·평면도 등 상세는 **첨부 HWP/PDF** 에 있다.
 - 8개 LH 공고 중 5개만 100자 이상 본문이 나옴. 청약홈 공고는 원문 필드가 아예 없음.
-- 결론: **RAG 파이프라인은 완성**됐으나, 지금 인덱싱되는 텍스트는 얕다.
-  진짜 값을 뽑으려면 `docs/ROADMAP.md` B4 — 첨부 PDF/HWP 파싱이 필요. (별도 작업)
 - sync 중 발견·수정한 버그: `LhClient` 가 `RegulationFlags` 를 안 채워 저장 시 NOT NULL 위반
   (`speculation_overheated`). LH·기본 둘 다 all-false 로 채우도록 수정 + 회귀 테스트.
+
+### B4 — 첨부 공고문 PDF 파싱  ✅ (`feat/rag-pdf-notice`)
+
+LH 상세 응답 `dsAhflInfo` 에 **공고문 PDF 첨부 URL** 이 있다 (`SL_PAN_AHFL_DS_CD_NM="공고문(PDF)"`).
+- `PdfNoticeExtractor` — PDFBox 3.0.3. 바이트 → 평문 (매직바이트 체크·암호화 스킵·200p 상한, 순수 함수).
+- `LhClient.fetchNoticeContent`: 공고문 PDF 다운로드→추출 우선, 실패 시 `PAN_DTL_CTS` 폴백.
+- `dsAhflInfo` 에서 hwp·팸플릿·동호표 아닌 "공고문 .pdf" 만 고름 (`parseNoticePdfUrl`).
+- 실측(2026-09-04): 8개 LH 공고문 PDF 에서 **6,300~44,900자** 추출 (기존 `PAN_DTL_CTS` 600~1,600자 대비).
+- `announcement_document.raw_text` 컬럼이 VARCHAR(20000) 이라 `AnnouncementDocument.MAX_LEN`(19,500)로 클립
+  — 앞부분(자격요건·세대수·일정)이 핵심. 전체 보존 필요 시 TEXT 컬럼 마이그레이션.
+- HWP/HWPX 는 미지원 (라이브러리 불안정). PDF 첨부가 대부분 함께 제공됨.
+- 테스트: `PdfNoticeExtractorTest`(PDFBox 로 만든 PDF 왕복), `LhClientTest`(dsAhflInfo 픽스처),
+  `LhClientLiveTest`(실 PDF 추출 >3000자).
+
+### ⚠️ 무료 Voyage 한도가 대량 인덱싱을 막는다 (2026-09-04)
+
+결제수단 미등록 계정 = **3 RPM + 10K TPM**. 공고문 하나(클립 19,500자 ≈ 13K 토큰)가 TPM 한도를 넘겨
+`batch-size` 를 8청크로 낮춰도 여러 요청이 계속 429. → 대량 인덱싱은 **Voyage 결제수단 등록 필요**
+(무료 토큰 2억은 유지). 코드는 정상 — 백오프로 재시도하다 그 공고만 스킵(`docsFailed`).
 
 **결정 (2026-09-04):** 임베딩 provider = **Voyage AI**(`voyage-4-lite`), 벡터 저장소 = **앱 메모리 코사인**
 (공고 수백 건 규모 — 벡터는 DB에 JSON 문자열로, 네이티브 벡터 타입/pgvector 는 과잉).
