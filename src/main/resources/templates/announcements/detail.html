@@ -118,6 +118,13 @@
                 아래 발췌를 직접 확인하거나 원문을 보세요.</p>
         </div>
 
+        <!-- 관련 발췌는 찾았지만 답변 생성만 실패한 경우 — NO_MATCH 와 문구를 구분한다.
+             안 그러면 "관련 내용이 없다"로 오해하게 된다(실제론 검색은 됐고 응답기만 실패). -->
+        <div th:if="${qa != null and qa.status.name() == 'ANSWER_FAILED'}" class="card" style="margin-top:12px">
+            <p class="muted" style="margin:0">관련 발췌는 찾았지만 지금 답변 생성에 실패했습니다.
+                아래 근거 발췌를 직접 확인해 주세요.</p>
+        </div>
+
         <div th:if="${qa != null and #lists.size(qa.citations) > 0}" style="margin-top:12px">
             <p class="muted" style="margin:0 0 6px">근거 발췌 (공고문에서)</p>
             <details th:each="c, it : ${qa.citations}" class="card" style="margin-bottom:6px">
