@@ -19,19 +19,19 @@ import java.util.concurrent.ThreadLocalRandom;
  * {@link EmbeddingClient} 의 Voyage AI 구현 — {@code POST /v1/embeddings}.
  *
  * Voyage 는 공식 Java SDK 가 없어 {@link RestClient} 로 raw HTTP 를 친다.
- * 배치로 나눠 호출하고(기본 96개/요청), 응답의 {@code data[].embedding} 을
+ * 배치로 나눠 호출하고(기본 64개/요청), 응답의 {@code data[].embedding} 을
  * 요청 순서대로 되돌린다({@code data[].index} 로 재정렬).
  *
- * 429(rate limit)·5xx·연결 오류는 지수적 백오프로 재시도한다 —
- * 결제수단 미등록 계정은 3 RPM 로 제한되므로 인덱싱 배치가 이걸 자주 만난다.
- * 재시도를 다 쓰면 예외를 던지고, 인덱서가 그 공고만 스킵한다.
+ * 429(rate limit)·5xx·연결 오류는 지수적 백오프로 재시도한다.
+ * 결제수단 등록(Usage tier 1) 후 2000 RPM 이라 429 는 드물지만, 대량 재인덱싱
+ * 버스트나 5xx 는 여전히 날 수 있다. 재시도를 다 쓰면 예외를 던지고, 인덱서가 그 공고만 스킵한다.
  */
 @Slf4j
 public class VoyageEmbeddingClient implements EmbeddingClient {
 
     private static final int MAX_RETRIES = 4;
-    private static final long BASE_BACKOFF_MS = 22_000;   // 분당 제한이라 20초대가 적절
-    private static final long MAX_BACKOFF_MS = 65_000;
+    private static final long BASE_BACKOFF_MS = 3_000;
+    private static final long MAX_BACKOFF_MS = 20_000;
 
     private final RestClient restClient;
     private final ObjectMapper mapper = new ObjectMapper();
