@@ -43,13 +43,16 @@
 + `ANTHROPIC_API_KEY` 없으면 DISABLED (요약 영역 안 보임).
 화면: `eligibility-result.html` 의 "AI 요약" 카드 — *"판정은 규칙 엔진이 했고 AI 는 근거를 문장으로 정리만 했습니다"* 배지.
 
-### 2b. 개선 경로  ⬜ 미구현
-현재 `AnthropicExplainer.SYSTEM_PROMPT` 가 *"새로운 조건·추천·다음 단계를 지어내지 마라"* 로 막아둠.
+### 2b. 개선 경로
 
-- **3a (프롬프트만, 30분):** `failed` 이유 문장에 이미 수치가 다 있음 ("12개월로 요건 24개월에 미달").
-  `ExplanationFacts.format()` 마지막 지시 + `AnthropicExplainer` 시스템 프롬프트를
-  *"미충족·미확인 항목은 근거 문장의 수치를 근거로 '얼마나 부족한지, 무엇을 하면 충족되는지'도 설명 (새 수치 만들지 말 것)"* 으로 변경.
-  `ContradictionCheck` 가 자격 뒤집기는 이미 방어. 테스트 추가.
+- **3a (프롬프트만)  ✅ 완료:** `failed` 이유 문장에 이미 두 수치가 다 있음 ("12개월로 요건(24개월)에 미달").
+  `ExplanationFacts.format()` 마지막 지시 + `AnthropicExplainer.SYSTEM_PROMPT` 를
+  *"미충족·미확인 항목은 근거 문장의 두 수치만으로 '얼마나 모자라는지, 무엇을 채우면 충족되는지'까지 설명 —
+  근거에 없는 새 수치·기한·금액·조건 금지, 판정은 그대로"* 로 변경.
+  `ContradictionCheck` 가 자격 뒤집기는 이미 방어.
+  테스트: `ExplanationFactsTest`(프롬프트에 두 수치가 담기는지 결정론적 검증) +
+  `MatchResults.shortfall()`(규제지역·통장 12/24개월 부분 매칭) +
+  `ExplanationIntegrationTest.explainsShortfallWithoutFlippingVerdict`(실 LLM, 키 있을 때).
 - **3b (결정론적, 반나절~1일):** `EligibilityDecision.improvementHints` 를 각 규칙이 결정론적으로 계산
   (예: `MIN_ACCOUNT_MONTHS_REGULATED - accountMonths` = 12). 엔진이 `ExplanationFacts` 로 전달, AI 는 문장화만.
   → `EligibilityDecision` + 5개 규칙 + `EligibilityEngineTest` 수정. 이게 프로젝트 thesis 에 더 부합.
@@ -82,10 +85,11 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) + 첨부 HWP
 
 ## 권장 순서
 
-1. **2b-3a** (개선 경로 프롬프트) — 30분, 차별성 대비 가성비 최고
+1. ~~**2b-3a** (개선 경로 프롬프트)~~ ✅ 완료
 2. **D3 온디맨드/캐시** — 지금 실제 비용 새는 중
 3. **eval 세트** — 위 둘 검증
-4. **방향 3 (RAG)** — 별도 큰 프로젝트, 임베딩 provider 결정부터
+4. **2b-3b** (개선 경로 결정론적 계산) — 3a 문장 품질 보고 필요하면
+5. **방향 3 (RAG)** — 별도 큰 프로젝트, 임베딩 provider 결정부터
 
 ## 착수 전 체크
 

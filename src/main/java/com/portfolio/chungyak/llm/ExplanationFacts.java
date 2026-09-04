@@ -61,7 +61,9 @@ final class ExplanationFacts {
             d.getMissingInputs().forEach(r -> sb.append("  - 미확인: ").append(r).append('\n'));
         }
 
-        sb.append("\n이 근거들을 자연스러운 문장으로 정리해줘. 판정 결과나 숫자를 새로 만들지 말 것.");
+        sb.append("\n이 근거들을 자연스러운 문장으로 정리해줘. 판정 결과나 숫자를 새로 만들지 말 것. ");
+        sb.append("미충족·미확인 항목은 위 근거에 이미 있는 수치만 이용해 ");
+        sb.append("얼마나 모자라는지와 무엇을 채우면 요건을 충족하는지도 덧붙여줘.");
         return sb.toString();
     }
 }

@@ -52,4 +52,16 @@ class ExplanationIntegrationTest {
         assertThat(result.isShown()).isTrue();
         assertThat(ContradictionCheck.check(MatchResults.noMatch(), result.text())).isEmpty();
     }
+
+    @Test
+    @DisplayName("개선 경로(3a) — 미충족 항목은 근거의 수치로 얼마나 부족한지 설명하되 판정은 유지한다")
+    void explainsShortfallWithoutFlippingVerdict() {
+        ExplanationResult result = service.explain(MatchResults.shortfall());
+
+        assertThat(result.status()).isEqualTo(Status.AI);
+        // 다자녀는 신청 가능 — '없다'로 뒤집으면 모순
+        assertThat(ContradictionCheck.check(MatchResults.shortfall(), result.text())).isEmpty();
+        // 신혼부부 통장 미달을 근거의 수치(6/12개월)로 짚어준다
+        assertThat(result.text()).contains("개월");
+    }
 }
