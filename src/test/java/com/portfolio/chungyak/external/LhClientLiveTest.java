@@ -42,7 +42,8 @@ class LhClientLiveTest {
         props.getLh().setDetailUrl("https://apis.data.go.kr/B552555/lhLeaseNoticeDtlInfo1/getLeaseNoticeDtlInfo1");
         props.getLh().setSupplyUrl("https://apis.data.go.kr/B552555/lhLeaseNoticeSplInfo1/getLeaseNoticeSplInfo1");
 
-        client = new LhClient(restClient, props, new PublicDataParser(), new LhSpecialSupplyMapper());
+        client = new LhClient(restClient, props, new PublicDataParser(), new LhSpecialSupplyMapper(),
+                new PdfNoticeExtractor());
     }
 
     @Test
@@ -73,5 +74,27 @@ class LhClientLiveTest {
 
     private Set<SpecialSupplyType> presentTypes(ExternalUnitType u) {
         return u.getSupplyBreakdown().allocatedTypes().keySet();
+    }
+
+    @Test
+    @DisplayName("분양 공고 — 첨부 공고문 PDF 를 내려받아 본문을 추출한다")
+    void fetchesNoticeContentFromPdf() {
+        List<ExternalAnnouncement> announcements = client.fetchAnnouncements(
+                LocalDate.now().minusMonths(2), LocalDate.now(), 1);
+
+        ExternalAnnouncement notice = announcements.stream()
+                .filter(a -> "05".equals(a.getProviderParams().get("UPP_AIS_TP_CD")))
+                .findFirst().orElse(null);
+        org.junit.jupiter.api.Assumptions.assumeTrue(notice != null, "분양 공고가 없음");
+
+        var content = client.fetchNoticeContent(notice);
+        System.out.println("공고문 본문 " + content.map(String::length).orElse(0) + "자 — "
+                + notice.getHouseName());
+        content.ifPresent(t -> System.out.println("  " + t.substring(0, Math.min(300, t.length()))
+                .replaceAll("\\s+", " ")));
+
+        // PDF 본문이면 PAN_DTL_CTS(수백~1,600자)보다 훨씬 길다
+        assertThat(content).isPresent();
+        assertThat(content.get().length()).isGreaterThan(3000);
     }
 }

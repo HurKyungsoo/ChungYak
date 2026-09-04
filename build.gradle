@@ -38,6 +38,9 @@ dependencies {
     // 판정 요약(LLM) 캐시 — 같은 판정 근거면 재호출하지 않는다. 버전은 Boot BOM 관리.
     implementation 'com.github.ben-manes.caffeine:caffeine'
 
+    // LH 공고문 첨부 PDF 에서 본문 텍스트 추출 (RAG 인덱싱 소스). HWP/HWPX 는 미지원.
+    implementation 'org.apache.pdfbox:pdfbox:3.0.3'
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
