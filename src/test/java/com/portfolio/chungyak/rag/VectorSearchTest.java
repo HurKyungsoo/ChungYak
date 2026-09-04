@@ -27,7 +27,7 @@ class VectorSearchTest {
     };
 
     private final RagProperties props = new RagProperties(
-            new RagProperties.Chunk(900, 150), new RagProperties.Search(3));
+            new RagProperties.Chunk(900, 150), new RagProperties.Search(3), new RagProperties.Qa(4, 0.25));
 
     private DocumentChunk chunk(long annId, int idx, float[] vec) {
         return new DocumentChunk(annId, idx, "c" + idx, vec, "fake", "h", Instant.now());

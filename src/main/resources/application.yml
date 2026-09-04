@@ -90,6 +90,9 @@ rag:
     overlap: 150     # 청크 간 겹침(문자) — 경계 문장 유실 방지
   search:
     top-k: 5
+  qa:
+    context-chunks: 4   # 답변에 넣을 발췌 개수
+    min-score: 0.25     # 이보다 낮으면 "관련 내용 없음" — LLM 호출 생략
 
 # 관리자 계정 (/api/admin/** 보호). 비밀번호를 커밋하지 말 것.
 # ADMIN_PASSWORD 가 없으면 기동 시 임시 비밀번호를 생성해 로그에 남긴다.
