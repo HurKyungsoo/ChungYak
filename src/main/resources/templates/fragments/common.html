@@ -383,6 +383,16 @@
         .decision-card { display: flex; flex-direction: column; gap: 2px; }
         .decision-card .head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .decision-card .head strong { font-size: .98rem; }
+        .decision-card .reasons-fold { margin-top: 6px; }
+        .decision-card .reasons-fold > summary {
+            cursor: pointer; font-size: .84rem; color: var(--text-muted);
+            list-style: none; display: inline-flex; align-items: center; gap: 6px; padding: 2px 0;
+        }
+        .decision-card .reasons-fold > summary::-webkit-details-marker { display: none; }
+        .decision-card .reasons-fold > summary::before { content: "▸"; font-size: .8em; }
+        .decision-card .reasons-fold[open] > summary { color: var(--ok); margin-bottom: 2px; }
+        .decision-card .reasons-fold[open] > summary::before { content: "▾"; }
+        .decision-card .reasons-fold .reasons { margin-top: 4px; }
 
         .disclaimer { margin-top: 28px; padding: 14px 16px; background: var(--surface);
                       border: 1px solid var(--border); border-radius: var(--r);
