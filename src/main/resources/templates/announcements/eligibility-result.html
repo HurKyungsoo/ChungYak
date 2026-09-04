@@ -31,7 +31,8 @@
          판정은 규칙 엔진이 했고 이 문장은 그 근거를 재구성만 한 것이다. -->
     <div th:if="${explanation != null and explanation.shown}" class="card tint">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-            <strong th:text="${explanation.aiGenerated} ? 'AI 요약' : '요약'">요약</strong>
+            <strong>요약</strong>
+            <span th:if="${explanation.aiGenerated}" class="ai-chip">AI</span>
             <span class="muted" th:text="${explanation.aiGenerated}
                   ? '판정은 규칙 엔진이 했고 AI 는 근거를 문장으로 정리만 했습니다'
                   : '규칙 데이터로 자동 생성'">설명</span>
@@ -66,7 +67,7 @@
         <input type="hidden" th:field="*{monthsSinceLastWin}"/>
         <input type="hidden" th:field="*{pastWinInSpeculationArea}"/>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <button type="submit" class="btn btn-ghost">🔎 AI 요약 보기</button>
+            <button type="submit" class="btn btn-ghost">✨ AI 요약 보기</button>
             <span class="muted">아래 판정 근거를 AI 가 한 문단으로 정리합니다 (판정은 이미 끝났습니다).</span>
         </div>
     </form>

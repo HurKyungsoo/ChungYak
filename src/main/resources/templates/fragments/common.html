@@ -213,6 +213,18 @@
                      border-radius: var(--r-pill); }
         .chip.dday.soon { background: var(--warn-weak); color: var(--warn); }
 
+        /* AI 가 관여하는 자리를 표시하는 배지 (입력·요약·검색 — 판정에는 안 씀) */
+        .ai-chip {
+            display: inline-flex; align-items: center; gap: 4px; vertical-align: middle;
+            padding: 3px 10px; border-radius: var(--r-pill); line-height: 1;
+            font-size: .72rem; font-weight: 750; letter-spacing: .02em;
+            color: #fff; background: linear-gradient(135deg, var(--brand), #8b5cf6);
+            box-shadow: 0 1px 4px color-mix(in srgb, var(--brand) 35%, transparent);
+        }
+        .ai-chip::before { content: "✨"; font-size: .9em; }
+        h1 .ai-chip, h2 .ai-chip { font-size: .5em; }
+        legend .ai-chip { font-size: .78rem; }
+
         /* ── result hero (판정/가점 결과 상단) ────────────────────── */
         .result-hero {
             border-radius: var(--r-lg); padding: 22px 24px; margin: 16px 0 20px;
