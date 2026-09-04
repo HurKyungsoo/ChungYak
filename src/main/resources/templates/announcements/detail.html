@@ -122,7 +122,9 @@
             <details th:each="c, it : ${qa.citations}" class="card" style="margin-bottom:6px">
                 <summary style="cursor:pointer">
                     발췌 <span th:text="${it.index + 1}">1</span>
-                    <span class="muted" th:text="'· 유사도 ' + ${#numbers.formatDecimal(c.score, 1, 2)}">· 유사도 0.82</span>
+                    <span class="muted" th:text="'· 의미 ' + ${#numbers.formatDecimal(c.score, 1, 2)}">· 의미 0.82</span>
+                    <span class="muted" th:if="${c.keywordScore > 0}"
+                          th:text="'· 키워드 ' + ${#numbers.formatPercent(c.keywordScore, 1, 0)}">· 키워드 50%</span>
                 </summary>
                 <p style="margin:8px 0 0;white-space:pre-wrap;font-size:.9rem" th:text="${c.excerpt}">발췌 내용</p>
             </details>

@@ -65,7 +65,7 @@
 
 ---
 
-## 방향 3 — 공고문 RAG Q&A (LH 4000자)  🚧 슬라이스 1·2 완료, 하이브리드 검색 남음
+## 방향 3 — 공고문 RAG Q&A (LH 4000자)  ✅ 슬라이스 1·2·3 완료
 
 LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) 임베딩:
 > "이 공고 잔여세대 신청 조건이 뭐야?" → 공고문 근거 인용해서 답변
@@ -106,9 +106,21 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) 임베딩:
 - 상태: DISABLED(키 없음) / NO_INDEX(이 공고 원문 없음) / NO_MATCH / ANSWERED
 - 테스트: `DocumentQaServiceTest`(관련 없으면 LLM 미호출·발췌는 유지·번호 붙인 발췌 전달·
   응답기 예외 graceful).
-- 하이브리드(BM25 + 벡터)는 그 다음. `docs/ROADMAP.md` B4.
 - ⚠️ 실제 인덱싱 1회 = LH 공고 수 × 청크 ≈ Voyage `voyage-3-lite` 기준 극소($0.01~0.05).
   LH `enabled: true` + `PUBLICDATA_SERVICE_KEY` + `VOYAGE_API_KEY` 필요. Q&A 답변은 질문당 Anthropic 1콜.
+
+### 슬라이스 3 — 하이브리드 검색 (BM25 + 벡터)  ✅ 완료 (PR: feat/rag-hybrid)
+
+- `rag/Bm25Index` — 형태소 분석기 의존성 없이 한국어를 **글자 bi-gram** 으로 토큰화(CJK IR 통용).
+  라틴·숫자("1600-1004", "84.97")는 통째로. 순수 함수, 질의마다 새로 만든다(공고 수백 규모).
+- `VectorSearch` — 벡터 순위 + BM25 순위를 **RRF**(Reciprocal Rank Fusion, k=60)로 융합.
+  점수 스케일이 달라도 순위만 쓰므로 정규화 불필요. `rag.search.hybrid-weight`(0.6) = 벡터 쪽 가중치.
+  `searchWithin` 도 하이브리드 — BM25 IDF 는 항상 전체 코퍼스 기준(공고 하나로 좁히면 IDF 무의미).
+- `Hit` 에 `keywordScore`(질의 토큰 겹침 비율 0..1) 추가. Q&A 게이트: 코사인 < `min-score` **이고**
+  키워드 < `rag.qa.keyword-min-score`(0.5) 일 때만 NO_MATCH — 키워드가 정확히 맞으면 통과(탈출구).
+- 화면: 발췌마다 "의미 0.82 · 키워드 50%" 표시.
+- 테스트: `Bm25IndexTest`(토큰화·IDF·coverage), `VectorSearchTest`(키워드가 직교 벡터를 끌어올림·
+  searchWithin 스코프+글로벌 IDF), `DocumentQaServiceTest`(키워드 탈출구).
 
 ---
 
@@ -129,9 +141,9 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) 임베딩:
 2. ~~**D3 요약 캐시**~~ ✅ 완료
 3. ~~**eval 세트**~~ ✅ 완료
 4. ~~**2b-3b** (개선 경로 결정론적 계산)~~ ✅ 완료
-5. ~~**방향 3 (RAG)** 슬라이스 1(수집·인덱싱) · 2(Q&A 화면)~~ ✅ 완료
-6. **방향 3 하이브리드 검색** (BM25 + 벡터) — 인덱싱 규모 커지면
-7. 선택: AI 요약 온디맨드 버튼 · eval 임계값 실측 조정
+5. ~~**방향 3 (RAG)** 슬라이스 1(수집·인덱싱) · 2(Q&A 화면) · 3(하이브리드 검색)~~ ✅ 완료
+6. 선택: 첫 실인덱싱 + Q&A 화면 시각 검증(키 필요) · AI 요약 온디맨드 버튼 · eval 임계값 실측 조정
+7. 규모 커지면: 역색인/캐시(BM25 질의마다 재구축 중) · 네이티브 벡터 인덱스
 
 ---
 

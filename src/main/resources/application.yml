@@ -90,9 +90,11 @@ rag:
     overlap: 150     # 청크 간 겹침(문자) — 경계 문장 유실 방지
   search:
     top-k: 5
+    hybrid-weight: 0.6   # RRF 융합에서 벡터(의미) 쪽 가중치. 나머지는 BM25(키워드)
   qa:
-    context-chunks: 4   # 답변에 넣을 발췌 개수
-    min-score: 0.25     # 이보다 낮으면 "관련 내용 없음" — LLM 호출 생략
+    context-chunks: 4        # 답변에 넣을 발췌 개수
+    min-score: 0.25          # 최고 발췌 코사인이 이 미만이고
+    keyword-min-score: 0.5   # 키워드 겹침도 이 미만이면 "관련 내용 없음" — LLM 호출 생략
 
 # 관리자 계정 (/api/admin/** 보호). 비밀번호를 커밋하지 말 것.
 # ADMIN_PASSWORD 가 없으면 기동 시 임시 비밀번호를 생성해 로그에 남긴다.
