@@ -84,7 +84,8 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) 임베딩:
 - 수집 시 신규 공고면 원문도 받아 `AnnouncementDocument` 저장 (스케줄러·SyncService)
 - `com.portfolio.chungyak.rag`:
   - `ChunkSplitter` — 문단·문장 경계 존중 + overlap (순수 함수)
-  - `embedding/EmbeddingClient` + `VoyageEmbeddingClient`(raw HTTP) — `VOYAGE_API_KEY` 없으면 빈 `Optional`
+  - `embedding/EmbeddingClient` + `VoyageEmbeddingClient`(raw HTTP, 모델 `voyage-4-lite`) —
+    `VOYAGE_API_KEY` 없으면 빈 `Optional`. 429/5xx 는 지수 백오프 재시도(결제수단 미등록 = 3 RPM 제한)
   - `AnnouncementIndexer.indexPending()` — 원문/모델 바뀐 공고만 재인덱싱 (idempotent)
   - `VectorSearch` — 전체 청크 메모리 코사인 top-K, `searchWithin(announcementId, ...)`
 - 관리자 API: `POST /api/admin/rag/reindex`, `GET /api/admin/rag/status|search`
@@ -142,8 +143,11 @@ LH 상세 API `dsEtcInfo.PAN_DTL_CTS`(공고내용 전문, 4000자) 임베딩:
 3. ~~**eval 세트**~~ ✅ 완료
 4. ~~**2b-3b** (개선 경로 결정론적 계산)~~ ✅ 완료
 5. ~~**방향 3 (RAG)** 슬라이스 1(수집·인덱싱) · 2(Q&A 화면) · 3(하이브리드 검색)~~ ✅ 완료
-6. 선택: 첫 실인덱싱 + Q&A 화면 시각 검증(키 필요) · AI 요약 온디맨드 버튼 · eval 임계값 실측 조정
-7. 규모 커지면: 역색인/캐시(BM25 질의마다 재구축 중) · 네이티브 벡터 인덱스
+6. ~~파이프라인 라이브 확인~~ ✅ (2026-09-04, `RagPipelineIntegrationTest` — 실 Voyage `voyage-4-lite`,
+   공고문 → 청크 → 임베딩 → 하이브리드 검색 동작 확인. 무관 질문은 의미 0.07·키워드 0%)
+7. 선택: Q&A 화면 시각 검증(LH 인덱싱 데이터 필요) · AI 요약 온디맨드 버튼 · eval 임계값 실측
+8. 규모 커지면: 역색인/캐시(BM25 질의마다 재구축 중) · 네이티브 벡터 인덱스
+   · Voyage 결제수단 등록(3 RPM → 표준 rate limit, 무료 토큰은 유지)
 
 ---
 
