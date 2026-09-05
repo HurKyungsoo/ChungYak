@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,6 +36,7 @@ public class AnnouncementSyncService {
     public SyncStat sync(List<ExternalAnnouncement> externals) {
         int created = 0;
         int updated = 0;
+        List<Announcement> createdAnnouncements = new ArrayList<>();
 
         for (ExternalAnnouncement external : externals) {
             Announcement existing = announcementRepository
@@ -46,6 +48,7 @@ public class AnnouncementSyncService {
                 attachUnitTypes(saved, external.getUnitTypes());
                 saveNoticeContent(saved, external);
                 created++;
+                createdAnnouncements.add(saved);
             } else {
                 existing.updateFromExternal(
                         external.getHouseName(), external.getRegionName(), external.getAddress(),
@@ -56,7 +59,7 @@ public class AnnouncementSyncService {
             }
         }
 
-        return new SyncStat(externals.size(), created, updated);
+        return new SyncStat(externals.size(), created, updated, createdAnnouncements);
     }
 
     private Announcement toEntity(ExternalAnnouncement e) {
@@ -121,5 +124,5 @@ public class AnnouncementSyncService {
                                 saved.getId(), source, content, clock.instant())));
     }
 
-    public record SyncStat(int received, int created, int updated) {}
+    public record SyncStat(int received, int created, int updated, List<Announcement> createdAnnouncements) {}
 }

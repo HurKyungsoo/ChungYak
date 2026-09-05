@@ -1,5 +1,7 @@
 package com.portfolio.chungyak.service;
 
+import com.portfolio.chungyak.alert.NewAnnouncementAlertService;
+import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.external.AnnouncementSource;
 import com.portfolio.chungyak.external.ExternalAnnouncement;
 import com.portfolio.chungyak.external.ExternalUnitType;
@@ -36,6 +38,7 @@ public class AnnouncementSyncScheduler {
     private final PublicDataProperties properties;   // sync.minExpectedRecords 확인용
     private final SyncStatus syncStatus;
     private final Clock clock;
+    private final NewAnnouncementAlertService alertService;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -76,24 +79,38 @@ public class AnnouncementSyncScheduler {
 
     private SyncReport doSync() {
         SyncReport total = SyncReport.empty();
+        List<Announcement> newAnnouncements = new ArrayList<>();
         for (AnnouncementSource source : sources) {
             if (!source.isEnabled()) {
                 log.info("{} 소스 비활성 — 건너뜀", source.sourceName());
                 continue;
             }
-            SyncReport one = syncSource(source);
-            log.info("{} 동기화 완료. {}", source.sourceName(), one);
-            total = total.plus(one);
+            SourceSyncResult result = syncSource(source);
+            log.info("{} 동기화 완료. {}", source.sourceName(), result.report());
+            total = total.plus(result.report());
+            newAnnouncements.addAll(result.created());
         }
         log.info("전체 동기화 완료. {}", total);
+
+        // 새 공고 알림 — 이번 배치에서 새로 생긴 공고만 대상으로 한다("새 공고" 알림의 정의 그대로).
+        // 여기서 실패해도 수집 자체는 이미 끝났으니 배치를 실패시키지 않는다.
+        try {
+            alertService.notifyMatchingSubscribers(newAnnouncements);
+        } catch (RuntimeException e) {
+            log.warn("새 공고 알림 발송 중 오류 — 다음 배치에서 다시 시도되지 않으니 원인 확인 필요. {}", e.toString());
+        }
+
         return total;
     }
 
-    private SyncReport syncSource(AnnouncementSource source) {
+    private record SourceSyncResult(SyncReport report, List<Announcement> created) {}
+
+    private SourceSyncResult syncSource(AnnouncementSource source) {
         int pagesFetched = 0;
         int received = 0;
         int created = 0;
         int updated = 0;
+        List<Announcement> createdAnnouncements = new ArrayList<>();
 
         for (int page = 1; page <= source.maxPages(); page++) {
             List<ExternalAnnouncement> announcements = source.fetchAnnouncements(page);
@@ -122,9 +139,10 @@ public class AnnouncementSyncScheduler {
             received += stat.received();
             created += stat.created();
             updated += stat.updated();
+            createdAnnouncements.addAll(stat.createdAnnouncements());
         }
 
-        return new SyncReport(pagesFetched, received, created, updated);
+        return new SourceSyncResult(new SyncReport(pagesFetched, received, created, updated), createdAnnouncements);
     }
 
     /** 공고문 원문 조회 실패가 수집 전체를 막지 않도록 감싼다 (mock 이 null 을 줄 수도 있다). */
