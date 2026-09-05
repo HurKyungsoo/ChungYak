@@ -160,6 +160,7 @@ public class EligibilityController {
         model.addAttribute("status", queryService.statusOf(announcement));
         model.addAttribute("result", resultAssembler.assemble(result));
         model.addAttribute("form", form);   // "AI 요약 보기" 버튼이 폼을 그대로 재제출할 수 있도록
+        model.addAttribute("resultToken", token);   // 알림 구독 후 같은 결과 화면으로 되돌아오기 위해
         model.addAttribute("explanationAvailable", explanationService.isAvailable());
         model.addAttribute("incomePercent", incomeReference.percentOf(
                 profile.getMonthlyHouseholdIncome(), profile.getHouseholdSize()));

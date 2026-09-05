@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head(${title})}"></head>
+<body>
+<header th:replace="~{fragments/common :: header}"></header>
+
+<main>
+    <div class="card" style="max-width:520px;margin:40px auto;text-align:center;padding:32px 24px">
+        <div style="font-size:2.2rem;margin-bottom:8px" th:text="${success} ? '✅' : '⚠️'">✅</div>
+        <h1 style="font-size:1.3rem;margin:0 0 8px" th:text="${title}">제목</h1>
+        <p class="muted" style="margin:0" th:text="${message}">메시지</p>
+        <div class="btn-row" style="justify-content:center;margin-top:20px">
+            <a th:href="@{/announcements}" class="btn btn-primary">공고 목록으로</a>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/common :: disclaimer}"></div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
+</body>
+</html>

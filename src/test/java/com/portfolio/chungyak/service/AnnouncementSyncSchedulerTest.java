@@ -1,5 +1,6 @@
 package com.portfolio.chungyak.service;
 
+import com.portfolio.chungyak.alert.NewAnnouncementAlertService;
 import com.portfolio.chungyak.external.ApplyhomeClient;
 import com.portfolio.chungyak.external.PublicDataProperties;
 import com.portfolio.chungyak.repository.AnnouncementRepository;
@@ -41,8 +42,9 @@ class AnnouncementSyncSchedulerTest {
         props.getApplyhome().setMaxPages(3);
         props.getSync().setMinExpectedRecords(1000);
         syncStatus = new SyncStatus();
+        NewAnnouncementAlertService alertService = Mockito.mock(NewAnnouncementAlertService.class);
         scheduler = new AnnouncementSyncScheduler(List.of(applyhomeClient), syncService, repo, props,
-                syncStatus, Clock.fixed(Instant.parse("2026-09-03T04:00:00Z"), ZoneOffset.UTC));
+                syncStatus, Clock.fixed(Instant.parse("2026-09-03T04:00:00Z"), ZoneOffset.UTC), alertService);
     }
 
     @Test
