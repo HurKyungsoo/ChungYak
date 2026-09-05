@@ -39,6 +39,11 @@ import org.springframework.web.server.ResponseStatusException;
  * 문장으로 재구성한 것이고, 모순 검사를 통과하지 못하면 결정론적 요약으로 대체된다.
  *
  * LLM 은 앞(추출)·뒤(요약) 어느 쪽에서도 판정에 관여하지 않는다(CLAUDE.md 절대 규칙).
+ *
+ * 판정 결과는 Post-Redirect-Get 이다 — {@link #evaluate} 는 폼을
+ * {@link EligibilityResultStore} 에 넣고 토큰 URL 로 리다이렉트만 하며, {@link #result}
+ * (GET)가 그 토큰으로 실제 판정을 계산해 렌더링한다. 결과를 POST 응답으로 직접 그리면
+ * 새로고침마다 "다시 제출" 경고가 뜨고 URL 을 북마크·공유할 수 없었다.
  */
 @Slf4j
 @Controller
@@ -51,6 +56,7 @@ public class EligibilityController {
     private final ProfileExtractionService profileExtractionService;
     private final ExplanationService explanationService;
     private final IncomeReference incomeReference;
+    private final EligibilityResultStore resultStore;
 
     @GetMapping("/announcements/{id}/eligibility")
     public String form(@PathVariable Long id, Model model) {
@@ -96,13 +102,33 @@ public class EligibilityController {
      * @param explain true 면 판정 근거를 LLM 요약까지 한다. 기본은 false —
      *   요약은 결과 화면의 "AI 요약 보기" 버튼(같은 폼 재제출)으로 온디맨드 호출한다.
      *   매 판정마다 LLM 을 태우지 않기 위한 것. (판정 자체는 explain 값과 무관하게 결정론)
+     *
+     * 실제 판정·렌더링은 하지 않는다 — 폼을 {@link EligibilityResultStore} 에 넣고
+     * GET 결과 URL 로 리다이렉트만 한다(PRG). 판정은 그 GET 요청({@link #result})이 한다.
      */
     @PostMapping("/announcements/{id}/eligibility")
     public String evaluate(@PathVariable Long id,
                            @ModelAttribute("form") EligibilityForm form,
-                           @RequestParam(name = "explain", defaultValue = "false") boolean explain,
-                           Model model) {
+                           @RequestParam(name = "explain", defaultValue = "false") boolean explain) {
+        loadAnnouncement(id);   // 존재하지 않는 공고면 리다이렉트 전에 404
+        String token = resultStore.put(id, form, explain);
+        return "redirect:/announcements/" + id + "/eligibility/result/" + token;
+    }
+
+    /**
+     * PRG 의 GET 쪽 — 토큰으로 저장해둔 폼을 꺼내 실제 판정을 계산하고 결과를 그린다.
+     * 새로고침해도 이 요청을 그대로 반복할 뿐이라 "다시 제출" 경고가 없고, 토큰이 살아있는
+     * 동안(30분) 이 URL 은 북마크·공유할 수 있다. 토큰이 없거나 만료됐으면 폼으로 돌려보낸다.
+     */
+    @GetMapping("/announcements/{id}/eligibility/result/{token}")
+    public String result(@PathVariable Long id, @PathVariable String token, Model model) {
+        var submission = resultStore.get(token);
+        if (submission.isEmpty() || !submission.get().announcementId().equals(id)) {
+            return "redirect:/announcements/" + id + "/eligibility";
+        }
+
         Announcement announcement = loadAnnouncement(id);
+        EligibilityForm form = submission.get().form();
         ApplicantProfile profile = form.toProfile();
 
         log.info("자격 판정 실행 — 공고 #{} '{}' (주택형 {}개, 규제지역={}), "
@@ -124,7 +150,7 @@ public class EligibilityController {
 
         // 뒷단 LLM: 확정된 판정 근거를 문장으로 재구성만 한다 (판정에는 관여하지 않음).
         // "AI 요약 보기" 를 눌렀을 때만 호출 — 매 판정마다 태우지 않는다.
-        if (explain) {
+        if (submission.get().explain()) {
             var explanation = explanationService.explain(result);
             log.info("판정 요약 — 공고 #{}: {}", announcement.getId(), explanation.status());
             model.addAttribute("explanation", explanation);
