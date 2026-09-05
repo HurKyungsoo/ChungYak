@@ -38,6 +38,15 @@ class ReWinRequirementTest {
     }
 
     @Test
+    @DisplayName("투기과열지구 당첨이었다고 체크했는데 경과 개월이 비어 있으면 " +
+            "'이력 없음'으로 단정하지 않고 MISSING (체크 자체가 이력이 있다는 뜻이므로)")
+    void speculationCheckedWithoutMonthsIsMissingNotPass() {
+        RequirementCheck c = req.check(profile(false, null, true), SpecialSupplyType.NEWLYWED);
+        assertThat(c.status()).isEqualTo(Status.MISSING);
+        assertThat(c.reason()).contains("경과 개월");
+    }
+
+    @Test
     @DisplayName("일반 지역 당첨 — 60개월 경계")
     void defaultPeriodBoundary() {
         assertThat(req.check(profile(false, 59, false), SpecialSupplyType.FIRST_TIME).passed()).isFalse();
