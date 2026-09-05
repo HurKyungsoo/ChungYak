@@ -49,7 +49,7 @@ public class AssetRequirement {
     }
 
     /** 원 → "3억 7,900만원" 같은 읽기 쉬운 문자열 */
-    static String won(long amount) {
+    public static String won(long amount) {
         long eok = amount / 100_000_000;
         long man = (amount % 100_000_000) / 10_000;
         StringBuilder sb = new StringBuilder();

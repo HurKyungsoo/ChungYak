@@ -37,6 +37,16 @@ class SupplyBreakdownTest {
     }
 
     @Test
+    @DisplayName("신혼희망타운은 표준 신혼부부와 별개 컬럼으로 센다")
+    void newlywedHopeTownIsSeparateFromNewlywed() {
+        SupplyBreakdown b = SupplyBreakdown.ofPresentTypes(Set.of(SpecialSupplyType.NEWLYWED_HOPE_TOWN));
+
+        assertThat(b.hasAllocation(SpecialSupplyType.NEWLYWED_HOPE_TOWN)).isTrue();
+        assertThat(b.hasAllocation(SpecialSupplyType.NEWLYWED)).isFalse();
+        assertThat(b.total()).isZero();   // 세대수 미상 경로
+    }
+
+    @Test
     @DisplayName("빈 집합이면 어떤 유형도 배정 없음")
     void emptyPresentTypes() {
         SupplyBreakdown b = SupplyBreakdown.ofPresentTypes(Set.of());

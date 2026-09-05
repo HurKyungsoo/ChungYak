@@ -17,6 +17,7 @@ import java.net.URI;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -142,7 +143,8 @@ public class LhClient implements AnnouncementSource {
             return List.of();
         }
 
-        Set<SpecialSupplyType> offeredTypes = fetchOfferedSpecialTypes(announcement.getPblancNo(), p);
+        Set<SpecialSupplyType> offeredTypes = reclassifyForHopeTown(
+                fetchOfferedSpecialTypes(announcement.getPblancNo(), p), announcement.getHouseType());
         SupplyBreakdown breakdown = SupplyBreakdown.ofPresentTypes(offeredTypes);
 
         List<JsonNode> rows = fetchSupplyRows(announcement.getPblancNo(), p);
@@ -306,6 +308,23 @@ public class LhClient implements AnnouncementSource {
                 .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"")
                 .replaceAll("[ \\t]+", " ")
                 .replaceAll("\\n{3,}", "\n\n");
+    }
+
+    /**
+     * 신혼희망타운 공고의 "신혼부부"/"예비신혼부부" 라벨은 {@link LhSpecialSupplyMapper} 가
+     * (공고 맥락을 모른 채) 표준 {@link SpecialSupplyType#NEWLYWED} 로 매핑해 온다. 신혼희망타운은
+     * 자격기준(소득·자산·통장 요건, 혼인기간 예외)이 표준 신혼부부 특공과 달라 여기서
+     * {@link SpecialSupplyType#NEWLYWED_HOPE_TOWN} 으로 다시 분류한다 — 라벨 매퍼는 그대로 두고
+     * 공고 유형을 아는 이 메서드에서 사후 보정하는 것.
+     */
+    static Set<SpecialSupplyType> reclassifyForHopeTown(Set<SpecialSupplyType> types, HouseType houseType) {
+        if (houseType != HouseType.NEWLYWED_HOPE_TOWN || !types.contains(SpecialSupplyType.NEWLYWED)) {
+            return types;
+        }
+        Set<SpecialSupplyType> result = EnumSet.copyOf(types);
+        result.remove(SpecialSupplyType.NEWLYWED);
+        result.add(SpecialSupplyType.NEWLYWED_HOPE_TOWN);
+        return result;
     }
 
     private Set<SpecialSupplyType> fetchOfferedSpecialTypes(String panId, Map<String, String> p) {
@@ -474,7 +493,10 @@ public class LhClient implements AnnouncementSource {
                 .houseManageNo(parser.text(item, "CCR_CNNT_SYS_DS_CD"))
                 .pblancNo(panId)
                 .houseName(panNm)
-                .houseType(HouseType.UNKNOWN)
+                // UPP_AIS_TP_CD=39 가 신혼희망타운이다(라이브로 확인, isHousing 참고). 그 외엔
+                // 청약홈처럼 세분화할 근거가 없어 UNKNOWN — 이 값에 기대는 판정은 신혼희망타운뿐이다.
+                .houseType("39".equals(providerParams.get("UPP_AIS_TP_CD"))
+                        ? HouseType.NEWLYWED_HOPE_TOWN : HouseType.UNKNOWN)
                 // LH 주택 공급은 전부 공공(국민주택)이다. 토지·상가는 주택이 아니라 UNKNOWN.
                 .houseDetailType(isHousing(providerParams.get("UPP_AIS_TP_CD"))
                         ? HouseDetailType.PUBLIC : HouseDetailType.UNKNOWN)

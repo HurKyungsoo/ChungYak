@@ -29,6 +29,9 @@ public class EligibilityForm {
     /** 2세 이하 자녀(신생아) 유무 */
     private boolean hasNewborn;
 
+    /** 만 6세 이하 자녀(태아 포함) 유무 — 신혼희망타운 전용 */
+    private boolean hasChildUnderSix;
+
     /** 무주택 여부 */
     private boolean houseless;
 
@@ -101,6 +104,7 @@ public class EligibilityForm {
                 .monthsSinceMarriage(monthsSinceMarriage)
                 .childCount(Math.max(0, childCount))
                 .hasNewborn(hasNewborn)
+                .hasChildUnderSix(hasChildUnderSix)
                 .houseless(houseless)
                 .accountMonths(accountMonths)
                 .accountPaymentCount(accountPaymentCount)
@@ -131,6 +135,9 @@ public class EligibilityForm {
 
     public boolean isHasNewborn() { return hasNewborn; }
     public void setHasNewborn(boolean hasNewborn) { this.hasNewborn = hasNewborn; }
+
+    public boolean isHasChildUnderSix() { return hasChildUnderSix; }
+    public void setHasChildUnderSix(boolean hasChildUnderSix) { this.hasChildUnderSix = hasChildUnderSix; }
 
     public boolean isHouseless() { return houseless; }
     public void setHouseless(boolean houseless) { this.houseless = houseless; }

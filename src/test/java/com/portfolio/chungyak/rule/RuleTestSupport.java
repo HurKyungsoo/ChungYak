@@ -6,6 +6,7 @@ import com.portfolio.chungyak.rule.SpecialSupplyRequirementProperties.IncomeLimi
 import com.portfolio.chungyak.rule.rules.FirstTimeRule;
 import com.portfolio.chungyak.rule.rules.MultiChildRule;
 import com.portfolio.chungyak.rule.rules.NewbornRule;
+import com.portfolio.chungyak.rule.rules.NewlywedHopeTownRule;
 import com.portfolio.chungyak.rule.rules.NewlywedRule;
 import com.portfolio.chungyak.rule.rules.OldParentsRule;
 
@@ -33,7 +34,8 @@ public final class RuleTestSupport {
                             SpecialSupplyType.NEWLYWED, new IncomeLimit(140, 160),
                             SpecialSupplyType.FIRST_TIME, new IncomeLimit(130, 160),
                             SpecialSupplyType.OLD_PARENTS, new IncomeLimit(120, 120),
-                            SpecialSupplyType.NEWBORN, new IncomeLimit(150, 200)),
+                            SpecialSupplyType.NEWBORN, new IncomeLimit(150, 200),
+                            SpecialSupplyType.NEWLYWED_HOPE_TOWN, new IncomeLimit(130, 200)),
                     new AssetLimit(379_000_000L, 37_080_000));
 
     public static final IncomeRequirement INCOME = new IncomeRequirement(INCOME_REFERENCE, REQUIREMENTS);
@@ -47,6 +49,7 @@ public final class RuleTestSupport {
             new RegionResidenceRequirementProperties(24, 12));
     public static final CommonRequirements COMMON =
             new CommonRequirements(RE_WIN, INCOME, ASSET, ACCOUNT, RESIDENCE);
+    public static final NewlywedHopeTownProperties HOPE_TOWN = new NewlywedHopeTownProperties(362_000_000L);
 
     public static List<EligibilityRule> allRules() {
         return List.of(
@@ -54,7 +57,8 @@ public final class RuleTestSupport {
                 new FirstTimeRule(COMMON),
                 new MultiChildRule(COMMON),
                 new OldParentsRule(COMMON),
-                new NewbornRule(COMMON));
+                new NewbornRule(COMMON),
+                new NewlywedHopeTownRule(INCOME, RE_WIN, RESIDENCE, HOPE_TOWN));
     }
 
     /**

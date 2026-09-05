@@ -30,6 +30,10 @@ public class ApplicantProfile {
     /** 2세 이하 자녀(신생아) 유무 */
     private final boolean hasNewborn;
 
+    /** 만 6세 이하 자녀(태아 포함) 유무. 신혼희망타운은 혼인 7년 초과라도 이 조건이면 자격이 된다
+     *  — hasNewborn(2세 이하)과 기준 연령이 달라 별도 필드로 둔다. */
+    private final boolean hasChildUnderSix;
+
     /** 무주택 여부 */
     private final boolean houseless;
 

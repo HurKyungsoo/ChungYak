@@ -90,6 +90,28 @@ class ApplyhomeParseContractTest {
     }
 
     @Test
+    @DisplayName("reclassifyForHopeTown — 신혼희망타운 공고면 NWWDS_HSHLDCO(신혼) 세대수를 " +
+            "NEWLYWED_HOPE_TOWN 컬럼으로 옮긴다 (표준 신혼부부와 자격기준이 다르므로)")
+    void reclassifiesNewlywedCountForHopeTown() throws Exception {
+        ExternalUnitType original = client.parseUnitTypes(fixture("applyhome-mdl.json")).get(0);
+        assertThat(original.getSupplyBreakdown().getNewlywed()).isEqualTo(47);
+
+        ExternalUnitType moved = ApplyhomeClient.reclassifyForHopeTown(original);
+
+        assertThat(moved.getSupplyBreakdown().getNewlywed()).isZero();
+        assertThat(moved.getSupplyBreakdown().getNewlywedHopeTown()).isEqualTo(47);
+        // 다른 유형·필드는 그대로
+        assertThat(moved.getSupplyBreakdown().getMultiChild()).isEqualTo(original.getSupplyBreakdown().getMultiChild());
+        assertThat(moved.getTypeName()).isEqualTo(original.getTypeName());
+
+        // 신혼 배정이 없으면 신혼희망타운이라도 바꿀 게 없다
+        ExternalUnitType noNewlywed = original.toBuilder()
+                .supplyBreakdown(original.getSupplyBreakdown().toBuilder().newlywed(0).build())
+                .build();
+        assertThat(ApplyhomeClient.reclassifyForHopeTown(noNewlywed)).isEqualTo(noNewlywed);
+    }
+
+    @Test
     @DisplayName("픽스처가 파서 계약(읽는 필드)을 모두 담고 있다 — 픽스처를 함부로 줄이지 못하게")
     void fixtureCoversContract() throws Exception {
         JsonNode detail = mapper.readTree(fixture("applyhome-detail.json")).path("data").get(0);
