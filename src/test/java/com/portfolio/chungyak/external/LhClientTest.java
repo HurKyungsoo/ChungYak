@@ -1,6 +1,7 @@
 package com.portfolio.chungyak.external;
 
 import com.portfolio.chungyak.domain.HouseDetailType;
+import com.portfolio.chungyak.domain.HouseType;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -72,6 +73,7 @@ class LhClientTest {
             assertThat(a.getNoticeDate()).isEqualTo(LocalDate.of(2026, 9, 3));
             assertThat(a.getReceptEndDate()).isEqualTo(LocalDate.of(2026, 9, 17));
             assertThat(a.getHouseDetailType()).isEqualTo(HouseDetailType.PUBLIC);   // UPP_AIS_TP_CD=05 분양주택
+            assertThat(a.getHouseType()).isEqualTo(HouseType.UNKNOWN);   // 05 는 신혼희망타운(39)이 아니다
             // LH 는 규제지역 정보를 안 주지만 임베디드 값은 null 이면 안 된다(저장 시 NOT NULL 위반)
             assertThat(a.getRegulationFlags()).isNotNull();
             assertThat(a.getRegulationFlags().isRegulatedArea()).isFalse();
@@ -91,6 +93,20 @@ class LhClientTest {
             List<ExternalAnnouncement> result =
                     client(props(true)).parseAnnouncements(json.getBytes(StandardCharsets.UTF_8));
             assertThat(result.get(0).getHouseDetailType()).isEqualTo(HouseDetailType.UNKNOWN);
+        }
+
+        @Test
+        @DisplayName("UPP_AIS_TP_CD=39 는 신혼희망타운")
+        void hopeTownIsDetectedByUppAisTpCd() throws Exception {
+            String json = """
+                [{"dsList":[{"PAN_ID":"HT-1","PAN_NM":"성남복정2 A1블록 신혼희망타운",
+                             "UPP_AIS_TP_CD":"39","SPL_INF_TP_CD":"390"}]}]
+                """;
+            List<ExternalAnnouncement> result =
+                    client(props(true)).parseAnnouncements(json.getBytes(StandardCharsets.UTF_8));
+            ExternalAnnouncement a = result.get(0);
+            assertThat(a.getHouseType()).isEqualTo(HouseType.NEWLYWED_HOPE_TOWN);
+            assertThat(a.getHouseDetailType()).isEqualTo(HouseDetailType.PUBLIC);   // 신혼희망타운도 주택은 주택
         }
 
         @Test
@@ -137,7 +153,8 @@ class LhClientTest {
         }
 
         @Test
-        @DisplayName("신혼희망타운 라벨(예비신혼부부/신혼부부)도 NEWLYWED 로")
+        @DisplayName("신혼희망타운 라벨(예비신혼부부/신혼부부)은 우선 NEWLYWED 로 매핑된다 " +
+                "(라벨 매퍼는 공고 맥락을 모른다 — 신혼희망타운 재분류는 reclassifyForHopeTown 이 따로 한다)")
         void parsesHopeTownTypes() throws Exception {
             String json = """
                 [{"dsSplScdl":[
@@ -147,6 +164,21 @@ class LhClientTest {
                 """;
             assertThat(client(props(true)).parseOfferedSpecialTypes(json.getBytes(StandardCharsets.UTF_8)))
                     .containsExactly(SpecialSupplyType.NEWLYWED);
+        }
+
+        @Test
+        @DisplayName("reclassifyForHopeTown — 신혼희망타운 공고면 NEWLYWED 를 NEWLYWED_HOPE_TOWN 으로 바꾼다")
+        void reclassifiesNewlywedForHopeTownAnnouncements() {
+            Set<SpecialSupplyType> raw = Set.of(SpecialSupplyType.NEWLYWED, SpecialSupplyType.MULTI_CHILD);
+
+            assertThat(LhClient.reclassifyForHopeTown(raw, HouseType.NEWLYWED_HOPE_TOWN))
+                    .containsExactlyInAnyOrder(SpecialSupplyType.NEWLYWED_HOPE_TOWN, SpecialSupplyType.MULTI_CHILD);
+            // 신혼희망타운이 아니면 손대지 않는다
+            assertThat(LhClient.reclassifyForHopeTown(raw, HouseType.UNKNOWN)).isEqualTo(raw);
+            assertThat(LhClient.reclassifyForHopeTown(raw, HouseType.APT)).isEqualTo(raw);
+            // NEWLYWED 가 없으면 신혼희망타운이어도 바꿀 게 없다
+            Set<SpecialSupplyType> noNewlywed = Set.of(SpecialSupplyType.MULTI_CHILD);
+            assertThat(LhClient.reclassifyForHopeTown(noNewlywed, HouseType.NEWLYWED_HOPE_TOWN)).isEqualTo(noNewlywed);
         }
 
         @Test

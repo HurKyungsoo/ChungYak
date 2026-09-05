@@ -28,7 +28,7 @@ import java.util.Set;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 public class SupplyBreakdown {
 
     /**
@@ -49,6 +49,8 @@ public class SupplyBreakdown {
     @Builder.Default private int newborn = 0;
     @Builder.Default private int transferInstitution = 0;
     @Builder.Default private int etc = 0;
+    /** 신혼희망타운(HOUSE_SECD=10) — 표준 신혼부부 특공과 자격기준이 달라 별도로 센다. */
+    @Builder.Default private int newlywedHopeTown = 0;
 
     /**
      * 세대수는 모르지만 이 유형들이 공고에 있다는 것만 아는 경우(LH).
@@ -66,6 +68,7 @@ public class SupplyBreakdown {
                 .newborn(flag(present, SpecialSupplyType.NEWBORN))
                 .transferInstitution(flag(present, SpecialSupplyType.TRANSFER_INSTITUTION))
                 .etc(flag(present, SpecialSupplyType.ETC))
+                .newlywedHopeTown(flag(present, SpecialSupplyType.NEWLYWED_HOPE_TOWN))
                 .build();
     }
 
@@ -84,6 +87,7 @@ public class SupplyBreakdown {
             case NEWBORN -> newborn;
             case TRANSFER_INSTITUTION -> transferInstitution;
             case ETC -> etc;
+            case NEWLYWED_HOPE_TOWN -> newlywedHopeTown;
         };
     }
 
@@ -109,6 +113,7 @@ public class SupplyBreakdown {
     public int total() {
         if (!countsKnown) return 0;
         return multiChild + newlywed + firstTime + oldParents
-                + institutionRecommend + youth + newborn + transferInstitution + etc;
+                + institutionRecommend + youth + newborn + transferInstitution + etc
+                + newlywedHopeTown;
     }
 }

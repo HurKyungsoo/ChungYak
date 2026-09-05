@@ -113,9 +113,16 @@ special-supply:
     first-time:   { single: 130, dual: 160 }
     old-parents:  { single: 120, dual: 120 }
     newborn:      { single: 150, dual: 200 }
+    newlywed-hope-town: { single: 130, dual: 200 }   # 표준 신혼부부와 다른 신혼희망타운 전용 기준
   asset-limit:
     total-assets: 379000000   # 3.79억
     car-value: 37080000       # 3,708만
+
+# 신혼희망타운(HOUSE_SECD=10) 전용 자산기준 — 총자산+자동차가액을 하나로 합산해 비교한다
+# (위 special-supply.asset-limit 은 표준 공공주택 특공용이라 따로 둔다).
+# 출처: myhome.go.kr 신혼희망타운 안내(2026-09-05 확인, "2026년도 적용 기준"). 매년 갱신.
+newlywed-hope-town:
+  asset-limit: 362000000   # 3억 6,200만원
 
 # 재당첨 제한 기간 (주택공급규칙 제54조). 개월.
 re-win-restriction:

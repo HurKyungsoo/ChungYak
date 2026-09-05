@@ -43,6 +43,12 @@
     </div>
 
     <form method="post" th:action="@{/announcements/{id}/eligibility(id=${announcement.id})}" th:object="${form}">
+        <div class="banner info" th:if="${announcement.houseType.name() == 'NEWLYWED_HOPE_TOWN'}" style="margin-bottom:14px">
+            <p style="margin:0">이 공고는 <strong>신혼희망타운</strong>입니다. 소득·자산·청약통장 기준이
+                일반 신혼부부 특별공급과 다르게 적용됩니다. 예비신혼부부·한부모가족 자격은
+                이 서비스가 판정하지 않습니다 — 혼인 중인 신혼부부 기준으로만 판정합니다.</p>
+        </div>
+
         <fieldset>
             <legend>혼인 · 자녀</legend>
             <label class="check"><input type="checkbox" th:field="*{married}" id="marriedCheck"> <span>혼인 중이다</span></label>
@@ -56,6 +62,11 @@
                 </label>
             </div>
             <label class="check"><input type="checkbox" th:field="*{hasNewborn}"> <span>2세 이하 자녀(신생아)가 있다</span></label>
+            <label class="check" th:if="${announcement.houseType.name() == 'NEWLYWED_HOPE_TOWN'}">
+                <input type="checkbox" th:field="*{hasChildUnderSix}">
+                <span>만 6세 이하 자녀(태아 포함)가 있다
+                    <span class="hint" style="display:inline">— 신혼희망타운은 혼인 7년 초과라도 이 조건이면 자격이 됩니다</span></span>
+            </label>
         </fieldset>
 
         <fieldset>

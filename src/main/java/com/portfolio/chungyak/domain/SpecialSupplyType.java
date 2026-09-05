@@ -16,7 +16,8 @@ public enum SpecialSupplyType {
     YOUTH("청년"),
     NEWBORN("신생아"),
     TRANSFER_INSTITUTION("이전기관"),
-    ETC("기타");
+    ETC("기타"),
+    NEWLYWED_HOPE_TOWN("신혼희망타운");
 
     private final String label;
 

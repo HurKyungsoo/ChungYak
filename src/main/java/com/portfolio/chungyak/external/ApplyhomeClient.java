@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.HouseType;
 import com.portfolio.chungyak.domain.RegulationFlags;
+import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.domain.SupplyBreakdown;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,7 +57,30 @@ public class ApplyhomeClient implements AnnouncementSource {
 
     @Override
     public List<ExternalUnitType> fetchUnitTypes(ExternalAnnouncement announcement) {
-        return fetchUnitTypes(announcement.getHouseManageNo(), announcement.getPblancNo());
+        List<ExternalUnitType> unitTypes =
+                fetchUnitTypes(announcement.getHouseManageNo(), announcement.getPblancNo());
+        if (announcement.getHouseType() != HouseType.NEWLYWED_HOPE_TOWN) {
+            return unitTypes;
+        }
+        return unitTypes.stream().map(ApplyhomeClient::reclassifyForHopeTown).toList();
+    }
+
+    /**
+     * 청약홈 {@code NWWDS_HSHLDCO}(신혼부부 세대수)는 신혼희망타운 공고에서도 표준 신혼부부와
+     * 같은 컬럼에 채워져 온다. 신혼희망타운은 자격기준(소득·자산·통장 요건, 혼인기간 예외)이
+     * 달라 {@link SpecialSupplyType#NEWLYWED_HOPE_TOWN} 으로 옮겨 담는다 —
+     * LhClient.reclassifyForHopeTown 과 같은 이유, 다만 여기는 세대수(카운트)를 그대로 옮긴다.
+     */
+    static ExternalUnitType reclassifyForHopeTown(ExternalUnitType unitType) {
+        SupplyBreakdown breakdown = unitType.getSupplyBreakdown();
+        if (breakdown == null || breakdown.countOf(SpecialSupplyType.NEWLYWED) == 0) {
+            return unitType;
+        }
+        SupplyBreakdown moved = breakdown.toBuilder()
+                .newlywed(0)
+                .newlywedHopeTown(breakdown.countOf(SpecialSupplyType.NEWLYWED))
+                .build();
+        return unitType.toBuilder().supplyBreakdown(moved).build();
     }
 
     /** 공고 목록 (주택형은 아직 안 채워진 상태) */

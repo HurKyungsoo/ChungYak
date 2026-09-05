@@ -479,4 +479,144 @@ class EligibilityEngineTest {
                     .isEqualTo(first.bestMatch().applicableTypes());
         }
     }
+
+    // === 신혼희망타운 (B3) — 표준 신혼부부 특공과 별도 제도, 자격기준이 다르다 ===
+
+    private Announcement hopeTownAnnouncement() {
+        Announcement a = Announcement.builder()
+                .externalId("HOPE-TEST").houseManageNo("HT01").pblancNo("HT01")
+                .houseName("성남복정2 A1블록 신혼희망타운").houseType(HouseType.NEWLYWED_HOPE_TOWN)
+                .houseDetailType(HouseDetailType.PUBLIC).regionName("경기도")
+                .receptEndDate(LocalDate.now().plusDays(10))
+                .regulationFlags(RegulationFlags.builder().build())
+                .build();
+        a.addUnitType(UnitType.builder()
+                .modelNo("01").typeName("055.9700A").generalSupplyCount(50)
+                .supplyBreakdown(SupplyBreakdown.builder().newlywedHopeTown(30).build())
+                .build());
+        return a;
+    }
+
+    private ApplicantProfile.ApplicantProfileBuilder hopeTownPassing() {
+        return passing()
+                .married(true).houseless(true)
+                .accountMonths(6).accountPaymentCount(6);
+    }
+
+    @Test
+    @DisplayName("신혼희망타운 - 혼인 7년 이내 + 무주택 + 통장(6개월·6회) + 소득·자산이면 자격 있음")
+    void hopeTownEligibleByMarriageDuration() {
+        Announcement hopeTown = hopeTownAnnouncement();
+        ApplicantProfile profile = hopeTownPassing().monthsSinceMarriage(84).build();
+
+        EligibilityEngine.MatchResult result = engine.evaluate(profile, hopeTown);
+        EligibilityDecision decision = result.decisions().get(SpecialSupplyType.NEWLYWED_HOPE_TOWN);
+
+        assertThat(decision.isEligible()).isTrue();
+        assertThat(result.hasAnyMatch()).isTrue();
+        assertThat(result.bestMatch().applicableTypes()).containsExactly(SpecialSupplyType.NEWLYWED_HOPE_TOWN);
+    }
+
+    @Test
+    @DisplayName("신혼희망타운 - 혼인 7년 초과라도 6세 이하 자녀가 있으면 자격 있음 (표준 신혼부부와 다른 점)")
+    void hopeTownEligibleByChildUnderSixEvenIfMarriageOverLimit() {
+        ApplicantProfile profile = hopeTownPassing()
+                .monthsSinceMarriage(120).hasChildUnderSix(true)
+                .build();
+
+        assertThat(engine.evaluate(profile, hopeTownAnnouncement())
+                .decisions().get(SpecialSupplyType.NEWLYWED_HOPE_TOWN).isEligible()).isTrue();
+    }
+
+    @Test
+    @DisplayName("신혼희망타운 - 혼인기간·6세 이하 자녀 둘 다 없으면 판정 불가(입력 부족), 있는데 둘 다 불충족이면 미충족")
+    void hopeTownAgeConditionMissingVsFailed() {
+        ApplicantProfile missing = hopeTownPassing().build();   // monthsSinceMarriage null, hasChildUnderSix false
+        ApplicantProfile failed = hopeTownPassing().monthsSinceMarriage(120).build();   // 7년 초과, 자녀도 없음
+
+        EligibilityDecision missingDecision = engine.evaluate(missing, hopeTownAnnouncement())
+                .decisions().get(SpecialSupplyType.NEWLYWED_HOPE_TOWN);
+        EligibilityDecision failedDecision = engine.evaluate(failed, hopeTownAnnouncement())
+                .decisions().get(SpecialSupplyType.NEWLYWED_HOPE_TOWN);
+
+        assertThat(missingDecision.isUndetermined()).isTrue();
+        assertThat(failedDecision.isUndetermined()).isFalse();
+        assertThat(failedDecision.isEligible()).isFalse();
+    }
+
+    @Test
+    @DisplayName("신혼희망타운 - 혼인 중이 아니면 예비신혼부부·한부모 여부와 무관하게 미충족(이 서비스는 다루지 않음)")
+    void hopeTownNotMarriedFails() {
+        ApplicantProfile profile = hopeTownPassing().married(false).monthsSinceMarriage(1).build();
+
+        EligibilityDecision decision = engine.evaluate(profile, hopeTownAnnouncement())
+                .decisions().get(SpecialSupplyType.NEWLYWED_HOPE_TOWN);
+
+        assertThat(decision.isEligible()).isFalse();
+        assertThat(decision.isUndetermined()).isFalse();
+    }
+
+    @Test
+    @DisplayName("신혼희망타운 - 청약통장 가입 6개월 미만 또는 납입 6회 미만이면 미충족")
+    void hopeTownAccountRequirement() {
+        ApplicantProfile shortMonths = hopeTownPassing()
+                .monthsSinceMarriage(12).accountMonths(5).accountPaymentCount(6).build();
+        ApplicantProfile shortCount = hopeTownPassing()
+                .monthsSinceMarriage(12).accountMonths(6).accountPaymentCount(5).build();
+
+        assertThat(engine.evaluate(shortMonths, hopeTownAnnouncement())
+                .decisions().get(SpecialSupplyType.NEWLYWED_HOPE_TOWN).isEligible()).isFalse();
+        assertThat(engine.evaluate(shortCount, hopeTownAnnouncement())
+                .decisions().get(SpecialSupplyType.NEWLYWED_HOPE_TOWN).isEligible()).isFalse();
+    }
+
+    @Test
+    @DisplayName("신혼희망타운 - 총자산+자동차가액 합산이 상한(3.62억)을 넘으면 미충족 (표준 자산기준과 별개 상한)")
+    void hopeTownCombinedAssetLimit() {
+        ApplicantProfile overLimit = hopeTownPassing()
+                .monthsSinceMarriage(12)
+                .totalAssets(350_000_000L).carValue(20_000_000)   // 합산 3.7억 > 3.62억
+                .build();
+        ApplicantProfile withinLimit = hopeTownPassing()
+                .monthsSinceMarriage(12)
+                .totalAssets(340_000_000L).carValue(20_000_000)   // 합산 3.6억 <= 3.62억
+                .build();
+
+        assertThat(engine.evaluate(overLimit, hopeTownAnnouncement())
+                .decisions().get(SpecialSupplyType.NEWLYWED_HOPE_TOWN).isEligible()).isFalse();
+        assertThat(engine.evaluate(withinLimit, hopeTownAnnouncement())
+                .decisions().get(SpecialSupplyType.NEWLYWED_HOPE_TOWN).isEligible()).isTrue();
+    }
+
+    @Test
+    @DisplayName("신혼희망타운 - 소득이 130%(단독)를 넘으면 미충족, 200%(맞벌이)까지는 완화")
+    void hopeTownDualIncomeRelief() {
+        // 3인 가구 기준소득(income-reference) 719만 8,649원 대비 1,000만원 ≈ 139% —
+        // 130%(단독) 초과, 200%(맞벌이) 이내인 지점을 골랐다.
+        ApplicantProfile single = hopeTownPassing()
+                .monthsSinceMarriage(12).monthlyHouseholdIncome(10_000_000).dualIncome(false)
+                .build();
+        ApplicantProfile dual = hopeTownPassing()
+                .monthsSinceMarriage(12).monthlyHouseholdIncome(10_000_000).dualIncome(true)
+                .build();
+
+        assertThat(engine.evaluate(single, hopeTownAnnouncement())
+                .decisions().get(SpecialSupplyType.NEWLYWED_HOPE_TOWN).isEligible()).isFalse();
+        assertThat(engine.evaluate(dual, hopeTownAnnouncement())
+                .decisions().get(SpecialSupplyType.NEWLYWED_HOPE_TOWN).isEligible()).isTrue();
+    }
+
+    @Test
+    @DisplayName("신혼희망타운과 표준 신혼부부는 같은 사람이라도 서로 다른 판정 — 별개 유형이다")
+    void hopeTownAndStandardNewlywedAreIndependent() {
+        // 혼인 100개월(표준 신혼부부는 탈락) + 6세 이하 자녀(신혼희망타운은 이걸로 통과)
+        ApplicantProfile profile = hopeTownPassing()
+                .monthsSinceMarriage(100).hasChildUnderSix(true)
+                .build();
+
+        EligibilityEngine.MatchResult result = engine.evaluate(profile, hopeTownAnnouncement());
+
+        assertThat(result.decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
+        assertThat(result.decisions().get(SpecialSupplyType.NEWLYWED_HOPE_TOWN).isEligible()).isTrue();
+    }
 }
