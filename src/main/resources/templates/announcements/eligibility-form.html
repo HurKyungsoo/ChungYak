@@ -136,9 +136,9 @@
             <label class="check"><input type="checkbox" th:field="*{pastWinInSpeculationArea}" id="pastWinSpeculationCheck">
                 <span>과거 당첨 주택이 투기과열지구·청약과열지역이었다
                     <span class="hint" style="display:inline">— 제한 기간 10년</span></span></label>
-            <label class="field" id="lastWinMonthsField" style="max-width:280px"><span class="lbl">마지막 당첨일로부터 경과 개월</span>
+            <label class="field" id="lastWinMonthsField" style="max-width:280px"><span class="lbl">마지막 당첨일로부터 경과 개월 <span class="req-badge">투기과열지구 체크 시 필수</span></span>
                 <input type="number" min="0" th:field="*{monthsSinceLastWin}" placeholder="예: 40">
-                <span class="hint">당첨 이력이 없으면 비워 두세요 — 비워도 판정은 진행됩니다</span>
+                <span class="hint">당첨 이력이 없으면 비워 두세요. 위 "투기과열지구" 를 체크했다면 반드시 채워주세요 — 비우면 판정 불가로 표시됩니다.</span>
             </label>
         </fieldset>
 

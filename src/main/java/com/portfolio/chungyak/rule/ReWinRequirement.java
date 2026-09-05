@@ -27,6 +27,11 @@ public class ReWinRequirement {
 
         Integer months = profile.getMonthsSinceLastWin();
         if (months == null) {
+            // pastWinInSpeculationArea 를 체크했다는 건 과거 당첨 이력이 있다는 뜻이다.
+            // 그런데 경과 개월이 비어 있으면 "이력 없음"으로 단정할 근거가 없다 — 추측 대신 MISSING.
+            if (profile.isPastWinInSpeculationArea()) {
+                return RequirementCheck.missing("마지막 당첨일로부터 경과 개월");
+            }
             return RequirementCheck.pass("과거 당첨 이력이 없습니다.");
         }
 
