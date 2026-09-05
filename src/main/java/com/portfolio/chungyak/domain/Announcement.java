@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 /**
@@ -112,6 +113,24 @@ public class Announcement {
     public void addUnitType(UnitType unitType) {
         this.unitTypes.add(unitType);
         unitType.assignAnnouncement(this);
+    }
+
+    /**
+     * 이 공고의 어떤 주택형에도 배정이 없는 특별공급 유형은 뺀, 표에 보여줄 열 목록.
+     * 주택형별 특별공급 세대수 표에서 아홉 열이 다 늘어서면 대부분 0이라 정보 밀도가 떨어진다 —
+     * "0 세대는 물량이 없다는 뜻"이라는 안내는 그대로 두되, 애초에 이 공고에 전혀 없는
+     * 유형(예: 청년은 공공주택에만 배정)은 열 자체를 만들지 않는다.
+     * {@link EnumSet} 순회 순서 = enum 선언 순서라 기존 컬럼 순서와 같다.
+     */
+    public List<SpecialSupplyType> visibleSupplyTypes() {
+        EnumSet<SpecialSupplyType> visible = EnumSet.noneOf(SpecialSupplyType.class);
+        for (UnitType u : unitTypes) {
+            if (u.getSupplyBreakdown() == null) continue;
+            for (SpecialSupplyType type : SpecialSupplyType.values()) {
+                if (u.getSupplyBreakdown().countOf(type) > 0) visible.add(type);
+            }
+        }
+        return new ArrayList<>(visible);
     }
 
     /** 재수집 시 변경분만 반영 */

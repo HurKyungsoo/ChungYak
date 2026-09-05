@@ -55,14 +55,15 @@
     </div>
 
     <h2>주택형별 특별공급 세대수</h2>
-    <p class="muted">특별공급 배정은 공고가 아니라 <strong>주택형마다</strong> 다릅니다. 0 세대는 그 유형 물량이 없다는 뜻입니다.</p>
-    <div class="table-scroll">
+    <p class="muted">특별공급 배정은 공고가 아니라 <strong>주택형마다</strong> 다릅니다. 0 세대는 그 유형 물량이 없다는 뜻입니다.
+        <span th:if="${!announcement.unitTypes.isEmpty()}">이 공고에 아예 없는 유형(예: 청년은 공공주택에만 배정)은 표에서 뺐습니다.</span>
+    </p>
+    <div class="table-scroll" th:with="visibleTypes=${announcement.visibleSupplyTypes()}">
         <table>
             <thead>
             <tr>
                 <th>주택형</th><th class="num">공급면적(㎡)</th><th class="num">일반</th><th class="num">특공 합계</th>
-                <th class="num">다자녀</th><th class="num">신혼</th><th class="num">생애최초</th><th class="num">노부모</th>
-                <th class="num">기관추천</th><th class="num">청년</th><th class="num">신생아</th><th class="num">이전기관</th><th class="num">기타</th>
+                <th class="num" th:each="t : ${visibleTypes}" th:text="${t.label}">다자녀</th>
             </tr>
             </thead>
             <tbody>
@@ -71,18 +72,11 @@
                 <td class="num" th:text="${u.supplyArea} ?: '-'">84.97</td>
                 <td class="num" th:text="${u.generalSupplyCount}">141</td>
                 <td class="num"><strong th:text="${u.specialSupplyCount}">172</strong></td>
-                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.multiChild} : 0">31</td>
-                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.newlywed} : 0">47</td>
-                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.firstTime} : 0">22</td>
-                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.oldParents} : 0">10</td>
-                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.institutionRecommend} : 0">31</td>
-                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.youth} : 0">0</td>
-                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.newborn} : 0">31</td>
-                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.transferInstitution} : 0">0</td>
-                <td class="num" th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.etc} : 0">0</td>
+                <td class="num" th:each="t : ${visibleTypes}"
+                    th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.countOf(t)} : 0">31</td>
             </tr>
             <tr th:if="${announcement.unitTypes.isEmpty()}">
-                <td colspan="13" class="muted">주택형 정보가 없습니다.</td>
+                <td th:attr="colspan=${4 + visibleTypes.size()}" class="muted">주택형 정보가 없습니다.</td>
             </tr>
             </tbody>
         </table>
