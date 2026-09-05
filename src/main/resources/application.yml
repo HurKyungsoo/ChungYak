@@ -77,6 +77,22 @@ llm:
     api-key: ${ANTHROPIC_API_KEY:REPLACE_ME}
     model: ${LLM_MODEL:claude-sonnet-5}
 
+# 새 공고 알림(C2). 확인·해지 메일의 링크에 쓸 절대 URL 베이스.
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+
+# 새 공고 알림(C2) 메일 발송. host 가 비어 있으면 JavaMailSender 빈을 안 만들고
+# 구독 저장까지만 동작한다(발송은 로그로 대체) — Anthropic/Voyage 키 없을 때와 같은 패턴.
+# spring.mail.* 을 직접 안 쓰는 이유: Spring Boot 기본 자동구성은 host 프로퍼티가
+# "존재"하기만 해도(빈 문자열이어도) 활성화 조건을 통과해 미설정 시 끄기가 애매하다.
+alert:
+  from-address: ${ALERT_FROM_ADDRESS:no-reply@chungyak-compass.local}
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+
 # 공고문 RAG (의미 검색). Anthropic 은 임베딩 API 가 없어 Voyage AI 를 쓴다.
 # VOYAGE_API_KEY 가 없으면(=REPLACE_ME) 인덱싱·검색만 비활성화되고 나머지는 정상 동작한다.
 rag:

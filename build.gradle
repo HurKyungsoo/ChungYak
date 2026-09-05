@@ -41,6 +41,10 @@ dependencies {
     // LH 공고문 첨부 PDF 에서 본문 텍스트 추출 (RAG 인덱싱 소스). HWP/HWPX 는 미지원.
     implementation 'org.apache.pdfbox:pdfbox:3.0.3'
 
+    // 새 공고 알림(C2) 발송용. spring.mail.host 가 없으면 JavaMailSender 빈이 안 만들어져
+    // 기능이 그냥 꺼진다(Anthropic/Voyage 키 없을 때와 같은 패턴).
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
