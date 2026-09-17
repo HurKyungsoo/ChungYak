@@ -22,7 +22,7 @@ class CommonRequirementRailTest {
     }
 
     @Test
-    void allTypesAgreeing_producesSingleSharedStatus() {
+    void allTypesAgreeing_producesSingleSharedStatusAndKeepsTheSentence() {
         List<CommonCheckView> checks = List.of(
                 new CommonCheckView("재당첨 제한", "PASS", "r1", null),
                 new CommonCheckView("소득", "PASS", "r2", null));
@@ -33,10 +33,11 @@ class CommonRequirementRailTest {
         assertThat(rail.present()).isTrue();
         assertThat(rail.steps()).hasSize(2);
         assertThat(rail.steps()).allSatisfy(s -> assertThat(s.pass()).isTrue());
+        assertThat(rail.steps().get(1).reason()).isEqualTo("r2");
     }
 
     @Test
-    void differingStatusAcrossTypes_isMarkedMixed() {
+    void differingStatusAcrossTypes_isMarkedMixedWithAPlaceholderReason() {
         List<CommonCheckView> incomePasses = List.of(
                 new CommonCheckView("소득", "PASS", "70%로 요건(160%) 충족", null));
         List<CommonCheckView> incomeFails = List.of(
@@ -47,6 +48,10 @@ class CommonRequirementRailTest {
 
         assertThat(rail.steps()).hasSize(1);
         assertThat(rail.steps().get(0).mixed()).isTrue();
+        // 유형마다 결과가 다르니 어느 한쪽 문장만 대표로 보여주면 안 된다 — 새 수치를 지어내지 않고
+        // "유형별로 다르다"는 사실만 안내한다.
+        assertThat(rail.steps().get(0).reason())
+                .doesNotContain("70%").contains("유형마다");
     }
 
     @Test

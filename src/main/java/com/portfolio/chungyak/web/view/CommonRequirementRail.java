@@ -12,7 +12,10 @@ import java.util.List;
  */
 public record CommonRequirementRail(List<Step> steps) {
 
-    public record Step(String label, String status) {
+    private static final String MIXED_REASON = "유형마다 기준이 달라 결과가 다릅니다 — 아래 유형별 카드에서 확인하세요.";
+
+    /** reason 은 유형마다 결과가 같을 때만 그 문장을 담고, 갈리면(MIXED) 안내 문구로 대체한다. */
+    public record Step(String label, String status, String reason) {
         public boolean pass() { return "PASS".equals(status); }
         public boolean fail() { return "FAIL".equals(status); }
         public boolean missing() { return "MISSING".equals(status); }
@@ -32,10 +35,11 @@ public record CommonRequirementRail(List<Step> steps) {
         int size = withChecks.get(0).size();
         for (int i = 0; i < size; i++) {
             int idx = i;
-            String label = withChecks.get(0).get(idx).kindLabel();
-            String firstStatus = withChecks.get(0).get(idx).status();
-            boolean allSame = withChecks.stream().allMatch(checks -> checks.get(idx).status().equals(firstStatus));
-            steps.add(new Step(label, allSame ? firstStatus : "MIXED"));
+            CommonCheckView first = withChecks.get(0).get(idx);
+            boolean allSame = withChecks.stream().allMatch(checks -> checks.get(idx).status().equals(first.status()));
+            steps.add(allSame
+                    ? new Step(first.kindLabel(), first.status(), first.reason())
+                    : new Step(first.kindLabel(), "MIXED", MIXED_REASON));
         }
         return new CommonRequirementRail(steps);
     }

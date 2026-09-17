@@ -34,7 +34,7 @@
     <!-- 공통요건 요약 레일 — 재당첨·소득·자산·통장·거주는 여러 특별공급 유형이 함께 확인하는
          요건이라 유형마다 반복해서 보여주지 않고 한 번만 그린다. 유형별로 결과가 갈리면
          (예: 소득 상한이 유형마다 달라 한쪽만 통과) MIXED 로 표시해 다른 결과를 같다고
-         뭉뚱그리지 않는다 — 정확한 내용은 아래 유형칩·전체 판정 근거에서 확인한다. -->
+         뭉뚱그리지 않는다 — 실제 문장은 접어 두고, 정확한 내용은 아래 유형별 카드에서 확인한다. -->
     <div class="req-rail-card" th:if="${commonRail.present()}">
         <div class="rc-label">공통요건 — 여러 특별공급 유형이 함께 확인하는 조건</div>
         <div class="req-rail">
@@ -53,40 +53,16 @@
             </div>
         </div>
         <p class="req-mixed-note" th:if="${commonRail.steps().?[mixed()].size() > 0}">
-            ⚠ 유형마다 기준이 달라 결과가 갈리는 요건이 있습니다 — 아래에서 유형별로 확인하세요.
+            ⚠ 유형마다 기준이 달라 결과가 갈리는 요건이 있습니다 — 아래 유형별 카드에서 확인하세요.
         </p>
-    </div>
-
-    <!-- 유형칩 — 위 공통요건과 겹치지 않는, 이 유형만의 조건과 결과만 보여준다.
-         공통요건과 똑같은 이유를 여기서도 반복하면 레일을 만든 의미가 없다. -->
-    <div class="type-chip-list" th:if="${commonRail.present()}">
-        <div th:each="d : ${result.allDecisions}" class="type-chip"
-             th:classappend="${d.undetermined} ? 'miss' : (${d.eligible} ? 'ok' : 'no')">
-            <span class="tc-dot"></span>
-            <div class="tc-body">
-                <span class="tc-name" th:text="${d.typeLabel}">신혼부부</span>
-                <span class="tc-verdict"
-                      th:text="${d.undetermined} ? '판정 불가 · 입력 부족' : (${d.eligible} ? '충족' : '미충족')">충족</span>
-                <ul class="tc-own"
-                    th:if="${!d.ownFailedReasons.isEmpty() or !d.ownMissingInputs.isEmpty() or !d.ownSatisfiedReasons.isEmpty()}">
-                    <li th:each="r : ${d.ownFailedReasons}" th:text="${r}">이유</li>
-                    <li th:each="r : ${d.ownMissingInputs}" th:text="${r} + ' — 입력이 필요합니다'">누락</li>
-                    <li th:each="r : ${d.ownSatisfiedReasons}"
-                        th:if="${d.ownFailedReasons.isEmpty() and d.ownMissingInputs.isEmpty()}" th:text="${r}">충족 이유</li>
-                    <!-- 소득·자산 초과나 혼인기간 회복불가처럼 안내할 행동이 없는 미충족은 힌트가 없다 —
-                         청약통장 가입기간·재당첨 제한처럼 시간이 지나면 채워지는 격차만 여기 나온다. -->
-                    <li th:each="h : ${d.ownImprovementHints}" class="hint" th:text="${h}">개선 안내</li>
-                </ul>
-                <!-- 이 유형만의 이유는 전부 충족했는데도 미충족이면, 위 공통요건 레일에서 막힌 것이다 —
-                     "왜 미충족인지" 근거가 하나도 안 보이는 걸 막는다. -->
-                <p class="tc-common-block"
-                   th:if="${!d.eligible and !d.undetermined and d.ownFailedReasons.isEmpty() and d.ownMissingInputs.isEmpty()}">
-                    ↑ 공통요건에서 막혔습니다 —
-                    <span th:each="c, it : ${d.commonChecks.?[fail() or missing()]}"
-                          th:text="${c.kindLabel} + (${it.last} ? '' : ', ')">소득</span>
-                </p>
-            </div>
-        </div>
+        <details class="reasons-fold" style="margin-top:8px">
+            <summary>공통요건 판정 근거 보기</summary>
+            <ul class="reasons">
+                <li th:each="s : ${commonRail.steps()}"
+                    th:class="${s.pass()} ? 'r-ok' : (${s.missing()} ? 'r-miss' : 'r-no')"
+                    th:text="${s.label()} + ': ' + ${s.reason()}">소득: ...</li>
+            </ul>
+        </details>
     </div>
 
     <!-- LLM 요약 — 규칙 근거(아래)를 대체하지 않고 그 위에 얹는 읽기용 문단.
@@ -187,8 +163,11 @@
     </div>
 
     <h2>전체 판정 근거</h2>
-    <p class="muted">유형별 판정 결과입니다. <strong>막은 요건</strong>과 <strong>입력이 필요한 항목</strong>을 먼저 보여주고, 이미 충족한 요건은 접어 두었습니다.</p>
-    <div th:each="d : ${result.allDecisions}" class="card decision-card">
+    <p class="muted">유형별 판정 결과입니다. 재당첨·소득·자산·통장·거주처럼 여러 유형이 공유하는 요건은 위
+        요약 레일에서 한 번만 보여주므로 여기서는 <strong>이 유형만의 이유</strong>만 먼저 보여주고,
+        이미 충족한 요건(공통 포함 전부)은 접어 두었습니다.</p>
+    <div th:each="d : ${result.allDecisions}" class="card decision-card"
+         th:with="blockedByCommon=${!d.eligible and !d.undetermined and d.ownFailedReasons.isEmpty() and d.ownMissingInputs.isEmpty()}">
         <div class="head">
             <strong th:text="${d.typeLabel}">유형</strong>
             <span th:if="${d.undetermined}" class="verdict miss">판정 불가 · 입력 부족</span>
@@ -197,14 +176,24 @@
                   th:text="${d.eligible} ? '자격 충족' : '자격 미충족'">결과</span>
         </div>
 
-        <!-- 막은 요건 · 입력 필요 · 개선 힌트 — 항상 펼쳐서 맨 위에 -->
-        <ul class="reasons" th:if="${!d.failedReasons.isEmpty() or !d.missingInputs.isEmpty() or !d.improvementHints.isEmpty()}">
-            <li th:each="r : ${d.failedReasons}" class="r-no" th:text="${r}">미충족</li>
-            <li th:each="r : ${d.missingInputs}" class="r-miss" th:text="${r} + ' — 입력이 필요합니다'">누락</li>
-            <li th:each="h : ${d.improvementHints}" class="r-hint" th:text="${h}">이렇게 하면 충족</li>
+        <!-- 이 유형만의 막은 요건 · 입력 필요 · 개선 힌트 — 항상 펼쳐서 맨 위에.
+             공통요건(소득 등)은 위 요약 레일에서 이미 보여줬으니 여기서 반복하지 않는다. -->
+        <ul class="reasons"
+            th:if="${!d.ownFailedReasons.isEmpty() or !d.ownMissingInputs.isEmpty() or !d.ownImprovementHints.isEmpty()}">
+            <li th:each="r : ${d.ownFailedReasons}" class="r-no" th:text="${r}">미충족</li>
+            <li th:each="r : ${d.ownMissingInputs}" class="r-miss" th:text="${r} + ' — 입력이 필요합니다'">누락</li>
+            <li th:each="h : ${d.ownImprovementHints}" class="r-hint" th:text="${h}">이렇게 하면 충족</li>
         </ul>
 
-        <!-- 이미 충족한 요건 — 접어 둠 -->
+        <!-- 이 유형만의 이유는 다 충족했는데도 미충족이면, 위 공통요건 레일에서 막힌 것이다 —
+             "왜 미충족인지" 근거가 하나도 안 보이는 걸 막는다. -->
+        <p class="common-block-note" th:if="${blockedByCommon}">
+            ↑ 공통요건에서 막혔습니다 —
+            <span th:each="c, it : ${d.commonChecks.?[fail() or missing()]}"
+                  th:text="${c.kindLabel} + (${it.last} ? '' : ', ')">소득</span>
+        </p>
+
+        <!-- 이미 충족한 요건(공통 포함 전부) — 접어 둠 -->
         <details th:if="${!d.satisfiedReasons.isEmpty()}" class="reasons-fold">
             <summary th:text="|충족한 요건 ${d.satisfiedReasons.size()}개 보기|">충족한 요건 8개 보기</summary>
             <ul class="reasons">
@@ -212,7 +201,8 @@
             </ul>
         </details>
 
-        <p th:if="${d.satisfiedReasons.isEmpty() and d.failedReasons.isEmpty() and d.missingInputs.isEmpty() and d.improvementHints.isEmpty()}"
+        <p th:if="${d.satisfiedReasons.isEmpty() and d.ownFailedReasons.isEmpty() and d.ownMissingInputs.isEmpty()
+                   and d.ownImprovementHints.isEmpty() and !blockedByCommon}"
            class="muted" style="margin:6px 0 0">표시할 판정 근거가 없습니다.</p>
     </div>
 
