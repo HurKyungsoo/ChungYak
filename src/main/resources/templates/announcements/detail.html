@@ -63,11 +63,29 @@
     <p class="muted">특별공급 배정은 공고가 아니라 <strong>주택형마다</strong> 다릅니다. 0 세대는 그 유형 물량이 없다는 뜻입니다.
         <span th:if="${!announcement.unitTypes.isEmpty()}">이 공고에 아예 없는 유형(예: 청년은 공공주택에만 배정)은 표에서 뺐습니다.</span>
     </p>
+
+    <!-- 일반공급 가점제·추첨제(B2b) — 민영주택에만 있는 개념. 국민주택은 저축액·납입횟수 순이라
+         가점/추첨 구분이 없다. 비규제지역은 지자체 공고로 정해져 전국 고정 비율이 없으므로
+         숫자를 지어내지 않고 "공고문 확인"으로 안내한다. -->
+    <p class="muted" th:if="${lotteryByUnitType != null}">
+        민영주택 일반공급은 가점제와 추첨제로 나뉩니다.
+        <span th:if="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}">
+            이 공고는 투기과열지구·청약과열지역이라 전용면적 구간별 가점제 비율이 법으로 정해져 있습니다
+            (60㎡ 이하 40%·60~85㎡ 70%·85㎡ 초과 80%, 나머지는 추첨).</span>
+        <span th:unless="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}">
+            이 공고는 비규제지역이라 정확한 비율은 지자체 공고로 따로 정해집니다(가점제 최대 40%) — 공고문을 확인하세요.</span>
+        가점이 낮아도 추첨 물량엔 지원할 수 있습니다.
+        <a th:href="@{/general-supply}">내 가점 계산하기 →</a>
+    </p>
+
     <div class="table-scroll" th:with="visibleTypes=${announcement.visibleSupplyTypes()}">
         <table>
             <thead>
             <tr>
-                <th>주택형</th><th class="num">공급면적(㎡)</th><th class="num">일반</th><th class="num">특공 합계</th>
+                <th>주택형</th><th class="num">공급면적(㎡)</th><th class="num">일반</th>
+                <th class="num" th:if="${lotteryByUnitType != null}">가점제</th>
+                <th class="num" th:if="${lotteryByUnitType != null}">추첨제</th>
+                <th class="num">특공 합계</th>
                 <th class="num" th:each="t : ${visibleTypes}" th:text="${t.label}">다자녀</th>
             </tr>
             </thead>
@@ -76,12 +94,23 @@
                 <td th:text="${u.typeName}">084.9730A</td>
                 <td class="num" th:text="${u.supplyArea} ?: '-'">84.97</td>
                 <td class="num" th:text="${u.generalSupplyCount}">141</td>
+                <td class="num" th:if="${lotteryByUnitType != null}" th:with="lot=${lotteryByUnitType.get(u.id)}">
+                    <span th:if="${lot != null and lot.known()}"
+                          th:text="${lot.pointUnits} + '세대(' + ${lot.pointRatioPercent} + '%)'">99세대(70%)</span>
+                    <span th:unless="${lot != null and lot.known()}" class="subtle">-</span>
+                </td>
+                <td class="num" th:if="${lotteryByUnitType != null}" th:with="lot=${lotteryByUnitType.get(u.id)}">
+                    <span th:if="${lot != null and lot.known()}"
+                          th:text="${lot.lotteryUnits} + '세대(' + ${lot.lotteryRatioPercent} + '%)'">42세대(30%)</span>
+                    <span th:unless="${lot != null and lot.known()}" class="subtle">-</span>
+                </td>
                 <td class="num"><strong th:text="${u.specialSupplyCount}">172</strong></td>
                 <td class="num" th:each="t : ${visibleTypes}"
                     th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.countOf(t)} : 0">31</td>
             </tr>
             <tr th:if="${announcement.unitTypes.isEmpty()}">
-                <td th:attr="colspan=${4 + visibleTypes.size()}" class="muted">주택형 정보가 없습니다.</td>
+                <td th:attr="colspan=${(lotteryByUnitType != null ? 6 : 4) + visibleTypes.size()}"
+                    class="muted">주택형 정보가 없습니다.</td>
             </tr>
             </tbody>
         </table>

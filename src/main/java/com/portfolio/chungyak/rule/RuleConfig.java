@@ -13,7 +13,8 @@ import org.springframework.context.annotation.Configuration;
         ReWinRestrictionProperties.class,
         AccountRequirementProperties.class,
         RegionResidenceRequirementProperties.class,
-        NewlywedHopeTownProperties.class
+        NewlywedHopeTownProperties.class,
+        GeneralSupplyLotteryProperties.class
 })
 public class RuleConfig {
 }

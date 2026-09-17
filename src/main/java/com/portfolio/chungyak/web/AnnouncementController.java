@@ -2,7 +2,9 @@ package com.portfolio.chungyak.web;
 
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.HouseDetailType;
+import com.portfolio.chungyak.domain.UnitType;
 import com.portfolio.chungyak.rag.DocumentQaService;
+import com.portfolio.chungyak.rule.GeneralSupplyLotteryCalculator;
 import com.portfolio.chungyak.service.AnnouncementQueryService;
 import com.portfolio.chungyak.web.view.AnnouncementListRow;
 import com.portfolio.chungyak.web.view.CalendarView;
@@ -21,6 +23,8 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 공고 목록·상세 화면.
@@ -34,6 +38,7 @@ public class AnnouncementController {
 
     private final AnnouncementQueryService queryService;
     private final DocumentQaService qaService;
+    private final GeneralSupplyLotteryCalculator lotteryCalculator;
 
     @GetMapping("/announcements")
     public String list(@RequestParam(required = false) String region,
@@ -117,6 +122,17 @@ public class AnnouncementController {
                 announcement.getReceptEndDate(), queryService.today()));
         model.addAttribute("qaEnabled", qaService.isEnabled());
         model.addAttribute("qaIndexed", qaService.hasIndex(id));
+
+        // 일반공급 가점제/추첨제(B2b)는 민영주택에만 있는 개념이다 — 국민주택은 저축액·
+        // 납입횟수 순으로 정하지 가점/추첨 구분이 없다.
+        if (announcement.getHouseDetailType() == HouseDetailType.PRIVATE) {
+            boolean regulated = announcement.getRegulationFlags() != null
+                    && announcement.getRegulationFlags().isRegulatedArea();
+            Map<Long, GeneralSupplyLotteryCalculator.Result> lottery = announcement.getUnitTypes().stream()
+                    .collect(Collectors.toMap(UnitType::getId,
+                            u -> lotteryCalculator.calculate(u.getTypeName(), u.getGeneralSupplyCount(), regulated)));
+            model.addAttribute("lotteryByUnitType", lottery);
+        }
         return "announcements/detail";
     }
 }
