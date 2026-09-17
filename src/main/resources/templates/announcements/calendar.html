@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('청약나침반 · 청약 캘린더')}"></head>
+<body>
+<header th:replace="~{fragments/common :: header}"></header>
+
+<main>
+    <a th:href="@{/announcements}" class="backlink">← 공고 목록</a>
+
+    <div class="cal-nav">
+        <h2 th:text="${calendar.label}">2026년 9월</h2>
+        <div class="nav-btns">
+            <a class="btn btn-ghost" th:href="@{/announcements/calendar(month=${calendar.prevMonth})}">‹ 이전달</a>
+            <a class="btn btn-ghost" th:if="${!calendar.currentMonth}" th:href="@{/announcements/calendar}">이번달</a>
+            <a class="btn btn-ghost" th:href="@{/announcements/calendar(month=${calendar.nextMonth})}">다음달 ›</a>
+        </div>
+    </div>
+
+    <div class="cal-legend">
+        <span><i class="start"></i> 접수 시작</span>
+        <span><i class="end"></i> 접수 마감</span>
+    </div>
+
+    <div class="cal-grid">
+        <div class="cal-dow">일</div>
+        <div class="cal-dow">월</div>
+        <div class="cal-dow">화</div>
+        <div class="cal-dow">수</div>
+        <div class="cal-dow">목</div>
+        <div class="cal-dow">금</div>
+        <div class="cal-dow">토</div>
+
+        <th:block th:each="week : ${calendar.weeks}">
+            <div class="cal-day" th:each="day : ${week}"
+                 th:classappend="${!day.inMonth} ? 'out' : (${day.today} ? 'today' : '')">
+                <span class="num" th:text="${day.date.dayOfMonth}">1</span>
+                <a th:each="ev : ${day.events}" class="cal-event"
+                   th:classappend="${ev.kind.name() == 'START'} ? 'start' : 'end'"
+                   th:href="@{/announcements/{id}(id=${ev.announcementId})}"
+                   th:text="${ev.houseName}"
+                   th:title="${(ev.kind.name() == 'START' ? '접수 시작: ' : '접수 마감: ') + ev.houseName}">공고명</a>
+            </div>
+        </th:block>
+    </div>
+
+    <div th:replace="~{fragments/common :: disclaimer}"></div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
+</body>
+</html>

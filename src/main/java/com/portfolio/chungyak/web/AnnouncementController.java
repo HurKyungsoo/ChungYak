@@ -5,6 +5,7 @@ import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.rag.DocumentQaService;
 import com.portfolio.chungyak.service.AnnouncementQueryService;
 import com.portfolio.chungyak.web.view.AnnouncementListRow;
+import com.portfolio.chungyak.web.view.CalendarView;
 import com.portfolio.chungyak.web.view.Dday;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 /**
@@ -60,6 +63,26 @@ public class AnnouncementController {
             return HouseDetailType.valueOf(raw);
         } catch (IllegalArgumentException e) {
             return null;
+        }
+    }
+
+    /** 접수 시작·마감일을 월 캘린더로. 지난 공고는 조회 단계에서 이미 빠지므로 과거 달은 비어 보인다. */
+    @GetMapping("/announcements/calendar")
+    public String calendar(@RequestParam(required = false) String month, Model model) {
+        LocalDate today = queryService.today();
+        YearMonth ym = parseMonth(month, today);
+        List<Announcement> announcements = queryService.findOpenOrUpcoming(null, null);
+        model.addAttribute("calendar", CalendarView.of(announcements, ym, today));
+        return "announcements/calendar";
+    }
+
+    /** 잘못된 형식이면 이번 달로 — 400 을 내지 않는다. */
+    private YearMonth parseMonth(String raw, LocalDate today) {
+        if (raw == null || raw.isBlank()) return YearMonth.from(today);
+        try {
+            return YearMonth.parse(raw);
+        } catch (DateTimeParseException e) {
+            return YearMonth.from(today);
         }
     }
 

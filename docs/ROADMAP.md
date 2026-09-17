@@ -65,7 +65,7 @@ AI(LLM) 활용을 더 밀어붙이는 계획은 → **`docs/AI-ROADMAP.md`**
 | C0 | UI 디자인 | ✅ | 손 CSS 디자인시스템(토큰·다크모드) `fragments/common.html`. Pretendard, 스티키 헤더, 카드·칩·배지, 반응형. 목록은 토스풍 카드 리스트(상태 색점·D-day 배지), 결과 화면은 `result-hero`(큰 점수/판정). 6개 화면 전부 |
 | C1 | 회원 + 조건 저장 | ⬜ | 매번 폼 재입력 방지. OAuth(카카오) 로그인 |
 | C2 | 새 공고 알림 | ✅ | "내 조건에 맞는 공고" 이메일. `AlertSubscription`(로그인 없이 이메일+판정폼 전체 조건 저장, 확인 전 PENDING) + `NewAnnouncementAlertService`(그날 신규 공고만 `EligibilityEngine`으로 재판정 후 발송) + `AlertMailer`(SMTP 미설정 시 로그로 대체). 카카오는 미구현 |
-| C3 | 청약 캘린더 / D-day | 🔨 | 목록·상세에 D-day 배지(`Dday` 뷰모델, 접수중=마감까지·예정=시작까지, 3일 이하 강조). 캘린더 뷰·알림은 예정 |
+| C3 | 청약 캘린더 / D-day | ✅ | 목록·상세에 D-day 배지(`Dday` 뷰모델, 접수중=마감까지·예정=시작까지, 3일 이하 강조). `GET /announcements/calendar` — 월 그리드(6주)에 접수 시작·마감일 배치(`CalendarView`, 순수 함수), 이전달/다음달/이번달 이동. 지난 공고는 조회 단계에서 이미 빠져 과거 달은 비어 보임(의도됨). 알림 연동은 C2 이메일 구독으로 대체됨 |
 | C4 | 모바일 UI 다듬기 | 🔨 | 기본 반응형은 C0 에 포함(카드 리스트). 필요 시 바텀시트 등 |
 | C5 | 공고 검색 (공고명) + SEO | ⬜ | 유입 |
 
