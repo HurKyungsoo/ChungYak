@@ -38,9 +38,10 @@ public class AnnouncementController {
     @GetMapping("/announcements")
     public String list(@RequestParam(required = false) String region,
                        @RequestParam(required = false) String detailType,
+                       @RequestParam(required = false) String q,
                        Model model) {
         HouseDetailType parsedDetailType = parseDetailType(detailType);
-        List<Announcement> announcements = queryService.findOpenOrUpcoming(region, parsedDetailType);
+        List<Announcement> announcements = queryService.findOpenOrUpcoming(region, parsedDetailType, q);
 
         LocalDate today = queryService.today();
         List<AnnouncementListRow> rows = announcements.stream()
@@ -53,6 +54,7 @@ public class AnnouncementController {
         model.addAttribute("detailTypes", HouseDetailType.values());
         model.addAttribute("selectedRegion", region);
         model.addAttribute("selectedDetailType", parsedDetailType);
+        model.addAttribute("selectedKeyword", q);
         return "announcements/list";
     }
 
@@ -71,7 +73,7 @@ public class AnnouncementController {
     public String calendar(@RequestParam(required = false) String month, Model model) {
         LocalDate today = queryService.today();
         YearMonth ym = parseMonth(month, today);
-        List<Announcement> announcements = queryService.findOpenOrUpcoming(null, null);
+        List<Announcement> announcements = queryService.findOpenOrUpcoming(null, null, null);
         model.addAttribute("calendar", CalendarView.of(announcements, ym, today));
         return "announcements/calendar";
     }

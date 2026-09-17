@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:fragment="head(title)">
+<head th:fragment="head(title, description)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <meta name="description" content="공공데이터 기반 실시간 분양 공고에서 내게 맞는 특별공급 자격을 공식 기준대로 정확하게 찾아드립니다.">
+    <meta name="description" th:content="${description}"
+          content="공공데이터 기반 실시간 분양 공고에서 내게 맞는 특별공급 자격을 공식 기준대로 정확하게 찾아드립니다.">
     <title th:text="${title}">청약나침반</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>

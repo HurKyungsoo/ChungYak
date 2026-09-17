@@ -27,14 +27,20 @@ public class AnnouncementQueryService {
     private final AnnouncementRepository announcementRepository;
     private final Clock clock;
 
-    /** 접수중 또는 접수예정 공고. region / detailType 이 null 이면 그 조건은 건너뛴다. */
+    /**
+     * 접수중 또는 접수예정 공고. region / detailType / keyword 가 null·공백이면 그 조건은 건너뛴다.
+     * keyword 는 공고명 부분 일치(대소문자 무시)로 본다.
+     */
     @Transactional(readOnly = true)
-    public List<Announcement> findOpenOrUpcoming(String region, HouseDetailType detailType) {
+    public List<Announcement> findOpenOrUpcoming(String region, HouseDetailType detailType, String keyword) {
         LocalDate today = LocalDate.now(clock);
+        String normalizedKeyword = keyword == null ? null : keyword.trim().toLowerCase();
         return announcementRepository.findOpenWithUnitTypes(today).stream()
                 .filter(a -> region == null || region.isBlank()
                         || region.equals(a.getRegionName()))
                 .filter(a -> detailType == null || detailType == a.getHouseDetailType())
+                .filter(a -> normalizedKeyword == null || normalizedKeyword.isBlank()
+                        || (a.getHouseName() != null && a.getHouseName().toLowerCase().contains(normalizedKeyword)))
                 .sorted(Comparator.comparing(Announcement::getReceptBeginDate,
                         Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();

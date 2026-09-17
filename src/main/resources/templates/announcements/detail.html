@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/common :: head('청약나침반 · ' + ${announcement.houseName})}"></head>
+<head th:replace="~{fragments/common :: head('청약나침반 · ' + ${announcement.houseName},
+    ${announcement.houseName} + ' — ' + (${announcement.regionName} ?: '') + ' ' + ${announcement.houseDetailType.label}
+    + ' · 청약접수 ' + (${announcement.receptBeginDate} ?: '?') + '~' + (${announcement.receptEndDate} ?: '?')
+    + '. 내 조건으로 특별공급 자격을 바로 확인하세요.')}"></head>
 <body>
 <header th:replace="~{fragments/common :: header}"></header>
 

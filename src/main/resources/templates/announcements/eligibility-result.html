@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/common :: head('청약나침반 · 판정 결과')}"></head>
+<head th:replace="~{fragments/common :: head('청약나침반 · 판정 결과',
+    '판정은 공식 청약 기준에 따라 결정론적으로 계산합니다 — AI는 근거를 문장으로 정리할 뿐 판정에 관여하지 않습니다.')}"></head>
 <body>
 <header th:replace="~{fragments/common :: header}"></header>
 
