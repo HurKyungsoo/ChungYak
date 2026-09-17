@@ -69,6 +69,14 @@ class AccountRequirementTest {
     }
 
     @Test
+    @DisplayName("민영주택 세종 — 기타 광역시와 같은 250만 기준 (기타 시·군 200만과 다름)")
+    void privateSejongUsesTier2NotTier3() {
+        Announcement sejong = announcement(HouseDetailType.PRIVATE, "세종", false);
+        assertThat(req.check(account(null, 2_000_000), sejong).passed()).isFalse();
+        assertThat(req.check(account(null, 2_500_000), sejong).passed()).isTrue();
+    }
+
+    @Test
     @DisplayName("민영주택인데 예치금이 없으면 MISSING")
     void privateMissingDeposit() {
         Announcement priv = announcement(HouseDetailType.PRIVATE, "서울", false);

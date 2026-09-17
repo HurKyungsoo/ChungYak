@@ -36,7 +36,7 @@ public record AccountRequirementProperties(
             return privateDeposit.tier1();
         }
         if (r.contains("대구") || r.contains("인천") || r.contains("광주")
-                || r.contains("대전") || r.contains("울산")) {
+                || r.contains("대전") || r.contains("울산") || r.contains("세종")) {
             return privateDeposit.tier2();
         }
         return privateDeposit.tier3();
