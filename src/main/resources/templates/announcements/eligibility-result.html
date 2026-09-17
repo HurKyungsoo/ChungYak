@@ -73,6 +73,9 @@
                     <li th:each="r : ${d.ownMissingInputs}" th:text="${r} + ' — 입력이 필요합니다'">누락</li>
                     <li th:each="r : ${d.ownSatisfiedReasons}"
                         th:if="${d.ownFailedReasons.isEmpty() and d.ownMissingInputs.isEmpty()}" th:text="${r}">충족 이유</li>
+                    <!-- 소득·자산 초과나 혼인기간 회복불가처럼 안내할 행동이 없는 미충족은 힌트가 없다 —
+                         청약통장 가입기간·재당첨 제한처럼 시간이 지나면 채워지는 격차만 여기 나온다. -->
+                    <li th:each="h : ${d.ownImprovementHints}" class="hint" th:text="${h}">개선 안내</li>
                 </ul>
                 <!-- 이 유형만의 이유는 전부 충족했는데도 미충족이면, 위 공통요건 레일에서 막힌 것이다 —
                      "왜 미충족인지" 근거가 하나도 안 보이는 걸 막는다. -->
