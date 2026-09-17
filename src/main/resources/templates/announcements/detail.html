@@ -27,6 +27,8 @@
         <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="btn btn-primary btn-lg">내 조건으로 자격 판정 →</a>
         <a th:if="${announcement.noticeUrl != null}" th:href="${announcement.noticeUrl}"
            target="_blank" rel="noopener" class="btn btn-ghost btn-lg">청약홈 공고문</a>
+        <button type="button" class="btn btn-ghost btn-lg scrap-btn scrap-btn-lg" th:attr="data-ann-id=${announcement.id}"
+                aria-label="찜하기"></button>
     </div>
 
     <div class="card">
@@ -137,5 +139,6 @@
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>
+<script th:replace="~{fragments/common :: scrapScript}"></script>
 </body>
 </html>

@@ -172,11 +172,34 @@
         .notice-card .top { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
         .notice-card .meta { color: var(--text-muted); font-size: .82rem; font-weight: 500; }
         .notice-card .dday {
-            margin-left: auto; font-size: .77rem; font-weight: 700; white-space: nowrap;
+            font-size: .77rem; font-weight: 700; white-space: nowrap;
             padding: 3px 9px; border-radius: var(--r-pill);
             background: var(--surface-2); color: var(--text-muted);
         }
         .notice-card .dday.soon { background: var(--warn-weak); color: var(--warn); }
+
+        /* ── 스크랩(찜) — 로그인 없이 이 브라우저에만 저장한다. 서버는 이 상태를 전혀 모른다. ──
+           .notice-card 안 아이콘 버튼과 상세화면 .scrap-btn-lg(글자 버튼)가 클래스를 공유하니,
+           크기·모양은 각 컨텍스트에 스코프하고 여기는 공통 동작(색·전환·글자 스왑)만 둔다. */
+        .scrap-btn { cursor: pointer; transition: color .12s, border-color .12s, background .12s; }
+        .scrap-btn::before { content: "♡"; }
+        .scrap-btn.active::before { content: "♥"; }
+        .scrap-btn.active {
+            color: var(--brand); background: var(--brand-weak);
+            border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+        }
+        .notice-card .scrap-btn {
+            flex: none; margin-left: auto; width: 28px; height: 28px; border-radius: 50%;
+            border: 1px solid var(--border); background: var(--surface); color: var(--text-subtle);
+            display: grid; place-items: center; font-size: .95rem; line-height: 1; padding: 0;
+        }
+        .notice-card .scrap-btn:hover { border-color: var(--border-strong); color: var(--text); }
+        .scrap-btn-lg::before { content: "♡ 찜하기"; }
+        .scrap-btn-lg.active::before { content: "♥ 찜 완료"; }
+
+        .scrap-filter { display: inline-flex; align-items: center; gap: 7px;
+            font-size: .88rem; font-weight: 600; color: var(--text-muted); cursor: pointer; }
+        .scrap-filter input { accent-color: var(--brand); width: 16px; height: 16px; }
         .notice-card .title {
             font-size: 1.05rem; font-weight: 650; letter-spacing: -0.015em;
             line-height: 1.42; margin-bottom: 12px; color: var(--text);
@@ -504,6 +527,65 @@
         판정 결과에 대한 법적 책임을 지지 않습니다.
     </div>
 </footer>
+
+<!-- ── 스크랩(찜) 스크립트 — 로그인 없이 이 브라우저에만 저장한다.
+     서버는 이 상태를 전혀 모른다(계정 시스템이 생기면 그때 서버 저장으로 옮긴다). ── -->
+<script th:fragment="scrapScript">
+    (function () {
+        var KEY = 'chungyak:scraps';
+
+        function loadScraps() {
+            try {
+                var raw = localStorage.getItem(KEY);
+                return raw ? new Set(JSON.parse(raw)) : new Set();
+            } catch (e) {
+                return new Set();
+            }
+        }
+
+        function saveScraps(set) {
+            try {
+                localStorage.setItem(KEY, JSON.stringify(Array.from(set)));
+            } catch (e) { /* 저장 불가(프라이빗 모드 등) — 조용히 무시 */ }
+        }
+
+        var scraps = loadScraps();
+
+        function applyState(btn) {
+            btn.classList.toggle('active', scraps.has(btn.dataset.annId));
+            btn.setAttribute('aria-pressed', String(scraps.has(btn.dataset.annId)));
+        }
+
+        document.querySelectorAll('.scrap-btn').forEach(function (btn) {
+            applyState(btn);
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var id = btn.dataset.annId;
+                if (scraps.has(id)) scraps.delete(id); else scraps.add(id);
+                saveScraps(scraps);
+                document.querySelectorAll('.scrap-btn[data-ann-id="' + id + '"]').forEach(applyState);
+                document.dispatchEvent(new CustomEvent('scrap:changed'));
+            });
+        });
+
+        // 목록 화면 — "찜한 공고만 보기" 필터 (있을 때만 동작)
+        var filterToggle = document.getElementById('scrapFilterToggle');
+        if (filterToggle) {
+            var cards = document.querySelectorAll('.notice-card[data-ann-id]');
+            var applyFilter = function () {
+                var onlyScraps = filterToggle.checked;
+                cards.forEach(function (card) {
+                    var show = !onlyScraps || scraps.has(card.dataset.annId);
+                    card.style.display = show ? '' : 'none';
+                });
+            };
+            filterToggle.addEventListener('change', applyFilter);
+            document.addEventListener('scrap:changed', applyFilter);
+            applyFilter();
+        }
+    })();
+</script>
 
 </body>
 </html>

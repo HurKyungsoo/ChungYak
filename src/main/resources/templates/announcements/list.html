@@ -47,11 +47,15 @@
                     th:selected="${d == selectedDetailType}">민영</option>
         </select>
         <button type="submit" class="btn btn-ghost">필터 적용</button>
+        <label class="scrap-filter">
+            <input type="checkbox" id="scrapFilterToggle">
+            ♥ 찜한 공고만 보기
+        </label>
     </form>
 
     <div class="notice-list" th:if="${!rows.isEmpty()}">
         <a class="notice-card" th:each="row : ${rows}"
-           th:href="@{/announcements/{id}(id=${row.id})}">
+           th:href="@{/announcements/{id}(id=${row.id})}" th:attr="data-ann-id=${row.id}">
             <div class="top">
                 <span class="dot"
                       th:classappend="${row.status == '접수중'} ? 'open' : (${row.status == '접수예정'} ? 'soon' : '')"></span>
@@ -59,6 +63,7 @@
                       th:classappend="${row.status == '접수중'} ? 'open' : (${row.status == '접수예정'} ? 'soon' : '')"
                       th:text="${row.status}">접수중</span>
                 <span class="meta" th:text="|${row.regionName ?: '-'} · ${row.houseDetailTypeLabel}|">서울 · 민영</span>
+                <button type="button" class="scrap-btn" th:attr="data-ann-id=${row.id}" aria-label="찜하기"></button>
                 <span class="dday" th:if="${row.ddayLabel != null}"
                       th:classappend="${row.ddayUrgent} ? 'soon' : ''"
                       th:text="${row.ddayLabel}">D-2</span>
@@ -85,5 +90,6 @@
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>
+<script th:replace="~{fragments/common :: scrapScript}"></script>
 </body>
 </html>
