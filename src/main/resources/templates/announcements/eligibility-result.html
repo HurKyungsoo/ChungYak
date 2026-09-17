@@ -31,6 +31,61 @@
         </div>
     </div>
 
+    <!-- 공통요건 요약 레일 — 재당첨·소득·자산·통장·거주는 여러 특별공급 유형이 함께 확인하는
+         요건이라 유형마다 반복해서 보여주지 않고 한 번만 그린다. 유형별로 결과가 갈리면
+         (예: 소득 상한이 유형마다 달라 한쪽만 통과) MIXED 로 표시해 다른 결과를 같다고
+         뭉뚱그리지 않는다 — 정확한 내용은 아래 유형칩·전체 판정 근거에서 확인한다. -->
+    <div class="req-rail-card" th:if="${commonRail.present()}">
+        <div class="rc-label">공통요건 — 여러 특별공급 유형이 함께 확인하는 조건</div>
+        <div class="req-rail">
+            <div class="rr-top">
+                <th:block th:each="s, it : ${commonRail.steps()}">
+                    <div class="req-dot"
+                         th:classappend="${s.pass()} ? 'pass' : (${s.fail()} ? 'fail' : (${s.missing()} ? 'missing' : 'mixed'))"></div>
+                    <div class="req-line" th:unless="${it.last}"></div>
+                </th:block>
+            </div>
+            <div class="rr-labels">
+                <th:block th:each="s, it : ${commonRail.steps()}">
+                    <div class="req-lblcol"><span class="req-lbl" th:text="${s.label()}">소득</span></div>
+                    <div class="req-gap" th:unless="${it.last}"></div>
+                </th:block>
+            </div>
+        </div>
+        <p class="req-mixed-note" th:if="${commonRail.steps().?[mixed()].size() > 0}">
+            ⚠ 유형마다 기준이 달라 결과가 갈리는 요건이 있습니다 — 아래에서 유형별로 확인하세요.
+        </p>
+    </div>
+
+    <!-- 유형칩 — 위 공통요건과 겹치지 않는, 이 유형만의 조건과 결과만 보여준다.
+         공통요건과 똑같은 이유를 여기서도 반복하면 레일을 만든 의미가 없다. -->
+    <div class="type-chip-list" th:if="${commonRail.present()}">
+        <div th:each="d : ${result.allDecisions}" class="type-chip"
+             th:classappend="${d.undetermined} ? 'miss' : (${d.eligible} ? 'ok' : 'no')">
+            <span class="tc-dot"></span>
+            <div class="tc-body">
+                <span class="tc-name" th:text="${d.typeLabel}">신혼부부</span>
+                <span class="tc-verdict"
+                      th:text="${d.undetermined} ? '판정 불가 · 입력 부족' : (${d.eligible} ? '충족' : '미충족')">충족</span>
+                <ul class="tc-own"
+                    th:if="${!d.ownFailedReasons.isEmpty() or !d.ownMissingInputs.isEmpty() or !d.ownSatisfiedReasons.isEmpty()}">
+                    <li th:each="r : ${d.ownFailedReasons}" th:text="${r}">이유</li>
+                    <li th:each="r : ${d.ownMissingInputs}" th:text="${r} + ' — 입력이 필요합니다'">누락</li>
+                    <li th:each="r : ${d.ownSatisfiedReasons}"
+                        th:if="${d.ownFailedReasons.isEmpty() and d.ownMissingInputs.isEmpty()}" th:text="${r}">충족 이유</li>
+                </ul>
+                <!-- 이 유형만의 이유는 전부 충족했는데도 미충족이면, 위 공통요건 레일에서 막힌 것이다 —
+                     "왜 미충족인지" 근거가 하나도 안 보이는 걸 막는다. -->
+                <p class="tc-common-block"
+                   th:if="${!d.eligible and !d.undetermined and d.ownFailedReasons.isEmpty() and d.ownMissingInputs.isEmpty()}">
+                    ↑ 공통요건에서 막혔습니다 —
+                    <span th:each="c, it : ${d.commonChecks.?[fail() or missing()]}"
+                          th:text="${c.kindLabel} + (${it.last} ? '' : ', ')">소득</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
     <!-- LLM 요약 — 규칙 근거(아래)를 대체하지 않고 그 위에 얹는 읽기용 문단.
          판정은 규칙 엔진이 했고 이 문장은 그 근거를 재구성만 한 것이다. -->
     <div th:if="${explanation != null and explanation.shown}" class="card tint">

@@ -33,7 +33,15 @@ public record EligibilityResultView(
 
     public record AllocatedType(String typeLabel, int allocatedCount) {}
 
-    /** 특별공급 유형 하나에 대한 판정 + 근거 */
+    /**
+     * 특별공급 유형 하나에 대한 판정 + 근거.
+     *
+     * satisfied/failed/missing/improvementHints 는 이 유형의 판정 이유를 하나도 빠짐없이 담은
+     * 전체 목록이고(감사용, "전체 판정 근거" 섹션), commonChecks 는 그중 여러 유형이 공유하는
+     * 요건(재당첨·소득·자산·통장·거주)만 뽑아 화면 상단 요약 레일에 쓴다. own* 은 commonChecks 에
+     * 이미 나온 문장을 뺀 "이 유형만의" 이유라 요약 레일 아래 유형칩에 쓴다 — 같은 이유를
+     * 화면에 두 번 강조하지 않기 위한 것뿐, 새 판정을 하는 게 아니다.
+     */
     public record TypeDecision(
             String typeLabel,
             boolean eligible,
@@ -41,5 +49,10 @@ public record EligibilityResultView(
             List<String> satisfiedReasons,
             List<String> failedReasons,
             List<String> missingInputs,
-            List<String> improvementHints) {}
+            List<String> improvementHints,
+            List<CommonCheckView> commonChecks,
+            List<String> ownSatisfiedReasons,
+            List<String> ownFailedReasons,
+            List<String> ownMissingInputs,
+            List<String> ownImprovementHints) {}
 }

@@ -18,6 +18,11 @@ import java.util.List;
 @Component
 public class CommonRequirements {
 
+    /** {@link #checkAll} 이 반환하는 리스트의 순서 — 화면이 dot 하나하나에 어떤 요건인지 이름 붙일 때 쓴다. */
+    public static final List<RequirementKind> KIND_ORDER = List.of(
+            RequirementKind.RE_WIN, RequirementKind.INCOME, RequirementKind.ASSET,
+            RequirementKind.ACCOUNT, RequirementKind.RESIDENCE);
+
     private final ReWinRequirement reWin;
     private final IncomeRequirement income;
     private final AssetRequirement asset;
@@ -53,5 +58,6 @@ public class CommonRequirements {
     /** 사유를 결정에 옮긴다 */
     public static void describeAll(List<RequirementCheck> checks, EligibilityDecision decision) {
         checks.forEach(c -> c.describe(decision));
+        decision.commonChecks(checks);
     }
 }

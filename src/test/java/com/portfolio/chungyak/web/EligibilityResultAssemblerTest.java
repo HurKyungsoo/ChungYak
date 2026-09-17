@@ -137,4 +137,28 @@ class EligibilityResultAssemblerTest {
                     assertThat(d.satisfiedReasons()).isNotEmpty();
                 });
     }
+
+    @Test
+    @DisplayName("commonChecks 는 재당첨·소득·자산·통장·거주 5개 라벨을 순서대로 담고, own* 목록엔 안 겹친다")
+    void splitsCommonChecksFromOwnReasons() {
+        // 혼인기간(신혼부부 고유 요건)만 초과시키고 공통요건(소득·자산 등)은 넉넉히 통과시킨다.
+        ApplicantProfile profile = passing()
+                .married(true).monthsSinceMarriage(100)   // 84개월 초과 — NewlywedRule 자체 요건
+                .houseless(true).accountMonths(24)
+                .build();
+
+        EligibilityResultView view = assembler.assemble(engine.evaluate(profile, publicAnnouncement()));
+        EligibilityResultView.TypeDecision newlywed = view.allDecisions().stream()
+                .filter(d -> d.typeLabel().equals("신혼부부"))
+                .findFirst().orElseThrow();
+
+        assertThat(newlywed.commonChecks())
+                .extracting(c -> c.kindLabel())
+                .containsExactly("재당첨 제한", "소득", "자산", "청약통장", "거주");
+        // 혼인기간 초과는 이 유형만의 이유라 own 목록에 남아야 한다.
+        assertThat(newlywed.ownFailedReasons()).anyMatch(r -> r.contains("혼인기간"));
+        // 공통요건(소득 등)은 통과했으니 own 목록엔 안 들어간다 — 위쪽 요약 레일에서만 보여준다.
+        assertThat(newlywed.ownSatisfiedReasons()).noneMatch(r -> r.contains("도시근로자"));
+        assertThat(newlywed.satisfiedReasons()).anyMatch(r -> r.contains("도시근로자"));
+    }
 }

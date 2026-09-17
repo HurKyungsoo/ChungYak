@@ -10,7 +10,9 @@ import com.portfolio.chungyak.rule.EligibilityEngine.MatchResult;
 import com.portfolio.chungyak.rule.IncomeReference;
 import com.portfolio.chungyak.service.AnnouncementQueryService;
 import com.portfolio.chungyak.web.form.EligibilityForm;
+import com.portfolio.chungyak.web.view.CommonRequirementRail;
 import com.portfolio.chungyak.web.view.EligibilityResultAssembler;
+import com.portfolio.chungyak.web.view.EligibilityResultView;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -156,9 +158,12 @@ public class EligibilityController {
             model.addAttribute("explanation", explanation);
         }
 
+        EligibilityResultView view = resultAssembler.assemble(result);
+
         model.addAttribute("announcement", announcement);
         model.addAttribute("status", queryService.statusOf(announcement));
-        model.addAttribute("result", resultAssembler.assemble(result));
+        model.addAttribute("result", view);
+        model.addAttribute("commonRail", CommonRequirementRail.of(view.allDecisions()));
         model.addAttribute("form", form);   // "AI 요약 보기" 버튼이 폼을 그대로 재제출할 수 있도록
         model.addAttribute("resultToken", token);   // 알림 구독 후 같은 결과 화면으로 되돌아오기 위해
         model.addAttribute("explanationAvailable", explanationService.isAvailable());

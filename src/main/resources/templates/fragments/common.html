@@ -403,6 +403,47 @@
         .decision-card .reasons-fold[open] > summary::before { content: "▾"; }
         .decision-card .reasons-fold .reasons { margin-top: 4px; }
 
+        /* ── 공통요건 요약 레일 (판정 결과 상단) ──────────────────────
+           재당첨·소득·자산·통장·거주처럼 여러 특별공급 유형이 공유하는 요건을
+           유형마다 반복해서 보여주지 않고 한 번만 그린다. */
+        .req-rail-card { background: var(--surface); border: 1px solid var(--border-strong);
+            border-radius: var(--r-lg); padding: 18px 20px 14px; margin: 16px 0; }
+        .req-rail-card .rc-label { font-size: .78rem; font-weight: 650; color: var(--text-subtle);
+            margin-bottom: 12px; }
+        .req-rail { display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px; }
+        .req-rail .rr-top, .req-rail .rr-labels { display: flex; align-items: center; }
+        .req-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border-strong);
+            background: var(--surface); flex: none; }
+        .req-dot.pass { background: var(--ok); border-color: var(--ok); }
+        .req-dot.fail { background: var(--no); border-color: var(--no); }
+        .req-dot.missing { background: var(--surface); border-color: var(--warn); border-style: dashed; }
+        .req-dot.mixed { background: linear-gradient(135deg, var(--ok) 50%, var(--no) 50%); border-color: var(--border-strong); }
+        .req-line, .req-gap { flex: 1 1 auto; min-width: 8px; }
+        .req-line { height: 2px; background: var(--border-strong); }
+        .req-lblcol { flex: none; width: 14px; position: relative; height: 1.3em; }
+        .req-lbl { position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+            font-size: .68rem; color: var(--text-subtle); white-space: nowrap; }
+        .req-mixed-note { font-size: .78rem; color: var(--text-subtle); margin-top: 10px; }
+
+        /* ── 유형칩 (레일 아래, 유형별 고유 조건만) ─────────────────── */
+        .type-chip-list { display: grid; gap: 8px; margin: 14px 0; }
+        .type-chip { display: flex; align-items: flex-start; gap: 9px; font-size: .87rem;
+            padding: 10px 13px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); }
+        .type-chip .tc-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; margin-top: 6px; }
+        .type-chip.ok .tc-dot { background: var(--ok); }
+        .type-chip.no .tc-dot { background: var(--no); }
+        .type-chip.miss .tc-dot { background: var(--warn); }
+        .type-chip .tc-body { flex: 1; min-width: 0; }
+        .type-chip .tc-name { font-weight: 650; margin-right: 6px; }
+        .type-chip .tc-verdict { font-size: .76rem; font-weight: 700; }
+        .type-chip.ok .tc-verdict { color: var(--ok); }
+        .type-chip.no .tc-verdict { color: var(--no); }
+        .type-chip.miss .tc-verdict { color: var(--warn); }
+        .type-chip .tc-own { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+        .type-chip .tc-own li { font-size: .8rem; color: var(--text-muted); display: flex; gap: 6px; }
+        .type-chip .tc-own li::before { content: "—"; color: var(--text-subtle); flex: none; }
+        .type-chip .tc-common-block { margin: 6px 0 0; font-size: .8rem; font-weight: 600; color: var(--no); }
+
         .disclaimer { margin-top: 28px; padding: 14px 16px; background: var(--surface);
                       border: 1px solid var(--border); border-radius: var(--r);
                       font-size: .8rem; color: var(--text-subtle); line-height: 1.7; }

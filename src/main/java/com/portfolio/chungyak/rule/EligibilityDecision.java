@@ -36,6 +36,14 @@ public class EligibilityDecision {
      */
     private final List<String> improvementHints = new ArrayList<>();
 
+    /**
+     * {@link CommonRequirements#checkAll} 의 결과를 재당첨·소득·자산·통장·거주 순서 그대로 보관한다
+     * — 화면이 여러 유형에 걸쳐 같은 요건을 중복 표시하지 않고 한 번에 보여줄 때 쓴다.
+     * {@link CommonRequirements} 를 쓰지 않는 규칙(예: 신혼희망타운)은 비어 있다.
+     * 판정 로직에는 관여하지 않는다 — satisfied/failed/missing 은 이것과 별개로 그대로 쌓인다.
+     */
+    private List<RequirementCheck> commonChecks = List.of();
+
     private EligibilityDecision(SpecialSupplyType type, boolean eligible) {
         this.type = type;
         this.eligible = eligible;
@@ -67,6 +75,12 @@ public class EligibilityDecision {
     /** 미충족 요건을 메우는 결정론적 안내 한 줄. {@link #improvementHints} 참고. */
     public EligibilityDecision hint(String improvementHint) {
         this.improvementHints.add(improvementHint);
+        return this;
+    }
+
+    /** {@link CommonRequirements#describeAll} 이 호출한다. {@link #commonChecks} 참고. */
+    public EligibilityDecision commonChecks(List<RequirementCheck> checks) {
+        this.commonChecks = checks;
         return this;
     }
 
