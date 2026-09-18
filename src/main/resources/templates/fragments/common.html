@@ -254,6 +254,13 @@
         .scrap-btn-lg::after { content: "찜하기"; }
         .scrap-btn-lg.active::after { content: "찜 완료"; }
 
+        /* 글 안에 넣는 찜 하트(필터 라벨 등) — 버튼과 같은 SVG 를 써서 모양을 통일한다 */
+        .heart-icon {
+            display: inline-block; width: 1em; height: 1em; vertical-align: -0.13em;
+            background-color: var(--like);
+            -webkit-mask: var(--heart-on) center / contain no-repeat;
+            mask: var(--heart-on) center / contain no-repeat;
+        }
         .scrap-filter { display: inline-flex; align-items: center; gap: 7px;
             font-size: .88rem; font-weight: 600; color: var(--text-muted); cursor: pointer; }
         .scrap-filter input { accent-color: var(--brand); width: 16px; height: 16px; }
