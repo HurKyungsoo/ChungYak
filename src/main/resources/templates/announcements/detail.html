@@ -7,7 +7,9 @@
 <body>
 <header th:replace="~{fragments/common :: header}"></header>
 
-<main>
+<main class="with-rail">
+<div class="rail-layout">
+<div class="rail-main">
     <a th:href="@{/announcements}" class="backlink">← 공고 목록</a>
 
     <h1 th:text="${announcement.houseName}">공고명</h1>
@@ -168,10 +170,15 @@
         </div>
     </section>
 
-    <!-- 오늘 본 공고 — 내용은 JS 가 브라우저 저장분으로 채운다(없으면 hidden 유지) -->
-    <section id="recentViews" class="recent-strip" hidden></section>
-
     <div th:replace="~{fragments/common :: disclaimer}"></div>
+</div>
+
+<aside class="rail-side">
+    <!-- 오늘 본 공고 — 내용은 JS 가 브라우저 저장분으로 채운다(없으면 hidden 유지).
+         본문 옆에 붙여 sticky 로 따라오게 한다(뷰포트에 띄우면 본문과 따로 논다). -->
+    <section id="recentViews" class="recent-strip" hidden></section>
+</aside>
+</div>
 </main>
 
 <!-- "오늘 본 공고" 기록용 — 이 값을 읽어 브라우저에만 남긴다(서버는 모른다) -->

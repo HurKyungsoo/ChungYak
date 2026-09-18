@@ -313,11 +313,28 @@
         .match-box b { font-weight: 700; }
         .match-box p { color: inherit; }
 
+        /* ── 우측 레일 (상세 화면) ──
+           뷰포트 가장자리에 띄우면 본문과 따로 노는 오버레이가 된다. 본문 옆에 붙여 두고
+           sticky 로 따라오게 하면 읽는 동안 계속 보이면서도 페이지의 일부로 읽힌다.
+           레일 폭만큼 컨테이너를 넓혀, 본문 열 너비는 다른 화면과 같게 유지한다. */
+        main.with-rail { max-width: calc(var(--maxw) + 256px); }
+        .rail-layout { display: flex; align-items: flex-start; gap: 24px; }
+        .rail-main { flex: 1; min-width: 0; }
+        .rail-side { flex: 0 0 232px; position: sticky; top: 74px; }
+        @media (max-width: 1100px) {
+            /* 좁으면 레일을 세울 자리가 없다 — 본문 아래로 내려 평범한 카드가 된다 */
+            main.with-rail { max-width: var(--maxw); }
+            .rail-layout { display: block; }
+            .rail-side { position: static; margin-top: 26px; }
+        }
+
         /* ── 오늘 본 공고 ──
-           찜(♥)이 "나중에 볼 것"이라면 이건 "방금 보던 것"이다. 역시 이 브라우저에만 저장한다.
-           떠 있는 패널로 만들었다가 본문 밖에서 따로 노는 느낌이라 페이지 흐름 안으로 옮겼다 —
-           칩·섹션 머리글 등 이미 쓰는 요소만 재사용한다. */
-        .recent-strip { margin: 26px 0 0; }
+           찜(♥)이 "나중에 볼 것"이라면 이건 "방금 보던 것"이다. 역시 이 브라우저에만 저장한다. */
+        .recent-strip { background: var(--surface); border: 1px solid var(--border);
+                        border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 14px 16px; }
+        .recent-strip .sec-head { margin: 0 0 10px; }
+        .recent-strip .sec-head h2 { font-size: .92rem; }
+        .recent-strip .btn { width: 100%; }
         a.chip { color: var(--text-muted); transition: background .12s, color .12s; }
         a.chip:hover { background: var(--brand-weak); color: var(--brand); text-decoration: none; }
 
