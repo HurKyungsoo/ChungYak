@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
  * ANTHROPIC_API_KEY/VOYAGE_API_KEY 없을 때와 같은 패턴({@link com.portfolio.chungyak.llm.AnthropicClientConfig} 참고).
  */
 @Configuration
-@EnableConfigurationProperties(AlertMailProperties.class)
+@EnableConfigurationProperties({AlertMailProperties.class, DeadlineReminderProperties.class})
 public class MailConfig {
 
     @Bean

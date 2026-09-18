@@ -92,6 +92,8 @@ alert:
     port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
+  deadline-reminder:
+    days-before: 3   # 접수마감이 며칠 전인 공고를 알릴지
 
 # 공고문 RAG (의미 검색). Anthropic 은 임베딩 API 가 없어 Voyage AI 를 쓴다.
 # VOYAGE_API_KEY 가 없으면(=REPLACE_ME) 인덱싱·검색만 비활성화되고 나머지는 정상 동작한다.

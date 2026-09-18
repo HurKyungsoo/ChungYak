@@ -26,4 +26,9 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
 
     @Query("select distinct a from Announcement a left join fetch a.unitTypes where a.id = :id")
     Optional<Announcement> findByIdWithUnitTypes(@Param("id") Long id);
+
+    /** 마감 임박 알림용 — 접수마감일이 정확히 이 날짜인 공고. */
+    @Query("select distinct a from Announcement a left join fetch a.unitTypes "
+            + "where a.receptEndDate = :date")
+    List<Announcement> findByReceptEndDateWithUnitTypes(@Param("date") LocalDate date);
 }
