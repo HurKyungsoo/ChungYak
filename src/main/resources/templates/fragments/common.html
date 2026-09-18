@@ -109,7 +109,9 @@
         .backlink:hover { color: var(--text); text-decoration: none; }
 
         .site-footer { border-top: 1px solid var(--border); background: var(--surface); }
-        .site-footer .inner { max-width: var(--maxw); margin: 0 auto; padding: 28px 20px 40px;
+        /* 아래 여백은 떠 있는 "비교하기" 바(.compare-bar, position:fixed)가 마지막 줄을
+           가리지 않도록 비워 둔 자리다 */
+        .site-footer .inner { max-width: var(--maxw); margin: 0 auto; padding: 28px 20px 76px;
                               color: var(--text-subtle); font-size: .8rem; line-height: 1.7; }
         .site-footer strong { color: var(--text-muted); }
         .site-footer a { color: var(--text-muted); }
@@ -120,6 +122,22 @@
         .foot-col ul { list-style: none; margin: 0; padding: 0; }
         .foot-col li { margin-bottom: 4px; }
         .foot-bottom { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+        /* 푸터가 작은 회색 글씨만 늘어서면 눈이 걸릴 데가 없다 — 브랜드 마크를 기준점으로 두고,
+           출처·개인정보처럼 나열에 가까운 정보는 칩으로 끊어 훑어지게 한다. */
+        .foot-brand { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .foot-brand img { width: 26px; height: 26px; border-radius: 7px; display: block; }
+        .foot-brand span { font-size: .95rem; font-weight: 750; color: var(--text); letter-spacing: -0.01em; }
+        .foot-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+        .foot-chips a, .foot-chips span {
+            font-size: .76rem; font-weight: 600; color: var(--text-muted);
+            background: var(--surface-2); border-radius: var(--r-sm); padding: 4px 9px;
+        }
+        .foot-chips a:hover { color: var(--brand); text-decoration: none; }
+        .foot-facts { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 6px 0 0; }
+        .foot-facts li { position: relative; }
+        .foot-facts li + li { padding-left: 12px; }
+        .foot-facts li + li::before { content: "·"; position: absolute; left: 3px; }
 
         /* ── hero ──────────────────────────────────────────────────── */
         .hero {
@@ -653,10 +671,12 @@
     <div class="inner">
         <div class="foot-cols">
             <div class="foot-col">
-                <h3>청약나침반</h3>
-                <p style="margin:0">AI의 주관적 추측 대신 공식 청약 기준과 공공데이터를 기반으로
-                    자격을 판정하는 서비스입니다. 판정은 규칙 엔진이 하고, AI는 입력을 돕고 결과를
-                    설명할 뿐 자격 판단에는 관여하지 않습니다.</p>
+                <div class="foot-brand">
+                    <img th:src="@{/favicon.svg}" alt="" width="26" height="26">
+                    <span>청약나침반</span>
+                </div>
+                <p style="margin:0">공식 청약 기준과 공공데이터로 자격을 판정합니다.
+                    판정은 규칙 엔진이 하고, AI는 자격 판단에 관여하지 않습니다.</p>
             </div>
 
             <div class="foot-col">
@@ -671,23 +691,24 @@
 
             <div class="foot-col">
                 <h3>데이터 출처</h3>
-                <p style="margin:0">
-                    한국부동산원 <a href="https://www.applyhome.co.kr/" target="_blank" rel="noopener noreferrer">청약홈</a>,
-                    한국토지주택공사(LH) 공고 —
-                    <a href="https://www.data.go.kr/" target="_blank" rel="noopener noreferrer">공공데이터포털</a> 제공.<br>
-                    매일 새벽 4시 자동 수집.
-                    <span th:if="${!#strings.isEmpty(lastSyncAt)}">
-                        데이터 최종 갱신 <strong th:text="${lastSyncAt}">2026-09-18 04:00</strong>
-                    </span>
-                </p>
+                <div class="foot-chips">
+                    <a href="https://www.applyhome.co.kr/" target="_blank" rel="noopener noreferrer">한국부동산원 청약홈</a>
+                    <span>LH 공고</span>
+                    <a href="https://www.data.go.kr/" target="_blank" rel="noopener noreferrer">공공데이터포털</a>
+                </div>
+                <p style="margin:0">매일 새벽 4시 자동 수집<span th:if="${!#strings.isEmpty(lastSyncAt)}">
+                    · 최종 갱신 <strong th:text="${lastSyncAt}">2026-09-18 04:00</strong></span></p>
             </div>
         </div>
 
         <div class="foot-bottom">
-            판정 결과는 참고용이며 법적 책임을 지지 않습니다 — 최종 신청 전 반드시 청약홈 공고문을 확인하세요.<br>
-            로그인이 없는 서비스입니다. 찜한 공고와 입력한 조건은 이 브라우저에만 저장되고,
-            판정에 쓴 값은 결과를 보여주기 위해 30분만 서버에 머문 뒤 지워집니다.
-            새 공고 알림을 신청한 경우에만 조건이 저장되며, 해지하면 함께 삭제됩니다.
+            판정 결과는 참고용이며 법적 책임을 지지 않습니다 — 최종 신청 전 반드시 청약홈 공고문을 확인하세요.
+            <ul class="foot-facts">
+                <li>로그인 없음</li>
+                <li>찜·조건은 이 브라우저에만 저장</li>
+                <li>판정에 쓴 값은 30분 뒤 서버에서 삭제</li>
+                <li>알림 신청 시에만 조건 저장 (해지하면 삭제)</li>
+            </ul>
         </div>
     </div>
 </footer>
