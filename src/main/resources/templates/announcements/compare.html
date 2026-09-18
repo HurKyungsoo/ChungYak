@@ -179,6 +179,9 @@
             head.appendChild(h2);
             head.appendChild(count);
 
+            // 찜한 것과 그냥 스쳐 본 것을 구분한다 — 고를 때 판단 근거가 된다
+            var scrapped = read('chungyak:scraps', '[]');
+
             var chips = document.createElement('div');
             chips.className = 'chips';
             pool.forEach(function (id) {
@@ -187,7 +190,16 @@
                 var a = document.createElement('a');
                 a.className = 'chip';
                 a.href = url.pathname + url.search;   // 카드 내용은 서버가 그려야 해서 이동한다
-                a.textContent = '+ ' + names[id];
+
+                a.appendChild(document.createTextNode('+ '));
+                if (scrapped.indexOf(id) >= 0) {
+                    var heart = document.createElement('span');
+                    heart.className = 'heart-icon';
+                    heart.title = '찜한 공고';
+                    a.appendChild(heart);
+                    a.appendChild(document.createTextNode(' '));
+                }
+                a.appendChild(document.createTextNode(names[id]));
                 chips.appendChild(a);
             });
 
