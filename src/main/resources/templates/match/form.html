@@ -112,6 +112,10 @@
 
         <fieldset>
             <legend>소득 · 자산</legend>
+            <p class="muted" style="margin:2px 0 10px">
+                입력한 금액은 판정 결과를 보여주는 동안(30분)만 서버에 머문 뒤 지워지고,
+                다음에 다시 채워 드리기 위해 이 브라우저에도 저장됩니다.
+            </p>
             <div class="field-grid">
                 <label class="field"><span class="lbl">가구 월평균소득 (원, 세전)</span>
                     <input type="number" min="0" step="10000" th:field="*{monthlyHouseholdIncome}" placeholder="예: 6000000" class="currency-input">
