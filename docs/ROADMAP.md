@@ -48,7 +48,7 @@ AI(LLM) 활용을 더 밀어붙이는 계획은 → **`docs/AI-ROADMAP.md`**
 | B1d | 청약통장 납입횟수/예치금 | ✅ | `AccountRequirement` — 국민주택 납입 횟수(12/24), 민영 지역별 예치금(서울·부산 300만 등). 가입 기간과 별개. `CommonRequirements` 에 합류 |
 | B2 | 일반공급 가점 계산기 | ✅ | `GeneralSupplyScoreCalculator` (rule 패키지, 순수 함수). 무주택 32 + 부양가족 35 + 통장 17 = 84. `/general-supply` 화면. 경계값 테스트 |
 | B2b | 일반공급 추첨제 | ✅ | `GeneralSupplyLotteryCalculator`(rule, 순수 함수) — 공고 상세(민영만)에 주택형별 가점제/추첨제 세대수 표시. 규제지역은 전용면적 구간별 법정 비율(60㎡ 이하 40%·60~85㎡ 70%·85㎡ 초과 80%, `application.yml`), 비규제지역은 지자체 공고 사안이라 수치 없이 "공고문 확인"으로 안내 |
-| B3 | 신혼희망타운 유형 | ⬜ | 별도 `SpecialSupplyType` + 규칙 (현재 엔진이 매칭 못 냄) |
+| B3 | 신혼희망타운 유형 | ✅ | `SpecialSupplyType.NEWLYWED_HOPE_TOWN` + `NewlywedHopeTownRule` — 혼인 7년 이내 또는 6세 이하 자녀, 통장 6개월/6회, 자산은 총자산+자동차 합산 상한(`newlywed-hope-town.asset-limit`). 표준 신혼부부 특공(`NewlywedRule`)과 별도 제도 |
 | B4 | 공고 원문 반영 | ✅ | LH 첨부 공고문 PDF 파싱(`PdfNoticeExtractor`, PDFBox) → RAG 인덱싱. 6천~4.5만 자 추출. 상세는 `docs/AI-ROADMAP.md` 방향 3 B4 |
 | B5 | 수집 실패 감지 | ✅ | `SyncStatus` + `SyncHealthIndicator`(bean `sync`) — 예외/저조수집/오래됨 → `/actuator/health` DOWN + ERROR 로그. `/actuator/health/liveness` 는 별개라 라우팅엔 영향 없음 |
 | B6 | 외부 API 계약 테스트 | ✅ | `ApplyhomeParseContractTest`(오프라인 픽스처 — 파서 필드명 회귀 방지) + `ApplyhomeApiContractTest`(`@EnabledIfEnvironmentVariable` — 실제 응답이 핵심 필드를 채우는지) |
