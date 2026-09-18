@@ -109,9 +109,17 @@
         .backlink:hover { color: var(--text); text-decoration: none; }
 
         .site-footer { border-top: 1px solid var(--border); background: var(--surface); }
-        .site-footer .inner { max-width: var(--maxw); margin: 0 auto; padding: 24px 20px 40px;
+        .site-footer .inner { max-width: var(--maxw); margin: 0 auto; padding: 28px 20px 40px;
                               color: var(--text-subtle); font-size: .8rem; line-height: 1.7; }
         .site-footer strong { color: var(--text-muted); }
+        .site-footer a { color: var(--text-muted); }
+        .site-footer a:hover { color: var(--brand); }
+        .foot-cols { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        @media (min-width: 720px) { .foot-cols { grid-template-columns: 2fr 1fr 1.4fr; gap: 28px; } }
+        .foot-col h3 { margin: 0 0 8px; font-size: .82rem; font-weight: 700; color: var(--text-muted); }
+        .foot-col ul { list-style: none; margin: 0; padding: 0; }
+        .foot-col li { margin-bottom: 4px; }
+        .foot-bottom { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--border); }
 
         /* ── hero ──────────────────────────────────────────────────── */
         .hero {
@@ -637,11 +645,50 @@
 </div>
 
 <!-- ── site footer ── -->
+<!-- ── site footer ──
+     출처 표기는 공공데이터포털 이용약관상 의무라 빼면 안 된다(ROADMAP D4).
+     "데이터 최종 갱신"은 SyncStatus 의 마지막 성공 시각을 그대로 보여준다 — 수집이 조용히
+     실패해 데이터가 낡았다면 그 사실도 드러나야 하기 때문에 숨기지 않는다. -->
 <footer th:fragment="footer" class="site-footer">
     <div class="inner">
-        <strong>청약나침반</strong> — AI의 주관적 추측 대신 공식 청약 기준과 공공데이터를 기반으로 자격을 정확하게 판정하는 서비스입니다.<br>
-        데이터 출처: 한국부동산원 청약홈 (공공데이터포털). 매일 04시 갱신.
-        판정 결과에 대한 법적 책임을 지지 않습니다.
+        <div class="foot-cols">
+            <div class="foot-col">
+                <h3>청약나침반</h3>
+                <p style="margin:0">AI의 주관적 추측 대신 공식 청약 기준과 공공데이터를 기반으로
+                    자격을 판정하는 서비스입니다. 판정은 규칙 엔진이 하고, AI는 입력을 돕고 결과를
+                    설명할 뿐 자격 판단에는 관여하지 않습니다.</p>
+            </div>
+
+            <div class="foot-col">
+                <h3>바로가기</h3>
+                <ul>
+                    <li><a th:href="@{/announcements}">공고 목록</a></li>
+                    <li><a th:href="@{/match}">내 조건으로 찾기</a></li>
+                    <li><a th:href="@{/announcements/calendar}">청약 캘린더</a></li>
+                    <li><a th:href="@{/general-supply}">일반공급 가점 계산</a></li>
+                </ul>
+            </div>
+
+            <div class="foot-col">
+                <h3>데이터 출처</h3>
+                <p style="margin:0">
+                    한국부동산원 <a href="https://www.applyhome.co.kr/" target="_blank" rel="noopener noreferrer">청약홈</a>,
+                    한국토지주택공사(LH) 공고 —
+                    <a href="https://www.data.go.kr/" target="_blank" rel="noopener noreferrer">공공데이터포털</a> 제공.<br>
+                    매일 새벽 4시 자동 수집.
+                    <span th:if="${!#strings.isEmpty(lastSyncAt)}">
+                        데이터 최종 갱신 <strong th:text="${lastSyncAt}">2026-09-18 04:00</strong>
+                    </span>
+                </p>
+            </div>
+        </div>
+
+        <div class="foot-bottom">
+            판정 결과는 참고용이며 법적 책임을 지지 않습니다 — 최종 신청 전 반드시 청약홈 공고문을 확인하세요.<br>
+            로그인이 없는 서비스입니다. 찜한 공고와 입력한 조건은 이 브라우저에만 저장되고,
+            판정에 쓴 값은 결과를 보여주기 위해 30분만 서버에 머문 뒤 지워집니다.
+            새 공고 알림을 신청한 경우에만 조건이 저장되며, 해지하면 함께 삭제됩니다.
+        </div>
     </div>
 </footer>
 
