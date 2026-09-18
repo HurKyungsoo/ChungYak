@@ -1,5 +1,8 @@
 package com.portfolio.chungyak.web;
 
+import com.portfolio.chungyak.llm.ExtractedProfile;
+import com.portfolio.chungyak.llm.ProfileExtractionResult;
+import com.portfolio.chungyak.llm.ProfileExtractionService;
 import com.portfolio.chungyak.rule.ApplicantProfile;
 import com.portfolio.chungyak.service.AnnouncementMatchService;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,15 +27,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class MatchControllerTest {
 
     private AnnouncementMatchService matchService;
+    private ProfileExtractionService extractionService;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         matchService = mock(AnnouncementMatchService.class);
         when(matchService.findMatching(any())).thenReturn(List.of());
+        extractionService = mock(ProfileExtractionService.class);
+        when(extractionService.isAvailable()).thenReturn(true);
 
         mockMvc = MockMvcBuilders.standaloneSetup(
-                new MatchController(new MatchResultStore(), matchService)).build();
+                new MatchController(new MatchResultStore(), matchService, extractionService)).build();
     }
 
     @Test
@@ -88,5 +94,34 @@ class MatchControllerTest {
                 .andExpect(redirectedUrl("/match"));
 
         verify(matchService, never()).findMatching(any());
+    }
+
+    @Test
+    @DisplayName("자연어 추출은 판정을 하지 않고, 채운 폼을 그대로 다시 보여준다")
+    void extractFillsFormWithoutMatching() throws Exception {
+        ExtractedProfile extracted = new ExtractedProfile(
+                true, 36, 2, null, true, null, null, null, null);
+        when(extractionService.extract("결혼 3년차, 아이 둘, 무주택입니다"))
+                .thenReturn(ProfileExtractionResult.extracted(extracted));
+
+        mockMvc.perform(post("/match/extract").param("naturalText", "결혼 3년차, 아이 둘, 무주택입니다"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("match/form"))
+                .andExpect(model().attributeExists("form", "extraction"))
+                .andExpect(model().attribute("form",
+                        org.hamcrest.Matchers.hasProperty("married", org.hamcrest.Matchers.is(true))));
+
+        verify(matchService, never()).findMatching(any());
+    }
+
+    @Test
+    @DisplayName("추출 실패해도 오류 없이 빈 폼과 안내 배너를 보여준다")
+    void extractFailureShowsBannerWithoutCrashing() throws Exception {
+        when(extractionService.extract(any())).thenReturn(ProfileExtractionResult.failed("LLM 호출 오류"));
+
+        mockMvc.perform(post("/match/extract").param("naturalText", "..."))
+                .andExpect(status().isOk())
+                .andExpect(view().name("match/form"))
+                .andExpect(model().attributeExists("extraction"));
     }
 }

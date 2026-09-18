@@ -1,5 +1,7 @@
 package com.portfolio.chungyak.web;
 
+import com.portfolio.chungyak.llm.ProfileExtractionResult;
+import com.portfolio.chungyak.llm.ProfileExtractionService;
 import com.portfolio.chungyak.rule.ApplicantProfile;
 import com.portfolio.chungyak.service.AnnouncementMatchService;
 import com.portfolio.chungyak.web.form.EligibilityForm;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -24,6 +27,9 @@ import java.util.List;
  *
  * 판정은 전부 {@link AnnouncementMatchService} -> {@code EligibilityEngine} 안에서 끝난다.
  * 여기서 자격을 따지지 않는다.
+ *
+ * 자연어 입력(/extract)은 {@link EligibilityController} 의 앞단과 같은 역할 — LLM 은 폼을
+ * 채워주기만 하고, 채운 값은 사용자가 확인·수정한 뒤에야 위 순회·판정 흐름으로 들어간다.
  */
 @Slf4j
 @Controller
@@ -32,12 +38,37 @@ public class MatchController {
 
     private final MatchResultStore resultStore;
     private final AnnouncementMatchService matchService;
+    private final ProfileExtractionService profileExtractionService;
 
     @GetMapping("/match")
     public String form(Model model) {
+        model.addAttribute("extractionAvailable", profileExtractionService.isAvailable());
         if (!model.containsAttribute("form")) {
             model.addAttribute("form", new EligibilityForm());
         }
+        return "match/form";
+    }
+
+    /**
+     * 자연어 문장에서 폼 값을 뽑아 채운 뒤 같은 폼 화면을 다시 보여준다.
+     * {@link EligibilityController#extract} 와 같은 패턴 — 순회·판정은 하지 않는다.
+     */
+    @PostMapping("/match/extract")
+    public String extract(@RequestParam("naturalText") String naturalText, Model model) {
+        ProfileExtractionResult result = profileExtractionService.extract(naturalText);
+
+        EligibilityForm form = new EligibilityForm();
+        if (result.isExtracted()) {
+            form.applyExtracted(result.profile());
+        }
+
+        log.info("자연어 폼 채우기(공고 찾기) — 상태={}, 미확인 필드 {}개",
+                result.status(), result.unknownFieldLabels().size());
+
+        model.addAttribute("extractionAvailable", profileExtractionService.isAvailable());
+        model.addAttribute("form", form);
+        model.addAttribute("extraction", result);
+        model.addAttribute("naturalText", naturalText);
         return "match/form";
     }
 
