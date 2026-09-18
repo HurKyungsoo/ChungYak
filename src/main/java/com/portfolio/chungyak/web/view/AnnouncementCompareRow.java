@@ -30,7 +30,8 @@ public record AnnouncementCompareRow(
         int totalSpecialSupply,
         String moveInYearMonth,
         String noticeUrl,
-        List<UnitRow> unitTypes) {
+        List<UnitRow> unitTypes,
+        MatchInfo match) {
 
     public record UnitRow(String typeName, String supplyArea, int generalSupplyCount, int specialSupplyCount) {
         public static UnitRow of(UnitType u) {
@@ -38,7 +39,25 @@ public record AnnouncementCompareRow(
         }
     }
 
+    /**
+     * 저장된 조건으로 이 공고를 판정한 결과 — {@code null} 이면 조건을 적용하지 않은 상태다.
+     *
+     * 규칙 엔진이 낸 사실만 담는다. <b>"어느 공고가 더 유리한가"는 담지 않는다</b> —
+     * 경쟁률 데이터가 없어서 배정 세대수가 많다고 당첨 가능성이 높다고 말할 수 없기 때문이다.
+     * 판단 재료(신청 가능한 유형·주택형 수·배정 세대수)만 나란히 놓고, 고르는 건 사용자 몫이다.
+     */
+    public record MatchInfo(
+            boolean applicable,
+            List<String> typeLabels,
+            int matchedUnitTypeCount,
+            boolean allocationCountKnown,
+            int totalAllocated) {}
+
     public static AnnouncementCompareRow of(Announcement a, String status, LocalDate today) {
+        return of(a, status, today, null);
+    }
+
+    public static AnnouncementCompareRow of(Announcement a, String status, LocalDate today, MatchInfo match) {
         Dday dday = Dday.of(status, a.getReceptBeginDate(), a.getReceptEndDate(), today);
         int specialSum = a.getUnitTypes().stream()
                 .mapToInt(u -> u.getSupplyBreakdown() == null ? 0 : u.getSupplyBreakdown().total())
@@ -61,6 +80,7 @@ public record AnnouncementCompareRow(
                 specialSum,
                 a.getMoveInYearMonth(),
                 a.getNoticeUrl(),
-                a.getUnitTypes().stream().map(UnitRow::of).toList());
+                a.getUnitTypes().stream().map(UnitRow::of).toList(),
+                match);
     }
 }

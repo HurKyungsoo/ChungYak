@@ -2,10 +2,16 @@ package com.portfolio.chungyak.web;
 
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.HouseDetailType;
+import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.domain.UnitType;
 import com.portfolio.chungyak.rag.DocumentQaService;
+import com.portfolio.chungyak.rule.ApplicantProfile;
+import com.portfolio.chungyak.rule.EligibilityEngine;
+import com.portfolio.chungyak.rule.EligibilityEngine.MatchResult;
+import com.portfolio.chungyak.rule.EligibilityEngine.UnitMatch;
 import com.portfolio.chungyak.rule.GeneralSupplyLotteryCalculator;
 import com.portfolio.chungyak.service.AnnouncementQueryService;
+import com.portfolio.chungyak.web.form.EligibilityForm;
 import com.portfolio.chungyak.web.view.AnnouncementCompareRow;
 import com.portfolio.chungyak.web.view.AnnouncementListRow;
 import com.portfolio.chungyak.web.view.CalendarView;
@@ -15,11 +21,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
@@ -43,6 +52,8 @@ public class AnnouncementController {
     private final AnnouncementQueryService queryService;
     private final DocumentQaService qaService;
     private final GeneralSupplyLotteryCalculator lotteryCalculator;
+    private final EligibilityEngine eligibilityEngine;
+    private final MatchResultStore matchResultStore;
 
     @GetMapping("/announcements")
     public String list(@RequestParam(required = false) String region,
@@ -108,18 +119,63 @@ public class AnnouncementController {
      * 나란히 보여줄 뿐이다. 너무 많이 넘어와도 카드가 난립하지 않게 최대 6개로 자른다.
      */
     @GetMapping("/announcements/compare")
-    public String compare(@RequestParam(required = false) String ids, Model model) {
+    public String compare(@RequestParam(required = false) String ids,
+                          @RequestParam(required = false) String token,
+                          Model model) {
         List<Long> parsedIds = parseIds(ids);
         LocalDate today = queryService.today();
+
+        // token 이 있으면 저장해 둔 조건으로 공고마다 실제 판정까지 해서 보여준다.
+        // 판정은 EligibilityEngine 만 한다 — 여기서 자격을 따지지 않는다.
+        Optional<ApplicantProfile> profile = Optional.ofNullable(token)
+                .flatMap(matchResultStore::get)
+                .map(EligibilityForm::toProfile);
+
         List<AnnouncementCompareRow> rows = parsedIds.stream()
                 .map(queryService::findDetail)
                 .flatMap(Optional::stream)
-                .map(a -> AnnouncementCompareRow.of(a, queryService.statusOf(a), today))
+                .map(a -> AnnouncementCompareRow.of(a, queryService.statusOf(a), today,
+                        profile.map(p -> toMatchInfo(eligibilityEngine.evaluate(p, a))).orElse(null)))
                 .toList();
 
         model.addAttribute("rows", rows);
         model.addAttribute("requestedCount", parsedIds.size());
+        model.addAttribute("profileApplied", profile.isPresent());
+        model.addAttribute("compareToken", token);
         return "announcements/compare";
+    }
+
+    /**
+     * 브라우저에 저장된 조건을 받아 비교 화면에 적용한다.
+     *
+     * 조건에는 소득·자산이 들어 있어 쿼리스트링에 남기면 안 되므로, 폼을 저장소에 넣고
+     * 토큰만 URL 에 실어 리다이렉트한다({@link EligibilityController} 와 같은 PRG).
+     */
+    @PostMapping("/announcements/compare")
+    public String compareWithProfile(@RequestParam(required = false) String ids,
+                                     @ModelAttribute("form") EligibilityForm form) {
+        String token = matchResultStore.put(form);
+        String idsParam = ids == null ? "" : ids;
+        return "redirect:/announcements/compare?ids="
+                + URLEncoder.encode(idsParam, StandardCharsets.UTF_8) + "&token=" + token;
+    }
+
+    /** MatchResult -> 화면 모델. 규칙 엔진이 낸 결과를 옮겨 담기만 한다. */
+    private AnnouncementCompareRow.MatchInfo toMatchInfo(MatchResult result) {
+        List<String> typeLabels = result.matches().stream()
+                .flatMap(m -> m.applicableTypes().stream())
+                .map(SpecialSupplyType::getLabel)
+                .distinct()
+                .toList();
+        UnitMatch best = result.bestMatch();
+        int allocated = result.matches().stream().mapToInt(UnitMatch::totalAllocated).sum();
+
+        return new AnnouncementCompareRow.MatchInfo(
+                result.hasAnyMatch(),
+                typeLabels,
+                result.matches().size(),
+                best != null && best.allocationCountKnown(),
+                allocated);
     }
 
     /** 콤마로 구분된 id 목록. 형식이 이상해도 걸러낼 뿐 400 을 내지 않는다. */

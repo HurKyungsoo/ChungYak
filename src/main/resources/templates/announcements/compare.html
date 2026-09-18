@@ -13,6 +13,24 @@
         정확한 신청 자격은 각 공고의 <strong>자격 판정</strong>에서 확인하세요.
     </p>
 
+    <!-- 저장된 조건을 이 화면에 적용 — 조건은 localStorage 에만 있으므로 JS 가 숨은 필드를 채워
+         POST 한다(소득·자산이 URL 에 남지 않게). 조건이 없으면 버튼 자체를 띄우지 않는다. -->
+    <form id="compareProfileForm" method="post" th:action="@{/announcements/compare}"
+          style="display:none" th:if="${rows.size() >= 2 and !profileApplied}">
+        <input type="hidden" name="ids" th:value="${#strings.listJoin(rows.![id], ',')}">
+        <div class="banner info">
+            <p style="margin:0">저장해 둔 조건이 있습니다.
+                <button type="submit" class="btn btn-primary" style="margin-left:6px">내 조건 적용해서 보기</button>
+            </p>
+        </div>
+    </form>
+
+    <div class="banner good" th:if="${profileApplied}">
+        <p style="margin:0">저장해 둔 조건으로 판정한 결과를 각 공고에 함께 표시했습니다.
+            <a th:href="@{/announcements/compare(ids=${#strings.listJoin(rows.![id], ',')})}">조건 빼고 보기</a>
+        </p>
+    </div>
+
     <div class="empty" th:if="${rows.size() < 2}">
         <span th:if="${requestedCount == 0}">비교할 공고가 없습니다. 목록에서 공고를 2개 이상 찜(♥)한 뒤 다시 열어주세요.</span>
         <span th:unless="${requestedCount == 0}">
@@ -40,6 +58,26 @@
             <h3 style="margin:0 0 10px">
                 <a th:href="@{/announcements/{id}(id=${row.id})}" th:text="${row.houseName}">공고명</a>
             </h3>
+
+            <!-- 내 조건 판정 결과 — 규칙 엔진이 낸 사실만. 어느 공고가 더 유리한지는 말하지 않는다
+                 (경쟁률 데이터가 없어 배정 세대수로 당첨 가능성을 말할 수 없다). -->
+            <div th:if="${row.match != null}" class="match-box"
+                 th:classappend="${row.match.applicable} ? 'ok' : 'no'">
+                <b th:if="${row.match.applicable}">내 조건으로 신청 가능</b>
+                <b th:unless="${row.match.applicable}">신청 가능한 유형 없음</b>
+                <div class="chips" th:if="${row.match.applicable}" style="margin-top:6px">
+                    <span class="chip hl" th:each="label : ${row.match.typeLabels}" th:text="${label}">신혼부부</span>
+                </div>
+                <p th:if="${row.match.applicable}" style="margin:6px 0 0">
+                    주택형 <b th:text="${row.match.matchedUnitTypeCount}">3</b>개
+                    <span th:if="${row.match.allocationCountKnown}">· 배정 <b
+                            th:text="${#numbers.formatInteger(row.match.totalAllocated, 1, 'COMMA')}">25</b>세대</span>
+                    <span th:unless="${row.match.allocationCountKnown}" class="subtle">· 배정 세대수 미상(LH)</span>
+                </p>
+                <p th:unless="${row.match.applicable}" style="margin:6px 0 0">
+                    <a th:href="@{/announcements/{id}/eligibility(id=${row.id})}">왜 안 되는지 보기 →</a>
+                </p>
+            </div>
 
             <table class="kv">
                 <tr><th>지역</th><td th:text="${row.regionName} ?: '-'">서울</td></tr>
@@ -75,11 +113,44 @@
         </div>
     </div>
 
+    <p class="muted" th:if="${profileApplied}">
+        배정 세대수가 많다고 당첨 가능성이 높다는 뜻은 아닙니다 — 경쟁률은 이 서비스가 다루지 않습니다.
+        판단에 필요한 사실만 나란히 놓았을 뿐이니, 최종 선택 전 각 공고의 자격 판정과 공고문을 확인하세요.
+    </p>
+
     <div th:replace="~{fragments/common :: disclaimer}"></div>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>
 <script th:replace="~{fragments/common :: scrapScript}"></script>
 <script th:replace="~{fragments/common :: scrollHintScript}"></script>
+<script>
+    // 저장된 판정 조건(localStorage)이 있을 때만 "내 조건 적용" 폼을 띄우고, 값은 숨은 필드로 넣는다.
+    // 서버는 이 조건을 미리 알지 못하고, POST 로만 받는다(소득·자산이 URL 에 남지 않게).
+    (function () {
+        var form = document.getElementById('compareProfileForm');
+        if (!form) return;
+
+        var draft;
+        try {
+            var raw = localStorage.getItem('chungyak:profileDraft');
+            draft = raw ? JSON.parse(raw) : null;
+        } catch (e) {
+            return;   // 저장소를 못 읽으면 조용히 버튼을 띄우지 않는다
+        }
+        if (!draft) return;
+
+        Object.keys(draft).forEach(function (name) {
+            var value = draft[name];
+            if (value === '' || value === null || value === false) return;
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value === true ? 'true' : value;
+            form.appendChild(input);
+        });
+        form.style.display = '';
+    })();
+</script>
 </body>
 </html>

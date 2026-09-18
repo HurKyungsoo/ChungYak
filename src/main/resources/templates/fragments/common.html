@@ -284,6 +284,13 @@
         .compare-col { flex: 0 0 300px; margin: 0; scroll-snap-align: start; }
         .compare-col .kv th { width: 92px; }
 
+        /* 비교 카드 안의 "내 조건 판정" 블록 — 되는 쪽/안 되는 쪽을 색으로 구분 */
+        .match-box { border-radius: var(--r-sm); padding: 10px 12px; margin-bottom: 12px; font-size: .86rem; }
+        .match-box.ok { background: var(--ok-weak); color: var(--ok); }
+        .match-box.no { background: var(--surface-2); color: var(--text-muted); }
+        .match-box b { font-weight: 700; }
+        .match-box p { color: inherit; }
+
         .compare-bar {
             position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
             z-index: 40; display: none; align-items: center; gap: 12px;
@@ -769,9 +776,11 @@
             }
         }
 
+        /* 이 폼에 있는 항목만 덮어쓰고 나머지는 남긴다. 폼마다 필드 수가 다르기 때문이다 —
+           3문항 빠른 진단으로 통째로 교체해 버리면 앞서 판정 폼에 채운 소득·자산이 날아간다. */
         function saveDraft() {
             try {
-                var data = {};
+                var data = loadDraft() || {};
                 Array.prototype.forEach.call(form.elements, function (el) {
                     if (!el.name) return;
                     data[el.name] = el.type === 'checkbox' ? el.checked : el.value;
