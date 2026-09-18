@@ -6,6 +6,7 @@ import com.portfolio.chungyak.rule.ApplicantProfile;
 import com.portfolio.chungyak.service.AnnouncementMatchService;
 import com.portfolio.chungyak.web.form.EligibilityForm;
 import com.portfolio.chungyak.web.view.MatchRow;
+import com.portfolio.chungyak.web.view.MatchRowFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -78,8 +79,17 @@ public class MatchController {
         return "redirect:/match/result/" + token;
     }
 
+    /**
+     * @param region/type/sort 판정이 끝난 결과를 보기 좋게 추리고 정렬할 뿐이다 —
+     *   자격에 영향을 주지 않는다(같은 조건이면 매칭 결과 자체는 늘 같다).
+     *   이상한 값이 와도 무시하고 기본값으로 본다(400 을 내지 않는다).
+     */
     @GetMapping("/match/result/{token}")
-    public String result(@PathVariable String token, Model model) {
+    public String result(@PathVariable String token,
+                         @RequestParam(required = false) String region,
+                         @RequestParam(required = false) String type,
+                         @RequestParam(required = false) String sort,
+                         Model model) {
         var stored = resultStore.get(token);
         if (stored.isEmpty()) {
             return "redirect:/match";
@@ -87,11 +97,21 @@ public class MatchController {
 
         EligibilityForm form = stored.get();
         ApplicantProfile profile = form.toProfile();
-        List<MatchRow> rows = matchService.findMatching(profile);
+        List<MatchRow> matched = matchService.findMatching(profile);
 
-        log.info("공고 찾기 실행 — 매칭 {}건", rows.size());
+        MatchRowFilter.Sort parsedSort = MatchRowFilter.Sort.from(sort);
+        List<MatchRow> rows = MatchRowFilter.apply(matched, region, type, parsedSort);
+
+        log.info("공고 찾기 실행 — 매칭 {}건 (표시 {}건)", matched.size(), rows.size());
 
         model.addAttribute("rows", rows);
+        model.addAttribute("matchedCount", matched.size());
+        model.addAttribute("regions", MatchRowFilter.regionsOf(matched));
+        model.addAttribute("detailTypes", MatchRowFilter.typesOf(matched));
+        model.addAttribute("sorts", MatchRowFilter.Sort.values());
+        model.addAttribute("selectedRegion", region);
+        model.addAttribute("selectedType", type);
+        model.addAttribute("selectedSort", parsedSort);
         model.addAttribute("form", form);
         model.addAttribute("resultToken", token);
         return "match/result";

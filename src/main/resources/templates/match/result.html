@@ -16,8 +16,30 @@
 
     <div class="sec-head">
         <h2>신청 가능한 공고</h2>
-        <span class="count" th:text="|${rows.size()}건|">0건</span>
+        <span class="count" th:if="${rows.size() == matchedCount}" th:text="|${matchedCount}건|">0건</span>
+        <span class="count" th:unless="${rows.size() == matchedCount}"
+              th:text="|${rows.size()}건 / 전체 ${matchedCount}건|">2건 / 전체 5건</span>
     </div>
+
+    <!-- 판정이 끝난 결과를 보기 좋게 추리고 정렬만 한다 — 자격에는 영향을 주지 않는다 -->
+    <form class="filter-bar" method="get" th:if="${matchedCount > 1}"
+          th:action="@{/match/result/{token}(token=${resultToken})}">
+        <select name="region" th:if="${regions.size() > 1}">
+            <option value="">지역 전체</option>
+            <option th:each="r : ${regions}" th:value="${r}" th:text="${r}"
+                    th:selected="${r == selectedRegion}">경기</option>
+        </select>
+        <select name="type" th:if="${detailTypes.size() > 1}">
+            <option value="">주택유형 전체</option>
+            <option th:each="t : ${detailTypes}" th:value="${t}" th:text="${t}"
+                    th:selected="${t == selectedType}">민영</option>
+        </select>
+        <select name="sort">
+            <option th:each="s : ${sorts}" th:value="${s.name()}" th:text="${s.label}"
+                    th:selected="${s == selectedSort}">마감 임박순</option>
+        </select>
+        <button type="submit" class="btn btn-ghost">적용</button>
+    </form>
 
     <div class="notice-list" th:if="${!rows.isEmpty()}">
         <a class="notice-card" th:each="row : ${rows}"
@@ -49,9 +71,16 @@
         </a>
     </div>
 
-    <div class="empty" th:if="${rows.isEmpty()}">
+    <!-- "애초에 매칭이 없음"과 "필터로 다 걸러짐"은 사용자가 할 일이 달라 구분해서 안내한다 -->
+    <div class="empty" th:if="${rows.isEmpty() and matchedCount == 0}">
         입력하신 조건으로 지금 접수중·접수예정인 공고 중 신청 가능한 곳이 없습니다.
         조건을 다시 확인하거나, <a th:href="@{/announcements}">전체 공고 목록</a>에서 직접 살펴보세요.
+    </div>
+    <div class="empty" th:if="${rows.isEmpty() and matchedCount > 0}">
+        신청 가능한 공고는 <strong th:text="${matchedCount}">3</strong>건 있지만 지금 고른 조건에는 맞는 게 없습니다.
+        <div class="btn-row" style="justify-content:center;margin-top:12px">
+            <a th:href="@{/match/result/{token}(token=${resultToken})}" class="btn btn-primary">필터 지우기</a>
+        </div>
     </div>
 
     <div th:replace="~{fragments/common :: disclaimer}"></div>
