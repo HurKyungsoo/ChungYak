@@ -554,6 +554,9 @@
         /* 가로 스크롤은 있는 줄 모르면 없는 기능이다 — 실제로 넘칠 때만 JS 가 켠다 */
         .scroll-hint { display: none; margin: 0 0 6px; font-size: .8rem; color: var(--text-subtle); }
         .scroll-hint.show { display: block; }
+        /* 끌어서 이동 — 넘칠 때만 잡는 커서를 보여준다(.can-drag 는 JS 가 붙인다) */
+        .can-drag { cursor: grab; }
+        .can-drag.dragging { cursor: grabbing; user-select: none; }
         table { border-collapse: collapse; width: 100%; background: var(--surface); font-size: .875rem; }
         thead th {
             position: sticky; top: 0; background: var(--surface-2); color: var(--text-muted);
@@ -974,25 +977,65 @@
     })();
 </script>
 
-<!-- ── 가로 스크롤 안내 — [data-scroll-hint] 요소가 실제로 넘칠 때만 안내를 켠다.
-     넘치는지는 렌더링 후에야 알 수 있어(화면 폭·열 개수에 따라 다름) CSS 로는 판단할 수 없다.
-     끝까지 밀면 다시 감춘다. ── -->
+<!-- ── 가로 스크롤 영역([data-scroll-hint]) 두 가지 보조 동작 ──
+     1) 안내: 실제로 넘칠 때만 켜고 끝까지 밀면 끈다. 넘치는지는 화면 폭·열 개수에 따라
+        달라 렌더링 후에만 알 수 있어 CSS 로는 판단할 수 없다.
+     2) 끌어서 이동: 스크롤바를 찾아 잡는 것보다 본문을 바로 끄는 쪽이 자연스럽다.
+        터치는 브라우저 기본 스크롤이 이미 더 낫고, 링크·버튼 위에서 시작한 조작은
+        클릭으로 남겨 둔다(끌고 나서 발생하는 클릭은 삼킨다). ── -->
 <script th:fragment="scrollHintScript">
     (function () {
         document.querySelectorAll('[data-scroll-hint]').forEach(function (box) {
             var hint = document.createElement('p');
             hint.className = 'scroll-hint';
-            hint.textContent = '좌우로 밀어서 더 볼 수 있어요 →';
+            hint.textContent = '좌우로 끌거나 밀어서 더 볼 수 있어요 →';
             box.parentNode.insertBefore(hint, box);
 
             var update = function () {
                 var overflowing = box.scrollWidth - box.clientWidth > 4;
                 var atEnd = box.scrollLeft + box.clientWidth >= box.scrollWidth - 4;
                 hint.classList.toggle('show', overflowing && !atEnd);
+                box.classList.toggle('can-drag', overflowing);   // 넘칠 때만 잡는 커서
             };
             box.addEventListener('scroll', update, { passive: true });
             window.addEventListener('resize', update);
             update();
+
+            var dragging = false, startX = 0, startLeft = 0, moved = false;
+
+            box.addEventListener('pointerdown', function (e) {
+                if (e.pointerType === 'touch' || e.button !== 0) return;
+                if (e.target.closest('a, button, input, select, textarea, label')) return;
+                if (box.scrollWidth - box.clientWidth <= 4) return;
+                dragging = true;
+                moved = false;
+                startX = e.clientX;
+                startLeft = box.scrollLeft;
+                box.classList.add('dragging');
+            });
+
+            box.addEventListener('pointermove', function (e) {
+                if (!dragging) return;
+                var dx = e.clientX - startX;
+                if (Math.abs(dx) > 3) moved = true;
+                box.scrollLeft = startLeft - dx;
+                if (moved) e.preventDefault();   // 끄는 동안 글자가 선택되지 않게
+            });
+
+            ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (type) {
+                box.addEventListener(type, function () {
+                    dragging = false;
+                    box.classList.remove('dragging');
+                });
+            });
+
+            // 끌어서 움직인 뒤에 따라오는 클릭은 삼킨다 — 카드 링크로 튀어 들어가지 않게
+            box.addEventListener('click', function (e) {
+                if (!moved) return;
+                e.preventDefault();
+                e.stopPropagation();
+                moved = false;
+            }, true);
         });
     })();
 </script>
