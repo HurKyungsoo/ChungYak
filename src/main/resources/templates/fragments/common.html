@@ -801,13 +801,37 @@
             btn.setAttribute('aria-pressed', String(scraps.has(btn.dataset.annId)));
         }
 
+        /* 찜은 id 만 저장한다. 그런데 비교 화면에서 "다시 넣을 공고" 목록을 보여주려면 이름이 필요하다 —
+           찜하는 순간에는 카드 제목(목록)이나 h1(상세)으로 이름을 알 수 있으니 그때 따로 적어 둔다.
+           (이름을 모르는 예전 찜은 그 목록에서 빠질 뿐, 찜 자체는 그대로 동작한다) */
+        function rememberName(id, name) {
+            if (!name) return;
+            try {
+                var map = JSON.parse(localStorage.getItem('chungyak:annNames') || '{}');
+                map[id] = name;
+                localStorage.setItem('chungyak:annNames', JSON.stringify(map));
+            } catch (e) { /* 저장 불가 — 이름만 못 쓸 뿐이라 무시 */ }
+        }
+
+        function nameFor(btn) {
+            var card = btn.closest('.notice-card');
+            if (card && card.querySelector('.title')) return card.querySelector('.title').textContent.trim();
+            var h1 = document.querySelector('main h1');
+            return h1 ? h1.textContent.trim() : null;
+        }
+
         document.querySelectorAll('.scrap-btn').forEach(function (btn) {
             applyState(btn);
             btn.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 var id = btn.dataset.annId;
-                if (scraps.has(id)) scraps.delete(id); else scraps.add(id);
+                if (scraps.has(id)) {
+                    scraps.delete(id);
+                } else {
+                    scraps.add(id);
+                    rememberName(id, nameFor(btn));
+                }
                 saveScraps(scraps);
                 document.querySelectorAll('.scrap-btn[data-ann-id="' + id + '"]').forEach(applyState);
                 document.dispatchEvent(new CustomEvent('scrap:changed'));
