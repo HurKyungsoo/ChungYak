@@ -237,6 +237,16 @@
                      border-radius: var(--r-pill); }
         .chip.dday.soon { background: var(--warn-weak); color: var(--warn); }
 
+        /* ── 신뢰 근거 (랜딩) ── */
+        /* auto-fit 은 폭에 따라 3+1 처럼 한 장만 남는 줄이 생겨서, 항상 1/2/4 로 떨어지게 못박는다 */
+        .trust-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 8px 0 26px; }
+        @media (min-width: 720px)  { .trust-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1080px) { .trust-grid { grid-template-columns: repeat(4, 1fr); } }
+        .trust-card { background: var(--surface); border: 1px solid var(--border);
+                      border-radius: var(--r); padding: 15px 17px; }
+        .trust-card b { display: block; font-size: .92rem; font-weight: 700; margin-bottom: 5px; }
+        .trust-card p { margin: 0; font-size: .84rem; color: var(--text-muted); line-height: 1.55; }
+
         /* ── 3문항 빠른 진단 (랜딩) ── */
         .quick-check { border: 1px solid var(--border-strong); background: var(--surface);
                        border-radius: var(--r-lg); padding: 18px 20px; margin: 4px 0 22px;
