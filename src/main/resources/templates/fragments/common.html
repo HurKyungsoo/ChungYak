@@ -243,26 +243,35 @@
                      border-radius: var(--r-pill); }
         .chip.dday.soon { background: var(--warn-weak); color: var(--warn); }
 
+        /* ── 카드 위계 ──────────────────────────────────────────────
+           랜딩에 카드가 세 종류(빠른 진단 / 공고 / 신뢰 근거)인데 전부 같은 흰 박스면
+           눈이 어디를 먼저 볼지 모른다. 역할대로 세 단계로 나눈다:
+             1) 행동 유도(.quick-check) — 브랜드 톤으로 칠해 "여기부터 하세요"
+             2) 콘텐츠(.notice-card)    — 흰 카드 + 그림자. 목록의 주인공이라 그대로 둔다
+             3) 보조 정보(.trust-card)  — 배경만 살짝 깔고 테두리·그림자 없이 물러나게   */
+
         /* ── 신뢰 근거 (랜딩) ── */
         /* auto-fit 은 폭에 따라 3+1 처럼 한 장만 남는 줄이 생겨서, 항상 1/2/4 로 떨어지게 못박는다 */
         .trust-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 8px 0 26px; }
         @media (min-width: 720px)  { .trust-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1080px) { .trust-grid { grid-template-columns: repeat(4, 1fr); } }
-        .trust-card { background: var(--surface); border: 1px solid var(--border);
+        .trust-card { background: var(--surface-2); border: 0;
                       border-radius: var(--r); padding: 15px 17px; }
         .trust-card b { display: block; font-size: .92rem; font-weight: 700; margin-bottom: 5px; }
         .trust-card p { margin: 0; font-size: .84rem; color: var(--text-muted); line-height: 1.55; }
 
         /* ── 3문항 빠른 진단 (랜딩) ── */
-        .quick-check { border: 1px solid var(--border-strong); background: var(--surface);
-                       border-radius: var(--r-lg); padding: 18px 20px; margin: 4px 0 22px;
-                       box-shadow: var(--shadow-sm); }
+        .quick-check { background: var(--brand-weak);
+                       border: 1px solid color-mix(in srgb, var(--brand) 22%, transparent);
+                       border-radius: var(--r-lg); padding: 18px 20px; margin: 4px 0 22px; }
         .quick-check .qc-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
         .quick-check .qc-head h2 { margin: 0; font-size: 1.05rem; }
         .quick-check .qc-head .muted { font-size: .84rem; }
         .quick-check .qc-row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-end; margin-top: 12px; }
         .quick-check .qc-field { display: flex; flex-direction: column; gap: 5px; }
         .quick-check .qc-field > span { font-size: .82rem; font-weight: 600; color: var(--text-muted); }
+        /* 입력창 기본 배경(--bg)은 색 깔린 카드 위에서 탁해 보여 흰 면으로 올린다 */
+        .quick-check input[type=number] { background: var(--surface); }
         .quick-check .qc-field input[type=number] { width: 120px; }
         .quick-check .qc-checks { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
         .quick-check .qc-checks label { display: inline-flex; align-items: center; gap: 7px;
