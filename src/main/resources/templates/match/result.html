@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('청약나침반 · 내 조건으로 찾은 공고',
+    '입력하신 조건으로 지금 접수중·접수예정인 공고 중 실제 신청 가능한 곳만 규칙 기준으로 정리했습니다.')}"></head>
+<body>
+<header th:replace="~{fragments/common :: header}"></header>
+
+<main>
+    <a th:href="@{/match}" class="backlink">← 조건 다시 입력</a>
+    <h1>내 조건으로 찾은 공고</h1>
+
+    <p class="muted">
+        판정은 각 공고의 규칙을 그대로 적용한 결과입니다(AI 추측 아님). 실제 신청 전에는 각 공고
+        페이지에서 자격 판정을 다시 한번 확인해 주세요 — 소득·자산 등은 공고 시점 기준으로 다시 계산됩니다.
+    </p>
+
+    <div class="sec-head">
+        <h2>신청 가능한 공고</h2>
+        <span class="count" th:text="|${rows.size()}건|">0건</span>
+    </div>
+
+    <div class="notice-list" th:if="${!rows.isEmpty()}">
+        <a class="notice-card" th:each="row : ${rows}"
+           th:href="@{/announcements/{id}/eligibility(id=${row.id})}">
+            <div class="top">
+                <span class="dot"
+                      th:classappend="${row.status == '접수중'} ? 'open' : (${row.status == '접수예정'} ? 'soon' : '')"></span>
+                <span class="status-text"
+                      th:classappend="${row.status == '접수중'} ? 'open' : (${row.status == '접수예정'} ? 'soon' : '')"
+                      th:text="${row.status}">접수중</span>
+                <span class="meta" th:text="|${row.regionName ?: '-'} · ${row.houseDetailTypeLabel}|">서울 · 민영</span>
+                <span class="dday" th:if="${row.ddayLabel != null}"
+                      th:classappend="${row.ddayUrgent} ? 'soon' : ''"
+                      th:text="${row.ddayLabel}">D-2</span>
+            </div>
+            <div class="title" th:text="${row.houseName}">공고명</div>
+            <div class="facts">
+                <span class="fact hl" th:each="label : ${row.matchedTypeLabels}" th:text="${label}">신혼부부</span>
+                <span class="fact" th:if="${row.bestUnitTypeName != null}"
+                      th:text="|가장 유리한 주택형: ${row.bestUnitTypeName}|">가장 유리한 주택형: 084A</span>
+                <span class="fact" th:if="${row.allocationCountKnown}"
+                      th:text="|배정 ${#numbers.formatInteger(row.totalAllocated, 1, 'COMMA')}세대|">배정 35세대</span>
+                <span class="fact" th:if="${row.bestUnitTypeName != null and !row.allocationCountKnown}">배정 세대수 미상(LH)</span>
+                <span class="fact">접수
+                    <span th:text="${row.receptBeginDate} ?: '?'">2026-01-01</span> ~
+                    <span th:text="${row.receptEndDate} ?: '?'">2026-01-05</span>
+                </span>
+            </div>
+        </a>
+    </div>
+
+    <div class="empty" th:if="${rows.isEmpty()}">
+        입력하신 조건으로 지금 접수중·접수예정인 공고 중 신청 가능한 곳이 없습니다.
+        조건을 다시 확인하거나, <a th:href="@{/announcements}">전체 공고 목록</a>에서 직접 살펴보세요.
+    </div>
+
+    <div th:replace="~{fragments/common :: disclaimer}"></div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
+</body>
+</html>
