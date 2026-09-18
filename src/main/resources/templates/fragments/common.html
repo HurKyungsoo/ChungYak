@@ -335,8 +335,16 @@
         .recent-strip .sec-head { margin: 0 0 10px; }
         .recent-strip .sec-head h2 { font-size: .92rem; }
         .recent-strip .btn { width: 100%; }
-        a.chip { color: var(--text-muted); transition: background .12s, color .12s; }
-        a.chip:hover { background: var(--brand-weak); color: var(--brand); text-decoration: none; }
+
+        /* 칩 = 공고 링크 + 빼기(✕). 잘못 눌러 들어가는 일이 없게 ✕ 는 칩 안에서 따로 잡는다. */
+        .recent-chip { display: inline-flex; align-items: center; gap: 4px;
+                       padding-right: 5px; transition: background .12s; }
+        .recent-chip:hover { background: var(--brand-weak); }
+        .recent-chip a { color: var(--text-muted); }
+        .recent-chip:hover a { color: var(--brand); text-decoration: none; }
+        .chip-x { border: 0; background: none; cursor: pointer; color: var(--text-subtle);
+                  font-size: .72rem; line-height: 1; padding: 3px; border-radius: 4px; }
+        .chip-x:hover { color: var(--no); background: var(--no-weak); }
 
         .compare-bar {
             position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
@@ -683,7 +691,6 @@
         <a href="#" id="profileDraftClear">비우고 새로 입력</a></p>
 </div>
 
-<!-- ── site footer ── -->
 <!-- ── site footer ──
      출처 표기는 공공데이터포털 이용약관상 의무라 빼면 안 된다(ROADMAP D4).
      "데이터 최종 갱신"은 SyncStatus 의 마지막 성공 시각을 그대로 보여준다 — 수집이 조용히
@@ -858,48 +865,77 @@
         if (!host) return;
 
         var currentId = marker ? marker.dataset.annId : null;
-        var today = load().filter(function (v) {
-            return isToday(v.at) && v.id !== currentId;
-        });
-        if (today.length === 0) return;
 
-        var head = document.createElement('div');
-        head.className = 'sec-head';
-        var h2 = document.createElement('h2');
-        h2.textContent = '오늘 본 공고';
-        var count = document.createElement('span');
-        count.className = 'count';
-        count.textContent = today.length + '건';
-        head.appendChild(h2);
-        head.appendChild(count);
-
-        var chips = document.createElement('div');
-        chips.className = 'chips';
-        today.forEach(function (v) {
-            var a = document.createElement('a');
-            a.className = 'chip';
-            a.href = '/announcements/' + encodeURIComponent(v.id);
-            a.textContent = v.name || ('공고 ' + v.id);   // DB 값이라 textContent 로만
-            chips.appendChild(a);
-        });
-
-        host.appendChild(head);
-        host.appendChild(chips);
-
-        if (today.length >= 2) {
-            var row = document.createElement('div');
-            row.className = 'btn-row';
-            row.style.marginTop = '12px';
-            var compare = document.createElement('a');
-            compare.className = 'btn btn-ghost';
-            compare.href = '/announcements/compare?ids='
-                    + today.map(function (v) { return encodeURIComponent(v.id); }).join(',');
-            compare.textContent = '이 공고끼리 비교 →';
-            row.appendChild(compare);
-            host.appendChild(row);
+        /** 하나 빼기 — 저장분에서 아예 지운다("오늘 목록에서만 숨김"이면 내일 되살아나 혼란스럽다) */
+        function remove(id) {
+            save(load().filter(function (v) { return v.id !== id; }));
+            render();
         }
 
-        host.hidden = false;
+        // 지우면 개수·비교 버튼까지 같이 바뀌므로 부분 수정 대신 통째로 다시 그린다.
+        function render() {
+            host.textContent = '';   // 비우기만 한다(외부 HTML 주입 없음)
+
+            var today = load().filter(function (v) {
+                return isToday(v.at) && v.id !== currentId;
+            });
+            if (today.length === 0) {
+                host.hidden = true;
+                return;
+            }
+
+            var head = document.createElement('div');
+            head.className = 'sec-head';
+            var h2 = document.createElement('h2');
+            h2.textContent = '오늘 본 공고';
+            var count = document.createElement('span');
+            count.className = 'count';
+            count.textContent = today.length + '건';
+            head.appendChild(h2);
+            head.appendChild(count);
+
+            var chips = document.createElement('div');
+            chips.className = 'chips';
+            today.forEach(function (v) {
+                var chip = document.createElement('span');
+                chip.className = 'chip recent-chip';
+
+                var a = document.createElement('a');
+                a.href = '/announcements/' + encodeURIComponent(v.id);
+                a.textContent = v.name || ('공고 ' + v.id);   // DB 값이라 textContent 로만
+
+                var x = document.createElement('button');
+                x.type = 'button';
+                x.className = 'chip-x';
+                x.textContent = '✕';
+                x.setAttribute('aria-label', (v.name || '공고') + ' 목록에서 빼기');
+                x.addEventListener('click', function () { remove(v.id); });
+
+                chip.appendChild(a);
+                chip.appendChild(x);
+                chips.appendChild(chip);
+            });
+
+            host.appendChild(head);
+            host.appendChild(chips);
+
+            if (today.length >= 2) {
+                var row = document.createElement('div');
+                row.className = 'btn-row';
+                row.style.marginTop = '12px';
+                var compare = document.createElement('a');
+                compare.className = 'btn btn-ghost';
+                compare.href = '/announcements/compare?ids='
+                        + today.map(function (v) { return encodeURIComponent(v.id); }).join(',');
+                compare.textContent = '이 공고끼리 비교 →';
+                row.appendChild(compare);
+                host.appendChild(row);
+            }
+
+            host.hidden = false;
+        }
+
+        render();
     })();
 </script>
 
