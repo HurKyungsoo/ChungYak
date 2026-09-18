@@ -1001,7 +1001,7 @@
             window.addEventListener('resize', update);
             update();
 
-            var dragging = false, startX = 0, startLeft = 0, moved = false;
+            var dragging = false, startX = 0, startLeft = 0, startTop = 0, moved = false;
 
             box.addEventListener('pointerdown', function (e) {
                 if (e.pointerType === 'touch' || e.button !== 0) return;
@@ -1011,6 +1011,7 @@
                 moved = false;
                 startX = e.clientX;
                 startLeft = box.scrollLeft;
+                startTop = box.scrollTop;
                 box.classList.add('dragging');
             });
 
@@ -1019,6 +1020,7 @@
                 var dx = e.clientX - startX;
                 if (Math.abs(dx) > 3) moved = true;
                 box.scrollLeft = startLeft - dx;
+                box.scrollTop = startTop;        // 좌우로만 — 세로는 잡은 자리에 붙박아 둔다
                 if (moved) e.preventDefault();   // 끄는 동안 글자가 선택되지 않게
             });
 
