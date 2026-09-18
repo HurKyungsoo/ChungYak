@@ -521,6 +521,12 @@
     예비신혼부부·한부모가족 등 예외가 있을 수 있으므로 최종 접수 전 반드시 청약홈 공고문을 확인하세요.
 </div>
 
+<!-- ── 판정 조건 기억 배너 — 이전에 저장된 조건을 불러왔을 때만 JS 가 보여준다 ── -->
+<div th:fragment="profileDraftBanner" id="profileDraftBanner" class="banner info" style="display:none">
+    <p style="margin:0">이전에 입력했던 조건을 불러와 채웠습니다. 다시 확인하고 필요하면 고쳐주세요.
+        <a href="#" id="profileDraftClear">비우고 새로 입력</a></p>
+</div>
+
 <!-- ── site footer ── -->
 <footer th:fragment="footer" class="site-footer">
     <div class="inner">
@@ -586,6 +592,73 @@
             document.addEventListener('scrap:changed', applyFilter);
             applyFilter();
         }
+    })();
+</script>
+
+<!-- ── 판정 조건 기억 스크립트 — 로그인 없이 이 브라우저에만 마지막으로 제출한 조건을 저장한다.
+     서버는 이 값을 전혀 모른다(소득·자산도 브라우저 밖으로 나가지 않는다). 20+ 필드를 매번
+     다시 입력하는 게 최대 이탈 포인트라 판정/찾기 폼 둘 다에 붙인다. 자연어 추출로 채워진
+     값은 이미 비어있지 않으므로 덮어쓰지 않고, 빈 필드만 이전 값으로 채운다 — LLM 추출과
+     같은 원칙("채운 값은 사용자가 확인한다")을 그대로 따른다. ── -->
+<script th:fragment="profileDraftScript">
+    (function () {
+        var KEY = 'chungyak:profileDraft';
+        var form = document.querySelector('form[data-remember-profile]');
+        if (!form) return;
+
+        function loadDraft() {
+            try {
+                var raw = localStorage.getItem(KEY);
+                return raw ? JSON.parse(raw) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function saveDraft() {
+            try {
+                var data = {};
+                Array.prototype.forEach.call(form.elements, function (el) {
+                    if (!el.name) return;
+                    data[el.name] = el.type === 'checkbox' ? el.checked : el.value;
+                });
+                localStorage.setItem(KEY, JSON.stringify(data));
+            } catch (e) { /* 저장 불가(프라이빗 모드 등) — 조용히 무시 */ }
+        }
+
+        var draft = loadDraft();
+        var filled = false;
+        if (draft) {
+            Array.prototype.forEach.call(form.elements, function (el) {
+                if (!el.name || !(el.name in draft)) return;
+                var value = draft[el.name];
+                if (el.type === 'checkbox') {
+                    if (!el.checked && value) {
+                        el.checked = true;
+                        filled = true;
+                        el.dispatchEvent(new Event('change'));
+                    }
+                } else if ((el.value === '' || el.value === '0') && value !== '' && value != null) {
+                    el.value = value;
+                    filled = true;
+                    el.dispatchEvent(new Event('input'));
+                }
+            });
+        }
+
+        var banner = document.getElementById('profileDraftBanner');
+        if (filled && banner) banner.style.display = '';
+
+        var clearBtn = document.getElementById('profileDraftClear');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                try { localStorage.removeItem(KEY); } catch (err) { /* 무시 */ }
+                location.reload();
+            });
+        }
+
+        form.addEventListener('submit', saveDraft);
     })();
 </script>
 
