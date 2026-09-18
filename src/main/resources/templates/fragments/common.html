@@ -237,6 +237,22 @@
                      border-radius: var(--r-pill); }
         .chip.dday.soon { background: var(--warn-weak); color: var(--warn); }
 
+        /* ── 3문항 빠른 진단 (랜딩) ── */
+        .quick-check { border: 1px solid var(--border-strong); background: var(--surface);
+                       border-radius: var(--r-lg); padding: 18px 20px; margin: 4px 0 22px;
+                       box-shadow: var(--shadow-sm); }
+        .quick-check .qc-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+        .quick-check .qc-head h2 { margin: 0; font-size: 1.05rem; }
+        .quick-check .qc-head .muted { font-size: .84rem; }
+        .quick-check .qc-row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-end; margin-top: 12px; }
+        .quick-check .qc-field { display: flex; flex-direction: column; gap: 5px; }
+        .quick-check .qc-field > span { font-size: .82rem; font-weight: 600; color: var(--text-muted); }
+        .quick-check .qc-field input[type=number] { width: 120px; }
+        .quick-check .qc-checks { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+        .quick-check .qc-checks label { display: inline-flex; align-items: center; gap: 7px;
+                                        font-size: .9rem; font-weight: 600; cursor: pointer; }
+        .quick-check .qc-checks input { accent-color: var(--brand); width: 16px; height: 16px; }
+
         /* ── 찜한 공고 비교 ── */
         .compare-grid { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; margin: 16px 0; }
         .compare-col { flex: 0 0 300px; margin: 0; }
@@ -540,6 +556,31 @@
     소득·자산의 세부 인정 기준, 지자체 조례, 부적격 당첨 제한 등 일부는 다루지 않으며,
     예비신혼부부·한부모가족 등 예외가 있을 수 있으므로 최종 접수 전 반드시 청약홈 공고문을 확인하세요.
 </div>
+
+<!-- ── 3문항 빠른 진단 폼 (랜딩) — 소득·자산을 묻기 전에 먼저 보여주는 맛보기.
+     GET 이라 결과 URL 을 공유·북마크할 수 있고, data-remember-profile 로 여기 적은 답이
+     정밀 판정 폼에도 그대로 이어진다. ── -->
+<form th:fragment="quickCheckForm" class="quick-check" method="get" th:action="@{/quick}" data-remember-profile>
+    <div class="qc-head">
+        <h2>30초 빠른 진단</h2>
+        <span class="muted">소득·자산 입력 없이, 세 가지만 답하면 해당 없는 유형부터 걸러 드립니다</span>
+    </div>
+    <div class="qc-row">
+        <div class="qc-checks">
+            <label><input type="checkbox" name="married" value="true" id="qcMarried"> 혼인 중</label>
+            <label><input type="checkbox" name="houseless" value="true"> 무주택</label>
+        </div>
+        <label class="qc-field" id="qcMarriageMonths">
+            <span>혼인 경과 (개월)</span>
+            <input type="number" min="0" name="monthsSinceMarriage" placeholder="예: 36">
+        </label>
+        <label class="qc-field">
+            <span>미성년 자녀 수</span>
+            <input type="number" min="0" name="childCount" placeholder="0">
+        </label>
+        <button type="submit" class="btn btn-primary">진단하기</button>
+    </div>
+</form>
 
 <!-- ── 판정 조건 기억 배너 — 이전에 저장된 조건을 불러왔을 때만 JS 가 보여준다 ── -->
 <div th:fragment="profileDraftBanner" id="profileDraftBanner" class="banner info" style="display:none">
