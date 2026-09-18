@@ -150,7 +150,13 @@
         a.card:hover { text-decoration: none; border-color: var(--border-strong); box-shadow: var(--shadow); transform: translateY(-1px); }
 
         /* ── hero actions / stat strip ─────────────────────────────── */
-        .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+        /* 위계 원칙: 한 화면에 파란(primary) 버튼은 하나만. 랜딩에서는 그 자리가
+           "30초 빠른 진단"이라, 히어로는 보조 버튼 하나 + 텍스트 링크로 낮춘다.
+           캘린더·가점 계산은 헤더 내비에도 있어 큰 버튼으로 중복할 이유가 없다. */
+        .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 20px; }
+        .hero-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+        .hero-links a { font-size: .89rem; font-weight: 600; color: var(--text-muted); }
+        .hero-links a:hover { color: var(--brand); }
         .stat-strip { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 18px;
                       font-size: .85rem; color: var(--text-muted); }
         .stat-strip span { display: inline-flex; align-items: baseline; gap: 5px; }
