@@ -237,6 +237,26 @@
                      border-radius: var(--r-pill); }
         .chip.dday.soon { background: var(--warn-weak); color: var(--warn); }
 
+        /* ── 찜한 공고 비교 ── */
+        .compare-grid { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; margin: 16px 0; }
+        .compare-col { flex: 0 0 300px; margin: 0; }
+        .compare-col .kv th { width: 92px; }
+
+        .compare-bar {
+            position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+            z-index: 40; display: none; align-items: center; gap: 12px;
+            background: var(--text); color: var(--surface); padding: 11px 18px;
+            border-radius: var(--r-pill); box-shadow: var(--shadow);
+            font-size: .88rem; font-weight: 650; white-space: nowrap;
+        }
+        .compare-bar.show { display: inline-flex; }
+        .compare-bar a { color: inherit; text-decoration: underline; }
+        .compare-bar button {
+            background: none; border: 0; color: inherit; opacity: .7; cursor: pointer;
+            font-size: 1rem; line-height: 1; padding: 0 0 0 4px;
+        }
+        .compare-bar button:hover { opacity: 1; }
+
         /* AI 가 관여하는 자리를 표시하는 배지 (입력·요약·검색 — 판정에는 안 씀) */
         .ai-chip {
             display: inline-flex; align-items: center; gap: 4px; vertical-align: middle;
@@ -591,6 +611,35 @@
             filterToggle.addEventListener('change', applyFilter);
             document.addEventListener('scrap:changed', applyFilter);
             applyFilter();
+        }
+
+        // 찜 2개 이상이면 떠 있는 "비교하기" 바 — 비교 화면 자체에서는 안 보인다.
+        if (!location.pathname.startsWith('/announcements/compare')) {
+            var bar = document.getElementById('compareBar');
+            if (!bar) {
+                bar = document.createElement('div');
+                bar.id = 'compareBar';
+                bar.className = 'compare-bar';
+                bar.innerHTML = '<span id="compareBarText"></span> ' +
+                        '<a id="compareBarLink" href="#">비교하기 →</a>' +
+                        '<button type="button" id="compareBarClose" aria-label="닫기">✕</button>';
+                document.body.appendChild(bar);
+                document.getElementById('compareBarClose').addEventListener('click', function () {
+                    bar.classList.remove('show');
+                });
+            }
+            var updateCompareBar = function () {
+                if (scraps.size >= 2) {
+                    document.getElementById('compareBarText').textContent = '찜한 공고 ' + scraps.size + '개';
+                    document.getElementById('compareBarLink').href =
+                            '/announcements/compare?ids=' + Array.from(scraps).join(',');
+                    bar.classList.add('show');
+                } else {
+                    bar.classList.remove('show');
+                }
+            };
+            document.addEventListener('scrap:changed', updateCompareBar);
+            updateCompareBar();
         }
     })();
 </script>

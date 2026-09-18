@@ -6,6 +6,7 @@ import com.portfolio.chungyak.domain.UnitType;
 import com.portfolio.chungyak.rag.DocumentQaService;
 import com.portfolio.chungyak.rule.GeneralSupplyLotteryCalculator;
 import com.portfolio.chungyak.service.AnnouncementQueryService;
+import com.portfolio.chungyak.web.view.AnnouncementCompareRow;
 import com.portfolio.chungyak.web.view.AnnouncementListRow;
 import com.portfolio.chungyak.web.view.CalendarView;
 import com.portfolio.chungyak.web.view.Dday;
@@ -22,8 +23,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -96,6 +100,47 @@ public class AnnouncementController {
     @GetMapping("/announcements/{id}")
     public String detail(@PathVariable Long id, Model model) {
         return renderDetail(id, model);
+    }
+
+    /**
+     * 찜한 공고 비교 — 스크랩은 이 브라우저의 localStorage 에만 있어 서버는 무엇이 찜됐는지
+     * 모른다. 화면이 JS 로 찜한 id 를 모아 이 쿼리스트링으로 요청하면, 그 id들만 조회해서
+     * 나란히 보여줄 뿐이다. 너무 많이 넘어와도 카드가 난립하지 않게 최대 6개로 자른다.
+     */
+    @GetMapping("/announcements/compare")
+    public String compare(@RequestParam(required = false) String ids, Model model) {
+        List<Long> parsedIds = parseIds(ids);
+        LocalDate today = queryService.today();
+        List<AnnouncementCompareRow> rows = parsedIds.stream()
+                .map(queryService::findDetail)
+                .flatMap(Optional::stream)
+                .map(a -> AnnouncementCompareRow.of(a, queryService.statusOf(a), today))
+                .toList();
+
+        model.addAttribute("rows", rows);
+        model.addAttribute("requestedCount", parsedIds.size());
+        return "announcements/compare";
+    }
+
+    /** 콤마로 구분된 id 목록. 형식이 이상해도 걸러낼 뿐 400 을 내지 않는다. */
+    private List<Long> parseIds(String raw) {
+        if (raw == null || raw.isBlank()) return List.of();
+        return Arrays.stream(raw.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(this::parseLongSafely)
+                .filter(Objects::nonNull)
+                .distinct()
+                .limit(6)
+                .toList();
+    }
+
+    private Long parseLongSafely(String s) {
+        try {
+            return Long.parseLong(s);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     /**
