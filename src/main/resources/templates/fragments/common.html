@@ -228,6 +228,13 @@
             display: grid; place-items: center; font-size: .95rem; line-height: 1; padding: 0;
         }
         .notice-card .scrap-btn:hover { border-color: var(--border-strong); color: var(--text); }
+        /* 목록 카드의 찜 상태. 바로 위 .notice-card .scrap-btn 이 색을 덮어써 버리므로
+           (같은 0-2-0 인데 뒤에 있어서) 카드 안쪽 전용 규칙을 따로 둔다. */
+        .notice-card .scrap-btn.active {
+            color: var(--like); background: var(--like-weak);
+            border-color: color-mix(in srgb, var(--like) 35%, transparent);
+        }
+        .notice-card .scrap-btn.active:hover { color: var(--like); border-color: var(--like); }
         /* 글자는 ::after 로 따로 둔다 — 하트(::before)의 고정 폭 규칙을 그대로 쓰기 위함.
            "찜하기"/"찜 완료"는 글자 수가 달라 버튼이 늘었다 줄었다 하므로 폭을 미리 확보한다. */
         .scrap-btn-lg { min-width: 8.6em; }
