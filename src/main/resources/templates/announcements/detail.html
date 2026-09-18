@@ -171,8 +171,13 @@
     <div th:replace="~{fragments/common :: disclaimer}"></div>
 </main>
 
+<!-- "오늘 본 공고" 기록용 — 이 값을 읽어 브라우저에만 남긴다(서버는 모른다) -->
+<div id="recentViewMarker" hidden
+     th:attr="data-ann-id=${announcement.id}, data-ann-name=${announcement.houseName}"></div>
+
 <footer th:replace="~{fragments/common :: footer}"></footer>
 <script th:replace="~{fragments/common :: scrapScript}"></script>
 <script th:replace="~{fragments/common :: scrollHintScript}"></script>
+<script th:replace="~{fragments/common :: recentViewsScript}"></script>
 </body>
 </html>

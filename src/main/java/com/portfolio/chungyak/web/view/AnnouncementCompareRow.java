@@ -7,11 +7,11 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 공고 비교 화면(찜한 공고 여러 개를 나란히) 한 열.
+ * 공고 비교 화면(여러 공고를 나란히) 한 열.
  *
- * 스크랩은 이 브라우저의 localStorage 에만 있어 서버는 어떤 공고가 찜됐는지 전혀 모른다 —
- * 화면이 JS 로 찜한 id 목록을 모아 {@code ?ids=1,2,3} 으로 요청하면, 그 id들만 조회해서
- * 나란히 보여줄 뿐이다.
+ * 찜한 공고도 오늘 본 공고도 이 브라우저의 localStorage 에만 있어 서버는 무엇을 고른 건지
+ * 전혀 모른다 — 화면이 JS 로 id 목록을 모아 {@code ?ids=1,2,3} 으로 요청하면, 그 id들만
+ * 조회해서 나란히 보여줄 뿐이다.
  */
 public record AnnouncementCompareRow(
         Long id,
