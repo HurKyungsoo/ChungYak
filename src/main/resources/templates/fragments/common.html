@@ -313,32 +313,13 @@
         .match-box b { font-weight: 700; }
         .match-box p { color: inherit; }
 
-        /* ── 오늘 본 공고 (우측 플로팅) ──
-           찜(♥)이 "나중에 볼 것"이라면 이건 "방금 보던 것"이다. 역시 이 브라우저에만 저장하고
-           서버는 모른다. 기본은 접힌 상태 — 열어야 목록이 나오므로 화면을 가리지 않는다. */
-        .recent-panel { position: fixed; right: 16px; top: 50%; transform: translateY(-50%); z-index: 39;
-                        display: none; flex-direction: column; align-items: flex-end; gap: 8px; }
-        .recent-panel.show { display: flex; }
-        .recent-toggle { background: var(--surface); border: 1px solid var(--border-strong);
-                         border-radius: var(--r-pill); padding: 8px 14px; cursor: pointer;
-                         font-size: .8rem; font-weight: 650; color: var(--text-muted);
-                         box-shadow: var(--shadow); white-space: nowrap; }
-        .recent-toggle:hover { color: var(--text); }
-        .recent-body { display: none; width: 244px; background: var(--surface);
-                       border: 1px solid var(--border); border-radius: var(--r);
-                       box-shadow: var(--shadow); padding: 13px 15px; }
-        .recent-panel.open .recent-body { display: block; }
-        .recent-body h4 { margin: 0 0 9px; font-size: .8rem; font-weight: 700; color: var(--text-muted); }
-        .recent-body ul { list-style: none; margin: 0 0 10px; padding: 0;
-                          max-height: 236px; overflow-y: auto; }
-        .recent-body li { margin-bottom: 7px; font-size: .84rem; line-height: 1.4; }
-        .recent-body li a { color: var(--text); }
-        .recent-body li a:hover { color: var(--brand); }
-        .recent-body .btn { width: 100%; }
-        @media (max-width: 719px) {
-            .recent-panel { top: auto; bottom: 74px; transform: none; }
-            .recent-body { width: min(260px, calc(100vw - 32px)); }
-        }
+        /* ── 오늘 본 공고 ──
+           찜(♥)이 "나중에 볼 것"이라면 이건 "방금 보던 것"이다. 역시 이 브라우저에만 저장한다.
+           떠 있는 패널로 만들었다가 본문 밖에서 따로 노는 느낌이라 페이지 흐름 안으로 옮겼다 —
+           칩·섹션 머리글 등 이미 쓰는 요소만 재사용한다. */
+        .recent-strip { margin: 26px 0 0; }
+        a.chip { color: var(--text-muted); transition: background .12s, color .12s; }
+        a.chip:hover { background: var(--brand-weak); color: var(--brand); text-decoration: none; }
 
         .compare-bar {
             position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
@@ -824,7 +805,6 @@
 <script th:fragment="recentViewsScript">
     (function () {
         var KEY = 'chungyak:recentViews';
-        var OPEN_KEY = 'chungyak:recentOpen';
         var MAX = 10;
 
         function load() {
@@ -855,70 +835,54 @@
             save(list.slice(0, MAX));
         }
 
-        // 2) 오늘 본 것만 패널로. 어제 것까지 쌓아 보여주면 "오늘 본"이 아니게 된다.
-        var today = load().filter(function (v) { return isToday(v.at); });
+        // 2) 화면이 자리를 내준 곳(#recentViews)에만 그린다. 지금 보고 있는 공고는 빼고
+        //    오늘 것만 — 어제 것까지 쌓아 보여주면 "오늘 본"이 아니게 된다.
+        var host = document.getElementById('recentViews');
+        if (!host) return;
+
+        var currentId = marker ? marker.dataset.annId : null;
+        var today = load().filter(function (v) {
+            return isToday(v.at) && v.id !== currentId;
+        });
         if (today.length === 0) return;
 
-        var panel = document.createElement('div');
-        panel.className = 'recent-panel show';
+        var head = document.createElement('div');
+        head.className = 'sec-head';
+        var h2 = document.createElement('h2');
+        h2.textContent = '오늘 본 공고';
+        var count = document.createElement('span');
+        count.className = 'count';
+        count.textContent = today.length + '건';
+        head.appendChild(h2);
+        head.appendChild(count);
 
-        var toggle = document.createElement('button');
-        toggle.type = 'button';
-        toggle.className = 'recent-toggle';
-        toggle.textContent = '오늘 본 공고 ' + today.length;
-        toggle.setAttribute('aria-expanded', 'false');
-
-        var body = document.createElement('div');
-        body.className = 'recent-body';
-
-        var title = document.createElement('h4');
-        title.textContent = '오늘 본 공고';
-        body.appendChild(title);
-
-        var ul = document.createElement('ul');
+        var chips = document.createElement('div');
+        chips.className = 'chips';
         today.forEach(function (v) {
-            var li = document.createElement('li');
             var a = document.createElement('a');
+            a.className = 'chip';
             a.href = '/announcements/' + encodeURIComponent(v.id);
-            a.textContent = v.name || ('공고 ' + v.id);
-            li.appendChild(a);
-            ul.appendChild(li);
+            a.textContent = v.name || ('공고 ' + v.id);   // DB 값이라 textContent 로만
+            chips.appendChild(a);
         });
-        body.appendChild(ul);
+
+        host.appendChild(head);
+        host.appendChild(chips);
 
         if (today.length >= 2) {
+            var row = document.createElement('div');
+            row.className = 'btn-row';
+            row.style.marginTop = '12px';
             var compare = document.createElement('a');
             compare.className = 'btn btn-ghost';
             compare.href = '/announcements/compare?ids='
                     + today.map(function (v) { return encodeURIComponent(v.id); }).join(',');
             compare.textContent = '이 공고끼리 비교 →';
-            body.appendChild(compare);
-        } else {
-            var note = document.createElement('p');
-            note.className = 'muted';
-            note.style.margin = '0';
-            note.style.fontSize = '.8rem';
-            note.textContent = '2개 이상 보면 서로 비교할 수 있어요.';
-            body.appendChild(note);
+            row.appendChild(compare);
+            host.appendChild(row);
         }
 
-        panel.appendChild(toggle);
-        panel.appendChild(body);
-        document.body.appendChild(panel);
-
-        function setOpen(open) {
-            panel.classList.toggle('open', open);
-            toggle.setAttribute('aria-expanded', String(open));
-            try { localStorage.setItem(OPEN_KEY, open ? '1' : '0'); } catch (e) { /* 무시 */ }
-        }
-
-        var wasOpen = false;
-        try { wasOpen = localStorage.getItem(OPEN_KEY) === '1'; } catch (e) { /* 무시 */ }
-        setOpen(wasOpen);
-
-        toggle.addEventListener('click', function () {
-            setOpen(!panel.classList.contains('open'));
-        });
+        host.hidden = false;
     })();
 </script>
 
