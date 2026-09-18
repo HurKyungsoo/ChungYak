@@ -95,9 +95,6 @@
         조건에 맞는 공고가 없습니다. 필터를 바꾸거나 관리자 동기화(<code>POST /api/admin/sync</code>)를 먼저 실행하세요.
     </div>
 
-    <!-- 오늘 본 공고 — 내용은 JS 가 브라우저 저장분으로 채운다(없으면 hidden 유지) -->
-    <section id="recentViews" class="recent-strip" hidden></section>
-
     <!-- 신뢰 근거 — 목록 아래에 둔다. 처음 화면에서 실제 공고를 밀어내지 않으면서,
          "이 판정 믿어도 되나" 하고 스크롤한 사람에게는 바로 닿는 자리다.
          여기 적힌 내용은 전부 코드에 실제로 구현된 동작이다(규칙 엔진 판정 /
@@ -136,7 +133,6 @@
 <footer th:replace="~{fragments/common :: footer}"></footer>
 <script th:replace="~{fragments/common :: scrapScript}"></script>
 <script th:replace="~{fragments/common :: profileDraftScript}"></script>
-<script th:replace="~{fragments/common :: recentViewsScript}"></script>
 <script>
     // 혼인 경과 개월은 "혼인 중"일 때만 의미가 있다 — 판정 폼과 같은 토글.
     (function () {
