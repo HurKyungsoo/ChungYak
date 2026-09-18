@@ -78,7 +78,8 @@
         <a th:href="@{/general-supply}">내 가점 계산하기 →</a>
     </p>
 
-    <div class="table-scroll" th:with="visibleTypes=${announcement.visibleSupplyTypes()}">
+    <div class="table-scroll sticky-first" data-scroll-hint
+         th:with="visibleTypes=${announcement.visibleSupplyTypes()}">
         <table>
             <thead>
             <tr>
@@ -172,5 +173,6 @@
 
 <footer th:replace="~{fragments/common :: footer}"></footer>
 <script th:replace="~{fragments/common :: scrapScript}"></script>
+<script th:replace="~{fragments/common :: scrollHintScript}"></script>
 </body>
 </html>

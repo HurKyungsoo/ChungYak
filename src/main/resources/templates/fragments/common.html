@@ -279,8 +279,9 @@
         .quick-check .qc-checks input { accent-color: var(--brand); width: 16px; height: 16px; }
 
         /* ── 찜한 공고 비교 ── */
-        .compare-grid { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; margin: 16px 0; }
-        .compare-col { flex: 0 0 300px; margin: 0; }
+        .compare-grid { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; margin: 16px 0;
+                        scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+        .compare-col { flex: 0 0 300px; margin: 0; scroll-snap-align: start; }
         .compare-col .kv th { width: 92px; }
 
         .compare-bar {
@@ -441,6 +442,21 @@
         /* ── tables ────────────────────────────────────────────────── */
         .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r);
                         box-shadow: var(--shadow-sm); -webkit-overflow-scrolling: touch; }
+
+        /* 주택형 × 공급유형처럼 열이 많은 표는 좁은 화면에서 가로로 밀어 봐야 하는데,
+           그러면 지금 보는 숫자가 어느 주택형 것인지 놓친다. 첫 열(식별자)을 고정한다. */
+        .table-scroll.sticky-first thead th:first-child,
+        .table-scroll.sticky-first tbody td:first-child {
+            position: sticky; left: 0; box-shadow: 1px 0 0 var(--border);
+        }
+        .table-scroll.sticky-first tbody td:first-child { background: var(--surface); z-index: 1; }
+        .table-scroll.sticky-first thead th { z-index: 2; }
+        .table-scroll.sticky-first thead th:first-child { background: var(--surface-2); z-index: 3; }
+        .table-scroll.sticky-first tbody tr:hover td:first-child { background: var(--surface-2); }
+
+        /* 가로 스크롤은 있는 줄 모르면 없는 기능이다 — 실제로 넘칠 때만 JS 가 켠다 */
+        .scroll-hint { display: none; margin: 0 0 6px; font-size: .8rem; color: var(--text-subtle); }
+        .scroll-hint.show { display: block; }
         table { border-collapse: collapse; width: 100%; background: var(--surface); font-size: .875rem; }
         thead th {
             position: sticky; top: 0; background: var(--surface-2); color: var(--text-muted);
@@ -707,6 +723,29 @@
             document.addEventListener('scrap:changed', updateCompareBar);
             updateCompareBar();
         }
+    })();
+</script>
+
+<!-- ── 가로 스크롤 안내 — [data-scroll-hint] 요소가 실제로 넘칠 때만 안내를 켠다.
+     넘치는지는 렌더링 후에야 알 수 있어(화면 폭·열 개수에 따라 다름) CSS 로는 판단할 수 없다.
+     끝까지 밀면 다시 감춘다. ── -->
+<script th:fragment="scrollHintScript">
+    (function () {
+        document.querySelectorAll('[data-scroll-hint]').forEach(function (box) {
+            var hint = document.createElement('p');
+            hint.className = 'scroll-hint';
+            hint.textContent = '좌우로 밀어서 더 볼 수 있어요 →';
+            box.parentNode.insertBefore(hint, box);
+
+            var update = function () {
+                var overflowing = box.scrollWidth - box.clientWidth > 4;
+                var atEnd = box.scrollLeft + box.clientWidth >= box.scrollWidth - 4;
+                hint.classList.toggle('show', overflowing && !atEnd);
+            };
+            box.addEventListener('scroll', update, { passive: true });
+            window.addEventListener('resize', update);
+            update();
+        });
     })();
 </script>
 

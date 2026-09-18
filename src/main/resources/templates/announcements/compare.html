@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    <div class="compare-grid" th:if="${rows.size() >= 2}">
+    <div class="compare-grid" data-scroll-hint th:if="${rows.size() >= 2}">
         <div class="compare-col card" th:each="row : ${rows}">
             <div class="chips" style="margin-bottom:8px">
                 <span class="chip">
@@ -80,5 +80,6 @@
 
 <footer th:replace="~{fragments/common :: footer}"></footer>
 <script th:replace="~{fragments/common :: scrapScript}"></script>
+<script th:replace="~{fragments/common :: scrollHintScript}"></script>
 </body>
 </html>
