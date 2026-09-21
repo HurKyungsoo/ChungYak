@@ -717,6 +717,9 @@
         .cal-event.start { background: var(--brand-weak); color: var(--brand); }
         .cal-event.end   { background: var(--warn-weak); color: var(--warn); }
 
+        /* 하단 탭바는 좁은 화면에서만 — 넓은 화면은 헤더 nav 로 충분하다 */
+        .bottom-nav { display: none; }
+
         @media (max-width: 560px) {
             .site-header nav a { padding: 7px 9px; }
             main { padding: 20px 16px 60px; }
@@ -726,26 +729,100 @@
             .btn-row .btn { width: auto; flex: 0 1 auto; white-space: nowrap; }
             .cal-day { min-height: 60px; padding: 4px; }
             .cal-event { font-size: .6rem; padding: 1px 4px; }
+
+            /* 같은 메뉴를 위아래 두 번 두지 않는다 — 좁은 화면에서는 탭바만 남긴다 */
+            .site-header nav { display: none; }
+            .bottom-nav {
+                position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+                display: flex; background: var(--surface); border-top: 1px solid var(--border);
+                padding-bottom: env(safe-area-inset-bottom, 0px);
+            }
+            .bottom-nav a {
+                flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+                padding: 8px 4px 9px; font-size: .68rem; font-weight: 600;
+                color: var(--text-subtle); white-space: nowrap;
+            }
+            .bottom-nav a:hover { text-decoration: none; }
+            .bottom-nav a svg { width: 22px; height: 22px; }
+            .bottom-nav a.active { color: var(--brand); }
+
+            /* 탭바에 가리지 않게 바닥을 비우고, 떠 있는 "비교하기" 바도 탭바 위로 올린다 */
+            .site-footer .inner { padding-bottom: 96px; }
+            .compare-bar { bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+            /* 비교 바까지 떠 있으면 탭바 위로 한 층 더 쌓이므로 그만큼 더 비운다 */
+            body.has-compare-bar .site-footer .inner { padding-bottom: 150px; }
         }
     </style>
 </head>
 <body>
 
-<!-- ── site header ── -->
-<header th:fragment="header" class="site-header">
-    <div class="inner">
-        <a th:href="@{/announcements}" class="brand">
-            <img th:src="@{/favicon.svg}" class="brand-logo" alt="청약나침반 로고" width="24" height="24">
-            <span>청약나침반</span>
+<!-- ── site header + 하단 탭바 ──
+     좁은 화면에서는 헤더 nav 네 개가 130px 모자라 가로로 밀렸다(390px 실측: 필요 349px /
+     가용 219px). 항목을 빼는 대신, 엄지로 닿는 아래쪽에 네 개를 그대로 펼치고 헤더 nav 는
+     숨긴다. 넓은 화면은 지금까지처럼 헤더 nav 만 쓴다(탭바는 안 보인다). -->
+<th:block th:fragment="header">
+    <header class="site-header">
+        <div class="inner">
+            <a th:href="@{/announcements}" class="brand">
+                <img th:src="@{/favicon.svg}" class="brand-logo" alt="청약나침반 로고" width="24" height="24">
+                <span>청약나침반</span>
+            </a>
+            <nav>
+                <a th:href="@{/announcements}">공고 목록</a>
+                <a th:href="@{/match}">내 조건으로 찾기</a>
+                <a th:href="@{/announcements/calendar}">청약 캘린더</a>
+                <a th:href="@{/general-supply}">가점 계산</a>
+            </nav>
+        </div>
+    </header>
+
+    <nav class="bottom-nav" id="bottomNav">
+        <a th:href="@{/announcements}" data-match="/announcements">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 6h16M4 12h16M4 18h10"/>
+            </svg>
+            <span>공고 목록</span>
         </a>
-        <nav>
-            <a th:href="@{/announcements}">공고 목록</a>
-            <a th:href="@{/match}">내 조건으로 찾기</a>
-            <a th:href="@{/announcements/calendar}">청약 캘린더</a>
-            <a th:href="@{/general-supply}">가점 계산</a>
-        </nav>
-    </div>
-</header>
+        <a th:href="@{/match}" data-match="/match">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="6"/><path d="m20 20-3.6-3.6"/>
+            </svg>
+            <span>조건 찾기</span>
+        </a>
+        <a th:href="@{/announcements/calendar}" data-match="/announcements/calendar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/>
+            </svg>
+            <span>캘린더</span>
+        </a>
+        <a th:href="@{/general-supply}" data-match="/general-supply">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="5" y="3" width="14" height="18" rx="2.5"/>
+                <path d="M9 7.5h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01"/>
+            </svg>
+            <span>가점 계산</span>
+        </a>
+    </nav>
+    <script>
+        /* 지금 보고 있는 화면의 탭을 표시한다. /announcements 와 /announcements/calendar 처럼
+           앞부분이 겹치는 경로가 있어 "가장 길게 맞는 것"을 고른다. */
+        (function () {
+            var nav = document.getElementById('bottomNav');
+            if (!nav) return;
+            var path = location.pathname, best = null, bestLen = -1;
+            Array.prototype.forEach.call(nav.querySelectorAll('a[data-match]'), function (a) {
+                var m = a.dataset.match;
+                var hit = path === m || path.indexOf(m + '/') === 0;
+                if (hit && m.length > bestLen) { best = a; bestLen = m.length; }
+            });
+            if (best) best.classList.add('active');
+        })();
+    </script>
+</th:block>
 
 <!-- ── disclaimer (본문 하단) ── -->
 <div th:fragment="disclaimer" class="disclaimer">
@@ -934,6 +1011,9 @@
                 } else {
                     bar.classList.remove('show');
                 }
+                // 바가 떠 있을 때만 바닥을 더 비운다 — 늘 비워 두면 찜이 없는 사람에게는
+                // 빈 공간만 남는다(모바일은 아래에 탭바까지 있어 더 좁다).
+                document.body.classList.toggle('has-compare-bar', scraps.size >= 2);
             };
             document.addEventListener('scrap:changed', updateCompareBar);
             updateCompareBar();
