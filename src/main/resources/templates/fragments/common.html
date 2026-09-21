@@ -738,6 +738,7 @@
                 padding-bottom: env(safe-area-inset-bottom, 0px);
             }
             .bottom-nav a {
+                position: relative;
                 flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
                 padding: 8px 4px 9px; font-size: .68rem; font-weight: 600;
                 color: var(--text-subtle); white-space: nowrap;
@@ -745,12 +746,21 @@
             .bottom-nav a:hover { text-decoration: none; }
             .bottom-nav a svg { width: 22px; height: 22px; }
             .bottom-nav a.active { color: var(--brand); }
+            /* .bottom-nav a 의 display:flex 가 [hidden] 의 display:none 을 이긴다 — 명시해 준다 */
+            .bottom-nav a[hidden] { display: none; }
+            .bottom-nav .tab-badge {
+                position: absolute; top: 3px; left: 50%; margin-left: 4px;
+                min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px;
+                background: var(--brand); color: #fff;
+                font-size: .6rem; font-weight: 700; line-height: 17px; text-align: center;
+            }
 
-            /* 탭바에 가리지 않게 바닥을 비우고, 떠 있는 "비교하기" 바도 탭바 위로 올린다 */
+            /* 탭바에 "비교"가 들어왔으니 같은 걸 알리는 바를 겹쳐 띄우지 않는다.
+               (넓은 화면에는 탭바가 없으므로 거기서는 그대로 띄운다) */
+            .compare-bar.show { display: none; }
+
+            /* 탭바에 가리지 않게 바닥을 비운다 */
             .site-footer .inner { padding-bottom: 96px; }
-            .compare-bar { bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
-            /* 비교 바까지 떠 있으면 탭바 위로 한 층 더 쌓이므로 그만큼 더 비운다 */
-            body.has-compare-bar .site-footer .inner { padding-bottom: 150px; }
         }
     </style>
 </head>
@@ -806,13 +816,26 @@
             </svg>
             <span>가점 계산</span>
         </a>
+        <!-- 비교는 찜이 2개 이상일 때만 나타난다 — 탭이 생기는 순간이 "이제 비교할 수 있다"는
+             신호가 되어, 떠 있던 바가 하던 역할을 대신한다. 늘 띄워 두면 처음 온 사람은
+             눌러도 빈 화면만 보는 막다른 탭이 된다. -->
+        <a id="bottomNavCompare" th:href="@{/announcements/compare}" data-match="/announcements/compare" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3.5" y="5" width="7" height="14" rx="1.5"/>
+                <rect x="13.5" y="5" width="7" height="14" rx="1.5"/>
+            </svg>
+            <span class="tab-badge">2</span>
+            <span>비교</span>
+        </a>
     </nav>
     <script>
-        /* 지금 보고 있는 화면의 탭을 표시한다. /announcements 와 /announcements/calendar 처럼
-           앞부분이 겹치는 경로가 있어 "가장 길게 맞는 것"을 고른다. */
         (function () {
             var nav = document.getElementById('bottomNav');
             if (!nav) return;
+
+            /* 지금 보고 있는 화면의 탭을 표시한다. /announcements 와 /announcements/calendar 처럼
+               앞부분이 겹치는 경로가 있어 "가장 길게 맞는 것"을 고른다. */
             var path = location.pathname, best = null, bestLen = -1;
             Array.prototype.forEach.call(nav.querySelectorAll('a[data-match]'), function (a) {
                 var m = a.dataset.match;
@@ -820,6 +843,22 @@
                 if (hit && m.length > bestLen) { best = a; bestLen = m.length; }
             });
             if (best) best.classList.add('active');
+
+            /* 비교 탭의 등장·숫자. 찜을 읽는 코드는 scrapScript 에도 있지만 그건 목록·상세·비교
+               세 화면에만 들어간다 — 탭바는 모든 화면에 있으므로 탭이 화면마다 생겼다 사라지지
+               않도록 여기서 직접 읽는다(읽기만 하고 쓰지 않는다). */
+            var tab = document.getElementById('bottomNavCompare');
+            if (!tab) return;
+            var sync = function () {
+                var ids = [];
+                try { ids = JSON.parse(localStorage.getItem('chungyak:scraps') || '[]'); } catch (e) { ids = []; }
+                tab.hidden = ids.length < 2;
+                tab.href = '/announcements/compare?ids=' + ids.join(',');
+                tab.querySelector('.tab-badge').textContent = ids.length;
+            };
+            sync();
+            /* 같은 화면에서 찜을 껐다 켜면 바로 반영된다(scrapScript 가 쏘는 신호). */
+            document.addEventListener('scrap:changed', sync);
         })();
     </script>
 </th:block>
@@ -1011,9 +1050,6 @@
                 } else {
                     bar.classList.remove('show');
                 }
-                // 바가 떠 있을 때만 바닥을 더 비운다 — 늘 비워 두면 찜이 없는 사람에게는
-                // 빈 공간만 남는다(모바일은 아래에 탭바까지 있어 더 좁다).
-                document.body.classList.toggle('has-compare-bar', scraps.size >= 2);
             };
             document.addEventListener('scrap:changed', updateCompareBar);
             updateCompareBar();
