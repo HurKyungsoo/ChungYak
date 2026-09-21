@@ -95,19 +95,27 @@
         }
         .site-header .inner {
             max-width: var(--maxw); margin: 0 auto; padding: 0 20px;
-            height: 58px; display: flex; align-items: center; gap: 22px;
+            height: 58px; display: flex; align-items: center; gap: 14px;
         }
+        /* 로고·nav 글자는 절대 줄바꿈하지 않는다 — 좁은 화면에서 헤더 높이가
+           58px 를 넘겨 늘어나는 대신, nav 를 가로로 스크롤하게 한다. */
         .brand { display: flex; align-items: center; gap: 9px; font-weight: 750;
-                 color: var(--text); letter-spacing: -0.02em; font-size: 1.02rem; }
+                 color: var(--text); letter-spacing: -0.02em; font-size: 1.02rem;
+                 flex: none; white-space: nowrap; }
         .brand:hover { text-decoration: none; }
         .brand .brand-logo { width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0; display: block; }
         .brand .mark { width: 22px; height: 22px; display: grid; place-items: center;
                        background: var(--brand); color: var(--on-brand); border-radius: 7px;
                        font-size: 13px; font-weight: 800; }
-        .site-header nav { display: flex; gap: 4px; margin-left: auto; }
+        .site-header nav {
+            display: flex; gap: 4px; margin-left: auto;
+            overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
+        }
+        .site-header nav::-webkit-scrollbar { display: none; }
         .site-header nav a {
             color: var(--text-muted); font-size: .9rem; font-weight: 550;
             padding: 7px 12px; border-radius: var(--r-sm);
+            flex: none; white-space: nowrap;
         }
         .site-header nav a:hover { color: var(--text); background: var(--surface-2); text-decoration: none; }
 
@@ -387,8 +395,12 @@
             background: var(--text); color: var(--surface); padding: 11px 18px;
             border-radius: var(--r-pill); box-shadow: var(--shadow);
             font-size: .88rem; font-weight: 650; white-space: nowrap;
+            transition: transform .18s ease, opacity .18s ease;
         }
         .compare-bar.show { display: inline-flex; }
+        /* 아래로 스크롤하는 동안(=읽는 중)은 잠시 치워서 콘텐츠를 안 가린다.
+           위로 스크롤하거나 멈추면 다시 보인다. */
+        .compare-bar.hide-scroll { transform: translateX(-50%) translateY(140%); opacity: 0; }
         .compare-bar a { color: inherit; text-decoration: underline; }
         .compare-bar button {
             background: none; border: 0; color: inherit; opacity: .7; cursor: pointer;
@@ -667,7 +679,9 @@
             .site-header nav a { padding: 7px 9px; }
             main { padding: 20px 16px 60px; }
             .btn { width: 100%; }
-            .btn-row .btn { width: auto; flex: 1; }
+            /* 버튼 글자를 줄바꿈시켜 억지로 한 줄에 욱여넣지 않는다 — 자연스러운 폭을 유지하고
+               다 안 들어가면(.btn-row 는 flex-wrap:wrap) 다음 줄로 넘어가게 한다. */
+            .btn-row .btn { width: auto; flex: 0 1 auto; white-space: nowrap; }
             .cal-day { min-height: 60px; padding: 4px; }
             .cal-event { font-size: .6rem; padding: 1px 4px; }
         }
@@ -881,6 +895,28 @@
             };
             document.addEventListener('scrap:changed', updateCompareBar);
             updateCompareBar();
+
+            // 아래로 스크롤할 때만 잠시 숨긴다 — 콘텐츠를 읽는 도중 가리지 않기 위함.
+            // 위로 스크롤하거나 맨 위/아래 근처에서는 항상 보인다.
+            var lastY = window.scrollY;
+            var ticking = false;
+            window.addEventListener('scroll', function () {
+                if (ticking) return;
+                ticking = true;
+                requestAnimationFrame(function () {
+                    var y = window.scrollY;
+                    var scrollingDown = y > lastY + 4;
+                    var scrollingUp = y < lastY - 4;
+                    var nearBottom = y + window.innerHeight >= document.body.scrollHeight - 40;
+                    if (scrollingDown && y > 80 && !nearBottom) {
+                        bar.classList.add('hide-scroll');
+                    } else if (scrollingUp || nearBottom || y <= 80) {
+                        bar.classList.remove('hide-scroll');
+                    }
+                    lastY = y;
+                    ticking = false;
+                });
+            }, { passive: true });
         }
     })();
 </script>
