@@ -58,6 +58,23 @@
                 <span th:unless="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}"
                       class="subtle">비규제 (청약통장 6개월)</span>
             </td></tr>
+            <!-- 아래 네 줄은 공고에 값이 없는 경우가 있어(특히 LH) 있을 때만 보여준다.
+                 문의처는 폰에서 한 번 탭으로 걸리도록 tel: 링크로 둔다. -->
+            <tr th:if="${announcement.inquiryTel != null and !announcement.inquiryTel.isBlank()}">
+                <th>문의처</th>
+                <td><a th:href="'tel:' + ${announcement.inquiryTel}" th:text="${inquiryTelDisplay}">1522-0125</a></td>
+            </tr>
+            <tr th:if="${announcement.homepageUrl != null and !announcement.homepageUrl.isBlank()}">
+                <th>홈페이지</th>
+                <td><a th:href="${announcement.homepageUrl}" target="_blank" rel="noopener"
+                       th:text="${announcement.homepageUrl}">분양 홈페이지</a></td>
+            </tr>
+            <tr th:if="${announcement.developerName != null and !announcement.developerName.isBlank()}">
+                <th>시행사</th><td th:text="${announcement.developerName}">시행사명</td>
+            </tr>
+            <tr th:if="${announcement.constructorName != null and !announcement.constructorName.isBlank()}">
+                <th>시공사</th><td th:text="${announcement.constructorName}">시공사명</td>
+            </tr>
         </table>
     </div>
 
