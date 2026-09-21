@@ -849,16 +849,43 @@
                않도록 여기서 직접 읽는다(읽기만 하고 쓰지 않는다). */
             var tab = document.getElementById('bottomNavCompare');
             if (!tab) return;
+
+            function read(key) {
+                try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return []; }
+            }
+
+            function isToday(ts) {
+                var d = new Date(ts), n = new Date();
+                return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth()
+                        && d.getDate() === n.getDate();
+            }
+
+            /* 비교 대상 = 찜 + 오늘 본 공고.
+               "오늘 본 공고끼리 비교"는 상세 화면 우측 rail 에도 있지만, 좁은 화면에서는 rail 이
+               본문 아래로 풀려 상단에서 1,400px 넘게 내려가 손이 닿지 않는다. 게다가 목록·캘린더
+               에는 그 진입점이 아예 없다 — 찜을 안 하고 둘러보기만 한 사람도 들어올 수 있게
+               탭이 그 몫까지 맡는다.
+               서버가 6개까지만 비교하므로 여기서도 6에서 끊는다(배지 숫자와 실제 열 수를 맞춘다). */
+            function comparePool() {
+                var ids = read('chungyak:scraps').map(String);
+                read('chungyak:recentViews').forEach(function (v) {
+                    if (!v || !v.id || !isToday(v.at)) return;
+                    if (ids.indexOf(String(v.id)) < 0) ids.push(String(v.id));
+                });
+                return ids.slice(0, 6);
+            }
+
             var sync = function () {
-                var ids = [];
-                try { ids = JSON.parse(localStorage.getItem('chungyak:scraps') || '[]'); } catch (e) { ids = []; }
+                var ids = comparePool();
                 tab.hidden = ids.length < 2;
                 tab.href = '/announcements/compare?ids=' + ids.join(',');
                 tab.querySelector('.tab-badge').textContent = ids.length;
             };
             sync();
-            /* 같은 화면에서 찜을 껐다 켜면 바로 반영된다(scrapScript 가 쏘는 신호). */
+            /* 같은 화면에서 찜을 껐다 켜거나(scrapScript), 본 기록이 남는 즉시(recentViewsScript)
+               반영된다 — 두 스크립트 모두 이 헤더 스크립트보다 나중에 돌기 때문에 신호가 필요하다. */
             document.addEventListener('scrap:changed', sync);
+            document.addEventListener('recent:changed', sync);
         })();
     </script>
 </th:block>
@@ -1098,6 +1125,9 @@
 
         function save(list) {
             try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) { /* 무시 */ }
+            /* 하단 탭바의 "비교"가 이 목록도 센다 — 이 스크립트가 헤더 스크립트보다 나중에
+               돌므로, 기록한 사실을 알려 주지 않으면 탭 숫자가 한 박자 늦는다. */
+            document.dispatchEvent(new CustomEvent('recent:changed'));
         }
 
         function isToday(ts) {
