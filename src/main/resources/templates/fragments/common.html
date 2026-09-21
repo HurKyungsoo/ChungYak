@@ -343,11 +343,29 @@
                                         font-size: .9rem; font-weight: 600; cursor: pointer; }
         .quick-check .qc-checks input { accent-color: var(--brand); width: 16px; height: 16px; }
 
-        /* ── 찜한 공고 비교 ── */
-        .compare-grid { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; margin: 16px 0;
-                        scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
-        .compare-col { flex: 0 0 300px; margin: 0; scroll-snap-align: start; }
-        .compare-col .kv th { width: 92px; }
+        /* ── 찜한 공고 비교 ── 항목(행) x 공고(열) 표. 첫 칼럼(항목명)을 고정해 두고
+           공고 칼럼만 밀어서 본다 — 카드를 나란히 두면 좁은 화면에서 하나만 보여
+           "비교"가 안 됐다. 항목명이 항상 보이면 스와이프하며 봐도 안 헷갈린다. */
+        .compare-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch;
+            border: 1px solid var(--border); border-radius: var(--r); margin: 16px 0; background: var(--surface); }
+        .compare-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: .88rem; }
+        .compare-table th, .compare-table td { padding: 10px 14px; border-bottom: 1px solid var(--border);
+            vertical-align: top; text-align: left; }
+        .compare-table tbody tr:last-child th, .compare-table tbody tr:last-child td { border-bottom: 0; }
+        .compare-label-col {
+            position: sticky; left: 0; z-index: 2; background: var(--surface);
+            font-weight: 600; color: var(--text-muted); white-space: nowrap;
+            border-right: 1px solid var(--border);
+        }
+        thead .compare-label-col { background: var(--surface-2); z-index: 3; }
+        .compare-value-col { min-width: 220px; }
+        .compare-value-col .col-head { display: flex; align-items: flex-start; gap: 8px; }
+        .compare-value-col .col-head .name { flex: 1; min-width: 0; font-size: .98rem; font-weight: 650; }
+        .compare-value-col .col-head .name a { color: var(--text); }
+
+        .compare-unit-detail { display: grid; gap: 8px; margin-top: 14px; }
+        .compare-unit-detail .reasons-fold { background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--r); padding: 12px 16px; }
 
         /* 비교 카드 안의 "내 조건 판정" 블록 — 되는 쪽/안 되는 쪽을 색으로 구분 */
         .match-box { border-radius: var(--r-sm); padding: 10px 12px; margin-bottom: 12px; font-size: .86rem; }
