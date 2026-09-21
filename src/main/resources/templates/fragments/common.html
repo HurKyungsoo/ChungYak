@@ -413,6 +413,18 @@
                   font-size: .72rem; line-height: 1; padding: 3px; border-radius: 4px; }
         .chip-x:hover { color: var(--no); background: var(--no-weak); }
 
+        /* 손가락으로 누르는 화면에서는 작은 아이콘 버튼(찜 하트 28px, 빼기 ✕ 20px 남짓)의
+           실제 탭 영역만 투명하게 넓힌다 — 보이는 크기는 그대로라 레이아웃이 안 흔들린다.
+           ✕ 는 누르면 카드가 지워지는 동작이라, 옆 링크를 덮지 않도록 조금 작게 잡는다. */
+        @media (hover: none) {
+            .scrap-btn, .chip-x { position: relative; }
+            .scrap-btn::after, .chip-x::after {
+                content: ""; position: absolute; top: 50%; left: 50%;
+                transform: translate(-50%, -50%); width: 44px; height: 44px;
+            }
+            .chip-x::after { width: 38px; height: 38px; }
+        }
+
         .compare-bar {
             position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
             z-index: 40; display: none; align-items: center; gap: 12px;
@@ -558,10 +570,16 @@
         .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 16px; }
         .check { display: flex; align-items: flex-start; gap: 9px; margin: 11px 0; font-size: .9rem; cursor: pointer; }
         .check input { margin-top: 3px; }
-        input[type=number], input[type=text], textarea, select {
-            width: 100%; font-family: inherit; font-size: .92rem; color: var(--text);
+        /* 기본 16px 인 이유: iOS 사파리는 글자가 16px 미만인 입력창을 누르면 화면을 자동으로
+           확대한다 — 판정 폼처럼 필드가 20개 넘는 화면에서는 칸을 옮길 때마다 확대되고
+           사용자가 손으로 되돌려야 한다. 마우스를 쓰는 화면에서만 원래의 촘촘한 크기로 줄인다. */
+        input[type=number], input[type=text], input[type=email], textarea, select {
+            width: 100%; font-family: inherit; font-size: 16px; color: var(--text);
             background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--r-sm);
             padding: 9px 11px; transition: border-color .12s, box-shadow .12s;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            input[type=number], input[type=text], input[type=email], textarea, select { font-size: .92rem; }
         }
         input:focus, textarea:focus, select:focus {
             outline: none; border-color: var(--brand);
