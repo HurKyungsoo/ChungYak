@@ -14,6 +14,7 @@ import com.portfolio.chungyak.service.AnnouncementQueryService;
 import com.portfolio.chungyak.web.form.EligibilityForm;
 import com.portfolio.chungyak.web.view.AnnouncementCompareRow;
 import com.portfolio.chungyak.web.view.AnnouncementListRow;
+import com.portfolio.chungyak.web.view.AnnouncementListSort;
 import com.portfolio.chungyak.web.view.CalendarView;
 import com.portfolio.chungyak.web.view.Dday;
 import com.portfolio.chungyak.web.view.PhoneNumbers;
@@ -62,16 +63,20 @@ public class AnnouncementController {
     public String list(@RequestParam(required = false) String region,
                        @RequestParam(required = false) String detailType,
                        @RequestParam(required = false) String q,
+                       @RequestParam(required = false) String sort,
                        Model model) {
         HouseDetailType parsedDetailType = parseDetailType(detailType);
         List<Announcement> announcements = queryService.findOpenOrUpcoming(region, parsedDetailType, q);
 
         LocalDate today = queryService.today();
-        List<AnnouncementListRow> rows = announcements.stream()
+        AnnouncementListSort parsedSort = AnnouncementListSort.from(sort);
+        List<AnnouncementListRow> rows = parsedSort.apply(announcements.stream()
                 .map(a -> AnnouncementListRow.of(a, queryService.statusOf(a), today))
-                .toList();
+                .toList());
 
         model.addAttribute("rows", rows);
+        model.addAttribute("sorts", AnnouncementListSort.values());
+        model.addAttribute("selectedSort", parsedSort);
         model.addAttribute("totalCount", queryService.totalCount());
         model.addAttribute("regions", queryService.availableRegions());
         model.addAttribute("detailTypes", HouseDetailType.values());

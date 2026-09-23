@@ -55,6 +55,10 @@
                     th:value="${d.name()}" th:text="${d.label}"
                     th:selected="${d == selectedDetailType}">민영</option>
         </select>
+        <select name="sort">
+            <option th:each="s : ${sorts}" th:value="${s.name()}" th:text="${s.label}"
+                    th:selected="${s == selectedSort}">마감 임박순</option>
+        </select>
         <button type="submit" class="btn btn-ghost">필터 적용</button>
         <label class="scrap-filter">
             <input type="checkbox" id="scrapFilterToggle">
