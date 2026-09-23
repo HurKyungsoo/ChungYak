@@ -97,6 +97,17 @@
 - `HSSPLY_ADRES` 에 "전남광주통합특별시" 같은 통합 명칭이 들어온다.
   지역 필터는 `SUBSCRPT_AREA_CODE_NM` 을 쓸 것.
 - null 이 흔한 필드: `NSPRC_NM`, `SPSPLY_RCEPT_*`, `GNRL_RNK1_ETC_GG_*`
+- **신혼희망타운 공고에는 유형별 배정 세대수가 아예 없다.** DB 확인(2026-09-23):
+  `HOUSE_TYPE='NEWLYWED_HOPE_TOWN'` 99공고·주택형 199개에서 `SPECIAL_SUPPLY_COUNT`
+  합계는 13,430세대인데 `NEWLYWED`·`NEWLYWED_HOPE_TOWN` 등 유형별 컬럼은 전부 0 이다.
+  청약홈이 이 공고 유형에는 총 특공 세대수만 주기 때문에 `ApplyhomeClient.reclassifyForHopeTown`
+  은 옮길 값이 없어 한 번도 발동하지 않는다(코드가 틀린 게 아니라 원본에 값이 없는 것).
+  → 총계를 희망타운 배정으로 단정하지 말 것. 신혼희망타운은 우선공급/잔여공급 구조라
+  특공 총계와 유형 배정이 같지 않다. 화면은 "세대수를 세지 못했다"고 밝히고 공고문으로 넘긴다.
+- 분양가(`LTTOT_TOP_AMOUNT` -> `UnitType.topAmount`)는 **만원 단위**이고 주택형 14,713건
+  전부 채워져 있다(2026-09-23, 범위 116 ~ 1,600,000). 층·향과 무관한 **최고** 공급금액이라
+  화면 라벨에 "(최고)"를 붙인다. `SUPLY_AR` 은 전용이 아니라 **공급면적**이다
+  (084.8508 타입의 값이 109.57 로 전용 84.85 보다 크다) — 평당가는 이걸로 나눈다.
 
 ## 하지 말 것
 
@@ -125,5 +136,8 @@
 
 1. LH 목록 API 활용신청 (포털 버튼 404 로 막혀 있음) -> 승인되면 `LhClient` 추가
 2. 벡터 검색 — LH 공고내용(4000자) 임베딩 + 하이브리드 검색
-3. 신혼희망타운 — 별도 `SpecialSupplyType` + 규칙 (현재 엔진이 매칭 못 냄)
+3. ~~신혼희망타운 — 별도 `SpecialSupplyType` + 규칙~~ 완료.
+   `SpecialSupplyType.NEWLYWED_HOPE_TOWN` + `NewlywedHopeTownRule` + 두 클라이언트의
+   `reclassifyForHopeTown` 까지 있다. 남은 건 코드가 아니라 **원본 데이터**다 —
+   위 "데이터에서 확인된 사실" 참고(유형별 세대수가 오지 않아 배정이 늘 0 이다).
 5. Docker + CI + 배포
