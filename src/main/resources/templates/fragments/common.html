@@ -1295,6 +1295,39 @@
     })();
 </script>
 
+<!-- ── 고르면 바로 반영 — data-auto-apply 가 붙은 필터 폼의 select 를 바꾸면 버튼을 누르지
+     않아도 그 자리에서 다시 조회한다. 속성값은 이동 후 머물 앵커(예: "#list")다 — 필터 바는
+     화면 중간에 있어서 그냥 제출하면 맨 위 히어로로 튕겨 고른 자리를 잃는다.
+     빈 값은 URL 에 남기지 않는다(주소가 길어지기만 하고 뜻이 같다). ── -->
+<script th:fragment="filterAutoApplyScript">
+    (function () {
+        var form = document.querySelector('form[data-auto-apply]');
+        if (!form) return;
+
+        var anchor = form.getAttribute('data-auto-apply') || '';
+
+        function go() {
+            var params = new URLSearchParams();
+            new FormData(form).forEach(function (value, key) {
+                if (String(value).trim() !== '') params.set(key, value);
+            });
+            var query = params.toString();
+            location.href = form.getAttribute('action') + (query ? '?' + query : '') + anchor;
+        }
+
+        form.querySelectorAll('select').forEach(function (select) {
+            select.addEventListener('change', go);
+        });
+
+        // 검색어 엔터도 같은 길로 보낸다 — 그냥 두면 고른 값은 제자리에 머무는데 검색만
+        // 맨 위로 튕겨 같은 바에서 동작이 또 갈린다. JS 가 없으면 원래대로 폼이 제출된다.
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            go();
+        });
+    })();
+</script>
+
 <!-- ── 판정 조건 기억 스크립트 — 로그인 없이 이 브라우저에만 마지막으로 제출한 조건을 저장한다.
      서버는 이 값을 전혀 모른다(소득·자산도 브라우저 밖으로 나가지 않는다). 20+ 필드를 매번
      다시 입력하는 게 최대 이탈 포인트라 판정/찾기 폼 둘 다에 붙인다. 자연어 추출로 채워진

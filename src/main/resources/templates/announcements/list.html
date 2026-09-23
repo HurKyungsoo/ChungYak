@@ -41,8 +41,12 @@
         <span class="count" id="listCount" th:text="|${rows.size()}건|">9건</span>
     </div>
 
-    <form class="filter-bar" method="get" th:action="@{/announcements}">
-        <input type="text" name="q" th:value="${selectedKeyword}" placeholder="공고명 검색"
+    <!-- 고르는 항목(지역·주택유형·정렬)은 바꾸는 즉시 반영한다 — 같은 바의 "찜한 공고만 보기"가
+         이미 그렇게 동작해서, 버튼을 따로 눌러야 하는 쪽과 섞이면 어느 쪽인지 알 수 없었다.
+         검색어는 엔터로 제출한다(입력 중간에 새로고침되면 안 된다). JS 가 없으면 엔터 한 번으로
+         고른 값까지 같이 제출되므로 막히지는 않는다. -->
+    <form class="filter-bar" method="get" th:action="@{/announcements}" data-auto-apply="#list">
+        <input type="text" name="q" th:value="${selectedKeyword}" placeholder="공고명 검색 (Enter)"
                style="flex:1;min-width:160px;">
         <select name="region">
             <option value="">지역 전체</option>
@@ -59,7 +63,11 @@
             <option th:each="s : ${sorts}" th:value="${s.name()}" th:text="${s.label}"
                     th:selected="${s == selectedSort}">마감 임박순</option>
         </select>
-        <button type="submit" class="btn btn-ghost">필터 적용</button>
+        <!-- 링크여야 한다 — 폼 안에 submit 버튼을 두면 검색어 입력 후 엔터가 이 버튼으로 걸려
+             검색 대신 초기화가 된다. 거를 게 없을 때는 눌러도 달라지는 게 없어 숨긴다. -->
+        <a th:if="${!#strings.isEmpty(selectedKeyword) or !#strings.isEmpty(selectedRegion)
+                   or selectedDetailType != null or selectedSort.name() != 'DEADLINE'}"
+           th:href="@{/announcements}" class="btn btn-ghost">초기화</a>
         <label class="scrap-filter">
             <input type="checkbox" id="scrapFilterToggle">
             <span><span class="heart-icon"></span> 찜한 공고만 보기</span>
@@ -136,6 +144,7 @@
 
 <footer th:replace="~{fragments/common :: footer}"></footer>
 <script th:replace="~{fragments/common :: scrapScript}"></script>
+<script th:replace="~{fragments/common :: filterAutoApplyScript}"></script>
 <script th:replace="~{fragments/common :: profileDraftScript}"></script>
 <script>
     // 혼인 경과 개월은 "혼인 중"일 때만 의미가 있다 — 판정 폼과 같은 토글.
