@@ -98,7 +98,7 @@
                     <span class="hint">국민주택 — 12회 이상, 규제지역 24회</span>
                 </label>
                 <label class="field" th:unless="${isPublic}"><span class="lbl">예치금 (원) <span class="req-badge">필수</span></span>
-                    <input type="number" min="0" step="100000" th:field="*{accountDeposit}" placeholder="예: 3000000" class="currency-input">
+                    <input type="text" inputmode="numeric" th:field="*{accountDeposit}" placeholder="예: 3,000,000" class="currency-input">
                     <span class="currency-helper"></span>
                     <span class="hint">민영 — 서울·부산 전용 85㎡ 이하 300만</span>
                 </label>
@@ -134,16 +134,16 @@
             </p>
             <div class="field-grid">
                 <label class="field"><span class="lbl">가구 월평균소득 (원, 세전) <span class="req-badge">필수</span></span>
-                    <input type="number" min="0" step="10000" th:field="*{monthlyHouseholdIncome}" placeholder="예: 6000000" class="currency-input">
+                    <input type="text" inputmode="numeric" th:field="*{monthlyHouseholdIncome}" placeholder="예: 6,000,000" class="currency-input">
                     <span class="currency-helper"></span>
                 </label>
                 <!-- 자산 요건은 공공주택 특공에만 있다 (AssetRequirement) — 민영 공고에서는 안 쓰는 입력을 숨긴다 -->
                 <label class="field" th:if="${isPublic}"><span class="lbl">총자산 (원) <span class="req-badge">필수</span></span>
-                    <input type="number" min="0" step="1000000" th:field="*{totalAssets}" placeholder="예: 300000000" class="currency-input">
+                    <input type="text" inputmode="numeric" th:field="*{totalAssets}" placeholder="예: 3억 (300,000,000)" class="currency-input">
                     <span class="currency-helper"></span>
                 </label>
                 <label class="field" th:if="${isPublic}"><span class="lbl">자동차가액 (원) <span class="req-badge">필수</span></span>
-                    <input type="number" min="0" step="100000" th:field="*{carValue}" placeholder="예: 20000000" class="currency-input">
+                    <input type="text" inputmode="numeric" th:field="*{carValue}" placeholder="예: 20,000,000" class="currency-input">
                     <span class="currency-helper"></span>
                 </label>
             </div>
@@ -173,32 +173,9 @@
     <div th:replace="~{fragments/common :: disclaimer}"></div>
 </main>
 
+<script th:replace="~{fragments/common :: currencyInputScript}"></script>
 <script>
-    // 1. 한국 원화 단위 실시간 포맷팅 (억/만 원)
-    function formatKoreanWon(val) {
-        const num = parseInt(val, 10);
-        if (!num || isNaN(num) || num <= 0) return '';
-        let str = '';
-        const eok = Math.floor(num / 100000000);
-        const man = Math.floor((num % 100000000) / 10000);
-        const remainder = num % 10000;
-        if (eok > 0) str += eok.toLocaleString() + '억 ';
-        if (man > 0) str += man.toLocaleString() + '만 ';
-        if (remainder > 0 && eok === 0 && man === 0) str += remainder.toLocaleString() + ' ';
-        return str ? '≈ ' + str.trim() + '원' : '';
-    }
-
-    document.querySelectorAll('.currency-input').forEach(input => {
-        const helper = input.parentElement.querySelector('.currency-helper');
-        if (!helper) return;
-        const update = () => {
-            helper.textContent = formatKoreanWon(input.value);
-        };
-        input.addEventListener('input', update);
-        update();
-    });
-
-    // 2. 조건부 필드 스마트 토글 (혼인 여부 -> 혼인 경과 개월)
+    // 조건부 필드 스마트 토글 (혼인 여부 -> 혼인 경과 개월)
     const marriedCheck = document.getElementById('marriedCheck');
     const marriageMonthsField = document.getElementById('marriageMonthsField');
     if (marriedCheck && marriageMonthsField) {

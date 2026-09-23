@@ -87,7 +87,7 @@
                     <span class="hint">국민주택 — 12회 이상, 규제지역 24회</span>
                 </label>
                 <label class="field"><span class="lbl">예치금 (원) <span class="muted">(민영주택)</span></span>
-                    <input type="number" min="0" step="100000" th:field="*{accountDeposit}" placeholder="예: 3000000" class="currency-input">
+                    <input type="text" inputmode="numeric" th:field="*{accountDeposit}" placeholder="예: 3,000,000" class="currency-input">
                     <span class="currency-helper"></span>
                     <span class="hint">민영 — 서울·부산 전용 85㎡ 이하 300만</span>
                 </label>
@@ -118,15 +118,15 @@
             </p>
             <div class="field-grid">
                 <label class="field"><span class="lbl">가구 월평균소득 (원, 세전)</span>
-                    <input type="number" min="0" step="10000" th:field="*{monthlyHouseholdIncome}" placeholder="예: 6000000" class="currency-input">
+                    <input type="text" inputmode="numeric" th:field="*{monthlyHouseholdIncome}" placeholder="예: 6,000,000" class="currency-input">
                     <span class="currency-helper"></span>
                 </label>
                 <label class="field"><span class="lbl">총자산 (원) <span class="muted">(공공주택)</span></span>
-                    <input type="number" min="0" step="1000000" th:field="*{totalAssets}" placeholder="예: 300000000" class="currency-input">
+                    <input type="text" inputmode="numeric" th:field="*{totalAssets}" placeholder="예: 3억 (300,000,000)" class="currency-input">
                     <span class="currency-helper"></span>
                 </label>
                 <label class="field"><span class="lbl">자동차가액 (원) <span class="muted">(공공주택)</span></span>
-                    <input type="number" min="0" step="100000" th:field="*{carValue}" placeholder="예: 20000000" class="currency-input">
+                    <input type="text" inputmode="numeric" th:field="*{carValue}" placeholder="예: 20,000,000" class="currency-input">
                     <span class="currency-helper"></span>
                 </label>
             </div>
@@ -156,28 +156,8 @@
     <div th:replace="~{fragments/common :: disclaimer}"></div>
 </main>
 
+<script th:replace="~{fragments/common :: currencyInputScript}"></script>
 <script>
-    function formatKoreanWon(val) {
-        const num = parseInt(val, 10);
-        if (!num || isNaN(num) || num <= 0) return '';
-        let str = '';
-        const eok = Math.floor(num / 100000000);
-        const man = Math.floor((num % 100000000) / 10000);
-        const remainder = num % 10000;
-        if (eok > 0) str += eok.toLocaleString() + '억 ';
-        if (man > 0) str += man.toLocaleString() + '만 ';
-        if (remainder > 0 && eok === 0 && man === 0) str += remainder.toLocaleString() + ' ';
-        return str ? '≈ ' + str.trim() + '원' : '';
-    }
-
-    document.querySelectorAll('.currency-input').forEach(input => {
-        const helper = input.parentElement.querySelector('.currency-helper');
-        if (!helper) return;
-        const update = () => { helper.textContent = formatKoreanWon(input.value); };
-        input.addEventListener('input', update);
-        update();
-    });
-
     const marriedCheck = document.getElementById('marriedCheck');
     const marriageMonthsField = document.getElementById('marriageMonthsField');
     if (marriedCheck && marriageMonthsField) {

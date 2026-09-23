@@ -1254,6 +1254,82 @@
     })();
 </script>
 
+<!-- ── 금액 입력 ── 0 을 여덟 번 세는 건 오입력이 나기 쉬워, 치는 동안 천단위 콤마를 넣고
+     "≈ 5,000만원" 도 같이 보여준다. type=number 는 콤마가 들어가면 값을 통째로 무효로
+     보므로 text + inputmode=numeric 으로 둔다(폰에서는 그대로 숫자 키패드다).
+
+     콤마가 서버로 넘어가면 숫자 바인딩이 깨지므로 제출 직전에 떼는데, 두 군데서 뗀다 —
+     submit 이벤트는 form.submit() 으로 보낼 때 안 불리고, formdata 이벤트는 그때도 불린다.
+     판정 폼과 공고 찾기 폼에 같은 코드가 두 벌 있던 걸 여기로 합쳤다. ── -->
+<script th:fragment="currencyInputScript">
+    (function () {
+        function digitsOf(value) {
+            return String(value == null ? '' : value).replace(/[^0-9]/g, '');
+        }
+
+        function withCommas(digits) {
+            return digits ? Number(digits).toLocaleString('ko-KR') : '';
+        }
+
+        /** 억/만 단위로 읽어 주는 보조 문구 — 자릿수를 눈으로 세지 않아도 되게 */
+        function koreanWon(digits) {
+            var num = parseInt(digits, 10);
+            if (!num || isNaN(num) || num <= 0) return '';
+            var str = '';
+            var eok = Math.floor(num / 100000000);
+            var man = Math.floor((num % 100000000) / 10000);
+            var rest = num % 10000;
+            if (eok > 0) str += eok.toLocaleString() + '억 ';
+            if (man > 0) str += man.toLocaleString() + '만 ';
+            if (rest > 0 && eok === 0 && man === 0) str += rest.toLocaleString() + ' ';
+            return str ? '≈ ' + str.trim() + '원' : '';
+        }
+
+        var inputs = Array.prototype.slice.call(document.querySelectorAll('.currency-input'));
+        if (inputs.length === 0) return;
+
+        inputs.forEach(function (input) {
+            var helper = input.parentElement.querySelector('.currency-helper');
+
+            function render(keepCaret) {
+                // 콤마를 다시 깔면 글자 수가 달라져 커서가 끝으로 튄다 —
+                // 커서 왼쪽의 "숫자 개수"를 세어 두었다가 그 자리로 되돌린다.
+                var digitsBeforeCaret = keepCaret
+                        ? digitsOf(input.value.slice(0, input.selectionStart)).length : -1;
+                var digits = digitsOf(input.value);
+                input.value = withCommas(digits);
+                if (helper) helper.textContent = koreanWon(digits);
+
+                if (digitsBeforeCaret < 0) return;
+                var pos = 0, seen = 0;
+                while (pos < input.value.length && seen < digitsBeforeCaret) {
+                    if (/[0-9]/.test(input.value[pos])) seen++;
+                    pos++;
+                }
+                try { input.setSelectionRange(pos, pos); } catch (e) { /* 무시 */ }
+            }
+
+            input.addEventListener('input', function () { render(true); });
+            render(false);
+        });
+
+        inputs.forEach(function (input) {
+            var form = input.form;
+            if (!form || form.dataset.currencyBound) return;
+            form.dataset.currencyBound = '1';
+
+            form.addEventListener('submit', function () {
+                inputs.forEach(function (i) { if (i.form === form) i.value = digitsOf(i.value); });
+            });
+            form.addEventListener('formdata', function (e) {
+                inputs.forEach(function (i) {
+                    if (i.form === form && i.name) e.formData.set(i.name, digitsOf(i.value));
+                });
+            });
+        });
+    })();
+</script>
+
 <!-- ── 주택형 표의 특별공급 유형 열 접기 ──
      표가 유형 수만큼 넓어져(공고에 따라 열 열두 칸이 넘는다) 좁은 화면에서 계속 밀린다.
      어떤 유형이 나에게 해당되는지는 <b>판정</b>이라 여기서 따지지 않는다 — 규칙 엔진 몫이다.
