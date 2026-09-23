@@ -192,13 +192,20 @@
     // 찜 목록은 건드리지 않는다(여기서 빼는 건 "이번 비교에서만"이라는 뜻).
     (function () {
         var grid = document.getElementById('compareContent');
-        if (!grid) return;
 
         // 표의 헤더 칸(공고 하나당 하나)만 세면 된다 — 본문은 항목(행)마다 같은 id 가 반복된다.
+        // grid 자체가 없는 경우(비교 중인 공고가 0~1개, 즉 지금 화면이 빈 안내만 보여주는 상태)도
+        // 있다 — 표가 없으니 헤더 칸을 셀 수 없고, 그렇다고 "지금 비교 중인 공고 없음"으로 치면
+        // 1개(ids=1개)를 골라 둔 상태에서 하나 더 고를 때 먼저 고른 것을 잃어버린다.
+        // 그래서 표가 없을 때는 URL 의 ids 파라미터를 그대로 근거로 쓴다.
         function remainingIds() {
-            return Array.prototype.map.call(
-                    grid.querySelectorAll('thead .compare-value-col[data-ann-id]'),
-                    function (el) { return el.dataset.annId; });
+            if (grid) {
+                return Array.prototype.map.call(
+                        grid.querySelectorAll('thead .compare-value-col[data-ann-id]'),
+                        function (el) { return el.dataset.annId; });
+            }
+            var raw = new URL(location.href).searchParams.get('ids');
+            return raw ? raw.split(',').filter(Boolean) : [];
         }
 
         function read(key, fallback) {
@@ -265,6 +272,8 @@
         }
 
         renderPicker();
+
+        if (!grid) return;   // 제거 버튼 등 표 안 인터랙션은 표가 있을 때만 연결한다
 
         grid.addEventListener('click', function (e) {
             var btn = e.target.closest('.compare-remove');
