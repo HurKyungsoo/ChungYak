@@ -33,14 +33,18 @@ public record AnnouncementCompareRow(
         String moveInYearMonth,
         String priceLow,
         String priceHigh,
+        String perPyeongLow,
+        String perPyeongHigh,
         String noticeUrl,
         List<UnitRow> unitTypes,
         MatchInfo match) {
 
-    public record UnitRow(String typeName, String supplyArea, String price,
+    public record UnitRow(String typeName, String supplyArea, String price, String pricePerPyeong,
                           int generalSupplyCount, int specialSupplyCount) {
         public static UnitRow of(UnitType u) {
-            return new UnitRow(u.getTypeName(), u.getSupplyArea(), Prices.formatManwon(u.getTopAmount()),
+            return new UnitRow(u.getTypeName(), u.getSupplyArea(),
+                    Prices.formatManwon(u.getTopAmount()),
+                    Prices.formatManwon(Prices.perPyeong(u.getTopAmount(), u.getSupplyArea())),
                     u.getGeneralSupplyCount(), u.getSpecialSupplyCount());
         }
     }
@@ -78,6 +82,14 @@ public record AnnouncementCompareRow(
                 .summaryStatistics();
         boolean hasPrice = prices.getCount() > 0;
 
+        // 평당가는 따로 센다 — 가장 싼 주택형이 평당가까지 가장 싼 건 아니다(면적이 다르므로).
+        IntSummaryStatistics perPyeong = a.getUnitTypes().stream()
+                .map(u -> Prices.perPyeong(u.getTopAmount(), u.getSupplyArea()))
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .summaryStatistics();
+        boolean hasPerPyeong = perPyeong.getCount() > 0;
+
         return new AnnouncementCompareRow(
                 a.getId(),
                 a.getHouseName(),
@@ -96,6 +108,8 @@ public record AnnouncementCompareRow(
                 YearMonths.format(a.getMoveInYearMonth()),
                 hasPrice ? Prices.formatManwon(prices.getMin()) : null,
                 hasPrice ? Prices.formatManwon(prices.getMax()) : null,
+                hasPerPyeong ? Prices.formatManwon(perPyeong.getMin()) : null,
+                hasPerPyeong ? Prices.formatManwon(perPyeong.getMax()) : null,
                 a.getNoticeUrl(),
                 a.getUnitTypes().stream().map(UnitRow::of).toList(),
                 match);

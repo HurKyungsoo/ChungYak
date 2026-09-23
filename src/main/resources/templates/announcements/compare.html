@@ -122,6 +122,20 @@
                         </th:block>
                     </td>
                 </tr>
+                <!-- 크기가 다른 주택형끼리는 총액만으로 비싼지 싼지 알 수 없다 — 공급면적으로 나눈
+                     평당가를 같이 둔다. 가장 싼 주택형이 평당가까지 가장 싸지는 않으므로 따로 센다. -->
+                <tr>
+                    <th class="compare-label-col">평당가</th>
+                    <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}">
+                        <span th:if="${row.perPyeongLow == null}" class="subtle">-</span>
+                        <th:block th:if="${row.perPyeongLow != null}">
+                            <span th:text="${row.perPyeongLow}">2,047만원</span>
+                            <th:block th:if="${row.perPyeongHigh != row.perPyeongLow}">
+                                ~ <span th:text="${row.perPyeongHigh}">2,694만원</span>
+                            </th:block>
+                        </th:block>
+                    </td>
+                </tr>
                 <tr>
                     <th class="compare-label-col">청약접수</th>
                     <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}">
@@ -171,12 +185,13 @@
                     <div class="table-scroll" style="margin-top:8px">
                         <table>
                             <thead><tr><th>주택형</th><th class="num">면적(㎡)</th><th class="num">분양가(최고)</th>
-                                <th class="num">일반</th><th class="num">특공</th></tr></thead>
+                                <th class="num">평당가</th><th class="num">일반</th><th class="num">특공</th></tr></thead>
                             <tbody>
                             <tr th:each="u : ${row.unitTypes}">
                                 <td th:text="${u.typeName}">084A</td>
                                 <td class="num" th:text="${u.supplyArea} ?: '-'">84.97</td>
                                 <td class="num" th:text="${u.price} ?: '-'">8억 9,300만원</td>
+                                <td class="num" th:text="${u.pricePerPyeong} ?: '-'">2,694만원</td>
                                 <td class="num" th:text="${u.generalSupplyCount}">141</td>
                                 <td class="num" th:text="${u.specialSupplyCount}">172</td>
                             </tr>

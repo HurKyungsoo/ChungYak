@@ -242,6 +242,14 @@ public class AnnouncementController {
                 .collect(Collectors.toMap(UnitType::getId, u -> Prices.formatManwon(u.getTopAmount())));
         model.addAttribute("priceByUnitType", prices);
 
+        // 평당가는 표에 열을 하나 더 붙이는 대신 분양가 칸 아래에 같이 적는다 —
+        // 이 표는 유형 열까지 합쳐 10칸이 넘어 이미 가로로 밀린다.
+        Map<Long, String> perPyeong = announcement.getUnitTypes().stream()
+                .filter(u -> Prices.perPyeong(u.getTopAmount(), u.getSupplyArea()) != null)
+                .collect(Collectors.toMap(UnitType::getId,
+                        u -> Prices.formatManwon(Prices.perPyeong(u.getTopAmount(), u.getSupplyArea()))));
+        model.addAttribute("perPyeongByUnitType", perPyeong);
+
         // 일반공급 가점제/추첨제(B2b)는 민영주택에만 있는 개념이다 — 국민주택은 저축액·
         // 납입횟수 순으로 정하지 가점/추첨 구분이 없다.
         if (announcement.getHouseDetailType() == HouseDetailType.PRIVATE) {

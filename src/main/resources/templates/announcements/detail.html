@@ -117,9 +117,12 @@
             <tr th:each="u : ${announcement.unitTypes}">
                 <td th:text="${u.typeName}">084.9730A</td>
                 <td class="num" th:text="${u.supplyArea} ?: '-'">84.97</td>
-                <td class="num" th:with="price=${priceByUnitType.get(u.id)}">
+                <td class="num" th:with="price=${priceByUnitType.get(u.id)},
+                                         perPyeong=${perPyeongByUnitType.get(u.id)}">
                     <span th:if="${price != null}" th:text="${price}">8억 9,300만원</span>
                     <span th:unless="${price != null}" class="subtle">-</span>
+                    <div th:if="${perPyeong != null}" class="subtle" style="font-size:.78rem"
+                         th:text="'평당 ' + ${perPyeong}">평당 2,694만원</div>
                 </td>
                 <td class="num" th:text="${u.generalSupplyCount}">141</td>
                 <td class="num" th:if="${lotteryByUnitType != null}" th:with="lot=${lotteryByUnitType.get(u.id)}">
