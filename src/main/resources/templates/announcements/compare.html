@@ -108,6 +108,20 @@
                     <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}"
                         th:text="${row.houseDetailTypeLabel} + ' · ' + ${row.houseTypeLabel}">민영 · APT</td>
                 </tr>
+                <!-- 주택형마다 다른 값이라 한 칸에는 범위로 넣는다. "(최고)"를 달아 두는 건
+                     이게 주택형별 최고 공급금액이기 때문이다 — 층·향에 따라 실제로는 더 낮다. -->
+                <tr>
+                    <th class="compare-label-col">분양가(최고)</th>
+                    <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}">
+                        <span th:if="${row.priceLow == null}" class="subtle">-</span>
+                        <th:block th:if="${row.priceLow != null}">
+                            <span th:text="${row.priceLow}">5억 466만원</span>
+                            <th:block th:if="${row.priceHigh != row.priceLow}">
+                                ~ <span th:text="${row.priceHigh}">7억 1,654만원</span>
+                            </th:block>
+                        </th:block>
+                    </td>
+                </tr>
                 <tr>
                     <th class="compare-label-col">청약접수</th>
                     <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}">
@@ -156,11 +170,13 @@
                     <summary th:text="${row.houseName} + ' — 주택형 ' + ${row.unitTypeCount} + '개 보기'">공고명 — 주택형 4개 보기</summary>
                     <div class="table-scroll" style="margin-top:8px">
                         <table>
-                            <thead><tr><th>주택형</th><th class="num">면적(㎡)</th><th class="num">일반</th><th class="num">특공</th></tr></thead>
+                            <thead><tr><th>주택형</th><th class="num">면적(㎡)</th><th class="num">분양가(최고)</th>
+                                <th class="num">일반</th><th class="num">특공</th></tr></thead>
                             <tbody>
                             <tr th:each="u : ${row.unitTypes}">
                                 <td th:text="${u.typeName}">084A</td>
                                 <td class="num" th:text="${u.supplyArea} ?: '-'">84.97</td>
+                                <td class="num" th:text="${u.price} ?: '-'">8억 9,300만원</td>
                                 <td class="num" th:text="${u.generalSupplyCount}">141</td>
                                 <td class="num" th:text="${u.specialSupplyCount}">172</td>
                             </tr>

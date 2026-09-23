@@ -4,7 +4,9 @@ import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.UnitType;
 
 import java.time.LocalDate;
+import java.util.IntSummaryStatistics;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 공고 비교 화면(여러 공고를 나란히) 한 열.
@@ -29,13 +31,17 @@ public record AnnouncementCompareRow(
         int unitTypeCount,
         int totalSpecialSupply,
         String moveInYearMonth,
+        String priceLow,
+        String priceHigh,
         String noticeUrl,
         List<UnitRow> unitTypes,
         MatchInfo match) {
 
-    public record UnitRow(String typeName, String supplyArea, int generalSupplyCount, int specialSupplyCount) {
+    public record UnitRow(String typeName, String supplyArea, String price,
+                          int generalSupplyCount, int specialSupplyCount) {
         public static UnitRow of(UnitType u) {
-            return new UnitRow(u.getTypeName(), u.getSupplyArea(), u.getGeneralSupplyCount(), u.getSpecialSupplyCount());
+            return new UnitRow(u.getTypeName(), u.getSupplyArea(), Prices.formatManwon(u.getTopAmount()),
+                    u.getGeneralSupplyCount(), u.getSpecialSupplyCount());
         }
     }
 
@@ -63,6 +69,15 @@ public record AnnouncementCompareRow(
                 .mapToInt(u -> u.getSupplyBreakdown() == null ? 0 : u.getSupplyBreakdown().total())
                 .sum();
 
+        // 분양가는 주택형마다 달라 한 칸에 담으려면 범위로 줄여야 한다 — 가장 싼 주택형과
+        // 가장 비싼 주택형을 같이 보여준다. 하나뿐이거나 전부 같으면 화면이 한쪽만 그린다.
+        IntSummaryStatistics prices = a.getUnitTypes().stream()
+                .map(UnitType::getTopAmount)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .summaryStatistics();
+        boolean hasPrice = prices.getCount() > 0;
+
         return new AnnouncementCompareRow(
                 a.getId(),
                 a.getHouseName(),
@@ -79,6 +94,8 @@ public record AnnouncementCompareRow(
                 a.getUnitTypes().size(),
                 specialSum,
                 YearMonths.format(a.getMoveInYearMonth()),
+                hasPrice ? Prices.formatManwon(prices.getMin()) : null,
+                hasPrice ? Prices.formatManwon(prices.getMax()) : null,
                 a.getNoticeUrl(),
                 a.getUnitTypes().stream().map(UnitRow::of).toList(),
                 match);
