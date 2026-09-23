@@ -618,6 +618,9 @@
         .scroll-hint { display: none; margin: 0 0 6px; font-size: .8rem; color: var(--text-subtle); }
         .scroll-hint.available { display: block; visibility: hidden; }
         .scroll-hint.available.show { visibility: visible; }
+        /* 접어 둔 유형 열의 칩 — 눌러서 도로 펼 수 있다는 걸 남겨 둔다(사라지지 않는다) */
+        .chip.off { opacity: .45; text-decoration: line-through; }
+
         /* 끌어서 이동 — 넘칠 때만 잡는 커서를 보여준다(.can-drag 는 JS 가 붙인다) */
         .can-drag { cursor: grab; }
         .can-drag.dragging { cursor: grabbing; user-select: none; }
@@ -1248,6 +1251,57 @@
         }
 
         render();
+    })();
+</script>
+
+<!-- ── 주택형 표의 특별공급 유형 열 접기 ──
+     표가 유형 수만큼 넓어져(공고에 따라 열 열두 칸이 넘는다) 좁은 화면에서 계속 밀린다.
+     어떤 유형이 나에게 해당되는지는 <b>판정</b>이라 여기서 따지지 않는다 — 규칙 엔진 몫이다.
+     관심 없는 열을 사용자가 직접 접을 뿐이고, 고른 결과만 이 브라우저에 남겨 다음 공고에도
+     이어 쓴다. 감춘 유형을 적어 두므로, 나중에 새 유형이 생겨도 기본은 "보임"이다. ── -->
+<script th:fragment="supplyColPickerScript">
+    (function () {
+        var picker = document.getElementById('supplyColPicker');
+        if (!picker) return;
+
+        var KEY = 'chungyak:hiddenSupplyCols';
+
+        function read() {
+            try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; }
+        }
+
+        function save(list) {
+            try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) { /* 무시 */ }
+        }
+
+        var hidden = read();
+
+        function apply() {
+            picker.querySelectorAll('[data-supply-type]').forEach(function (chip) {
+                var type = chip.dataset.supplyType;
+                var off = hidden.indexOf(type) >= 0;
+                chip.classList.toggle('off', off);
+                chip.setAttribute('aria-pressed', String(!off));
+                document.querySelectorAll('table [data-supply-type="' + type + '"]').forEach(function (cell) {
+                    cell.hidden = off;
+                });
+            });
+            // 열을 접으면 표 폭이 바뀐다 — 스크롤 안내가 그대로면 실제와 어긋난다
+            window.dispatchEvent(new Event('resize'));
+        }
+
+        picker.addEventListener('click', function (e) {
+            var chip = e.target.closest('[data-supply-type]');
+            if (!chip) return;
+            var type = chip.dataset.supplyType;
+            var at = hidden.indexOf(type);
+            if (at >= 0) hidden.splice(at, 1); else hidden.push(type);
+            save(hidden);
+            apply();
+        });
+
+        picker.hidden = false;
+        apply();
     })();
 </script>
 

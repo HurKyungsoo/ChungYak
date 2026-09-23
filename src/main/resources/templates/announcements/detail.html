@@ -101,8 +101,18 @@
         <a th:href="@{/general-supply}">내 가점 계산하기 →</a>
     </p>
 
-    <div class="table-scroll sticky-first" data-scroll-hint
-         th:with="visibleTypes=${announcement.visibleSupplyTypes()}">
+    <th:block th:with="visibleTypes=${announcement.visibleSupplyTypes()}">
+
+    <!-- 유형 열 접기 — 표가 유형 수만큼 넓어져 좁은 화면에서 계속 밀린다. 어떤 유형이 나에게
+         해당되는지는 판정이라 여기서 따지지 않는다(그건 rule 패키지 몫이다). 관심 없는 열을
+         사용자가 직접 접을 뿐이고, 고른 결과는 이 브라우저에만 남아 다음 공고에도 이어진다. -->
+    <div id="supplyColPicker" class="chips" hidden style="margin-bottom:10px">
+        <span class="muted" style="font-size:.8rem;margin-right:2px">유형 열</span>
+        <button type="button" class="chip" th:each="t : ${visibleTypes}"
+                th:attr="data-supply-type=${t.name()}" th:text="${t.label}">다자녀</button>
+    </div>
+
+    <div class="table-scroll sticky-first" data-scroll-hint>
         <table>
             <thead>
             <tr>
@@ -110,7 +120,8 @@
                 <th class="num" th:if="${lotteryByUnitType != null}">가점제</th>
                 <th class="num" th:if="${lotteryByUnitType != null}">추첨제</th>
                 <th class="num">특공 합계</th>
-                <th class="num" th:each="t : ${visibleTypes}" th:text="${t.label}">다자녀</th>
+                <th class="num" th:each="t : ${visibleTypes}"
+                    th:attr="data-supply-type=${t.name()}" th:text="${t.label}">다자녀</th>
             </tr>
             </thead>
             <tbody>
@@ -136,7 +147,7 @@
                     <span th:unless="${lot != null and lot.known()}" class="subtle">-</span>
                 </td>
                 <td class="num"><strong th:text="${u.specialSupplyCount}">172</strong></td>
-                <td class="num" th:each="t : ${visibleTypes}"
+                <td class="num" th:each="t : ${visibleTypes}" th:attr="data-supply-type=${t.name()}"
                     th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.countOf(t)} : 0">31</td>
             </tr>
             <tr th:if="${announcement.unitTypes.isEmpty()}">
@@ -146,6 +157,8 @@
             </tbody>
         </table>
     </div>
+
+    </th:block>
 
     <!-- ── 공고문 Q&A (RAG) ── 판정이 아니라 공고문 내용 검색이다. 답은 발췌 근거와 함께 표시된다. -->
     <section th:if="${qaEnabled and qaIndexed}" style="margin-top:24px">
@@ -215,6 +228,8 @@
 
 <footer th:replace="~{fragments/common :: footer}"></footer>
 <script th:replace="~{fragments/common :: scrapScript}"></script>
+<!-- 열을 접으면 표 폭이 바뀌므로 스크롤 안내(scrollHintScript)보다 먼저 돌려 둔다 -->
+<script th:replace="~{fragments/common :: supplyColPickerScript}"></script>
 <script th:replace="~{fragments/common :: scrollHintScript}"></script>
 <script th:replace="~{fragments/common :: recentViewsScript}"></script>
 </body>
