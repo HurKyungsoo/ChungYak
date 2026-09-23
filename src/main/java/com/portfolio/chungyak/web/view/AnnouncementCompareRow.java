@@ -78,9 +78,15 @@ public record AnnouncementCompareRow(
                 a.getTotalSupplyCount(),
                 a.getUnitTypes().size(),
                 specialSum,
-                a.getMoveInYearMonth(),
+                formatMoveInYearMonth(a.getMoveInYearMonth()),
                 a.getNoticeUrl(),
                 a.getUnitTypes().stream().map(UnitRow::of).toList(),
                 match);
+    }
+
+    /** 원본은 "202910" 같은 YYYYMM 문자열이다 — 화면 표시용으로만 "2029-10"으로 바꾼다. */
+    private static String formatMoveInYearMonth(String raw) {
+        if (raw == null || !raw.matches("\\d{6}")) return raw;
+        return raw.substring(0, 4) + "-" + raw.substring(4);
     }
 }

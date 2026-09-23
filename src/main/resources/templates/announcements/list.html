@@ -38,7 +38,7 @@
 
     <div class="sec-head" id="list">
         <h2>접수중 · 접수예정</h2>
-        <span class="count" th:text="|${rows.size()}건|">9건</span>
+        <span class="count" id="listCount" th:text="|${rows.size()}건|">9건</span>
     </div>
 
     <form class="filter-bar" method="get" th:action="@{/announcements}">

@@ -1041,12 +1041,17 @@
         var filterToggle = document.getElementById('scrapFilterToggle');
         if (filterToggle) {
             var cards = document.querySelectorAll('.notice-card[data-ann-id]');
+            var countLabel = document.getElementById('listCount');
             var applyFilter = function () {
                 var onlyScraps = filterToggle.checked;
+                var shown = 0;
                 cards.forEach(function (card) {
                     var show = !onlyScraps || scraps.has(card.dataset.annId);
                     card.style.display = show ? '' : 'none';
+                    if (show) shown++;
                 });
+                // 필터를 걸면 카드는 줄어드는데 위의 "N건"은 그대로라 헷갈렸다 — 같이 맞춘다.
+                if (countLabel) countLabel.textContent = shown + '건';
             };
             filterToggle.addEventListener('change', applyFilter);
             document.addEventListener('scrap:changed', applyFilter);
