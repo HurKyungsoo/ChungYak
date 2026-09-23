@@ -612,9 +612,12 @@
         .table-scroll.sticky-first thead th:first-child { background: var(--surface-2); z-index: 3; }
         .table-scroll.sticky-first tbody tr:hover td:first-child { background: var(--surface-2); }
 
-        /* 가로 스크롤은 있는 줄 모르면 없는 기능이다 — 실제로 넘칠 때만 JS 가 켠다 */
+        /* 가로 스크롤은 있는 줄 모르면 없는 기능이다 — 실제로 넘칠 때만 JS 가 켠다.
+           넘치는 동안에는 문구를 감추더라도 자리는 계속 차지해야 한다(.available) —
+           display 를 껐다 켜면 끝까지 밀 때마다 표와 그 아래가 26px 씩 위아래로 튄다. */
         .scroll-hint { display: none; margin: 0 0 6px; font-size: .8rem; color: var(--text-subtle); }
-        .scroll-hint.show { display: block; }
+        .scroll-hint.available { display: block; visibility: hidden; }
+        .scroll-hint.available.show { visibility: visible; }
         /* 끌어서 이동 — 넘칠 때만 잡는 커서를 보여준다(.can-drag 는 JS 가 붙인다) */
         .can-drag { cursor: grab; }
         .can-drag.dragging { cursor: grabbing; user-select: none; }
@@ -1265,6 +1268,7 @@
             var update = function () {
                 var overflowing = box.scrollWidth - box.clientWidth > 4;
                 var atEnd = box.scrollLeft + box.clientWidth >= box.scrollWidth - 4;
+                hint.classList.toggle('available', overflowing);   // 자리 확보 — 미는 동안 안 튀게
                 hint.classList.toggle('show', overflowing && !atEnd);
                 box.classList.toggle('can-drag', overflowing);   // 넘칠 때만 잡는 커서
             };
