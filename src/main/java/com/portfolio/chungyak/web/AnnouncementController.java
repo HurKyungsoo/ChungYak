@@ -17,6 +17,8 @@ import com.portfolio.chungyak.web.view.AnnouncementListRow;
 import com.portfolio.chungyak.web.view.CalendarView;
 import com.portfolio.chungyak.web.view.Dday;
 import com.portfolio.chungyak.web.view.PhoneNumbers;
+import com.portfolio.chungyak.web.view.Prices;
+import com.portfolio.chungyak.web.view.YearMonths;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -227,6 +229,13 @@ public class AnnouncementController {
         // 문의처는 하이픈 없는 숫자로 들어온다 — 읽을 수 있게 끊어서 보여주고,
         // 거는 건 원본 그대로 tel: 로 넘긴다(다이얼러가 하이픈도 알아서 처리한다).
         model.addAttribute("inquiryTelDisplay", PhoneNumbers.format(announcement.getInquiryTel()));
+        model.addAttribute("moveInDisplay", YearMonths.format(announcement.getMoveInYearMonth()));
+
+        // 분양가는 주택형마다 다르다 — 수집은 하고 있었지만 화면에 쓰인 적이 없었다.
+        Map<Long, String> prices = announcement.getUnitTypes().stream()
+                .filter(u -> Prices.formatManwon(u.getTopAmount()) != null)
+                .collect(Collectors.toMap(UnitType::getId, u -> Prices.formatManwon(u.getTopAmount())));
+        model.addAttribute("priceByUnitType", prices);
 
         // 일반공급 가점제/추첨제(B2b)는 민영주택에만 있는 개념이다 — 국민주택은 저축액·
         // 납입횟수 순으로 정하지 가점/추첨 구분이 없다.

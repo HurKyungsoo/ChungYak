@@ -52,6 +52,9 @@
                 <span th:unless="${announcement.specialReceptBeginDate != null}" class="subtle">공고에 별도 표기 없음</span>
             </td></tr>
             <tr><th>당첨자발표</th><td th:text="${announcement.winnerAnnounceDate} ?: '-'">발표일</td></tr>
+            <tr th:if="${moveInDisplay != null and !moveInDisplay.isBlank()}">
+                <th>입주예정</th><td th:text="${moveInDisplay}">2029-10</td>
+            </tr>
             <tr><th>규제</th><td>
                 <span th:if="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}">
                     규제지역 <span class="subtle">— 청약통장 24개월·해당지역 2년 거주 필요</span></span>
@@ -78,9 +81,10 @@
         </table>
     </div>
 
-    <h2>주택형별 특별공급 세대수</h2>
+    <h2>주택형별 분양가 · 특별공급 세대수</h2>
     <p class="muted">특별공급 배정은 공고가 아니라 <strong>주택형마다</strong> 다릅니다. 0 세대는 그 유형 물량이 없다는 뜻입니다.
         <span th:if="${!announcement.unitTypes.isEmpty()}">이 공고에 아예 없는 유형(예: 청년은 공공주택에만 배정)은 표에서 뺐습니다.</span>
+        분양가는 공고에 실린 주택형별 <strong>최고 공급금액</strong>이라, 같은 주택형이라도 층·향에 따라 실제 금액은 더 낮을 수 있습니다.
     </p>
 
     <!-- 일반공급 가점제·추첨제(B2b) — 민영주택에만 있는 개념. 국민주택은 저축액·납입횟수 순이라
@@ -102,7 +106,7 @@
         <table>
             <thead>
             <tr>
-                <th>주택형</th><th class="num">공급면적(㎡)</th><th class="num">일반</th>
+                <th>주택형</th><th class="num">공급면적(㎡)</th><th class="num">분양가(최고)</th><th class="num">일반</th>
                 <th class="num" th:if="${lotteryByUnitType != null}">가점제</th>
                 <th class="num" th:if="${lotteryByUnitType != null}">추첨제</th>
                 <th class="num">특공 합계</th>
@@ -113,6 +117,10 @@
             <tr th:each="u : ${announcement.unitTypes}">
                 <td th:text="${u.typeName}">084.9730A</td>
                 <td class="num" th:text="${u.supplyArea} ?: '-'">84.97</td>
+                <td class="num" th:with="price=${priceByUnitType.get(u.id)}">
+                    <span th:if="${price != null}" th:text="${price}">8억 9,300만원</span>
+                    <span th:unless="${price != null}" class="subtle">-</span>
+                </td>
                 <td class="num" th:text="${u.generalSupplyCount}">141</td>
                 <td class="num" th:if="${lotteryByUnitType != null}" th:with="lot=${lotteryByUnitType.get(u.id)}">
                     <span th:if="${lot != null and lot.known()}"
@@ -129,7 +137,7 @@
                     th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.countOf(t)} : 0">31</td>
             </tr>
             <tr th:if="${announcement.unitTypes.isEmpty()}">
-                <td th:attr="colspan=${(lotteryByUnitType != null ? 6 : 4) + visibleTypes.size()}"
+                <td th:attr="colspan=${(lotteryByUnitType != null ? 7 : 5) + visibleTypes.size()}"
                     class="muted">주택형 정보가 없습니다.</td>
             </tr>
             </tbody>
