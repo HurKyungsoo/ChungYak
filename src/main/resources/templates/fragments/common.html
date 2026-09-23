@@ -118,6 +118,13 @@
             flex: none; white-space: nowrap;
         }
         .site-header nav a:hover { color: var(--text); background: var(--surface-2); text-decoration: none; }
+        /* 비교 메뉴는 개수를 달고 나타난다 — 몇 개를 비교하게 되는지 누르기 전에 알린다 */
+        .site-header nav a .nav-count {
+            display: inline-block; min-width: 16px; margin-left: 5px; padding: 0 4px;
+            border-radius: 999px; background: var(--brand); color: #fff;
+            font-size: .68rem; font-weight: 700; line-height: 16px; text-align: center;
+        }
+        .site-header nav a[hidden] { display: none; }
 
         main { max-width: var(--maxw); margin: 0 auto; padding: 28px 20px 72px; }
         .backlink { display: inline-flex; align-items: center; gap: 5px; font-size: .875rem;
@@ -782,6 +789,10 @@
                 <a th:href="@{/match}">내 조건으로 찾기</a>
                 <a th:href="@{/announcements/calendar}">청약 캘린더</a>
                 <a th:href="@{/general-supply}">가점 계산</a>
+                <!-- 넓은 화면에서 비교로 가는 길은 떠 있는 바 하나뿐이었다. 그 바는 ✕ 로 닫으면
+                     찜을 다시 건드리기 전까지 돌아오지 않아, 닫는 순간 비교 화면이 사라졌다.
+                     좁은 화면의 탭바와 같은 조건·같은 목록으로 여기에도 상설 진입점을 둔다. -->
+                <a id="navCompare" th:href="@{/announcements/compare}" hidden>비교<span class="nav-count">2</span></a>
             </nav>
         </div>
     </header>
@@ -847,8 +858,11 @@
             /* 비교 탭의 등장·숫자. 찜을 읽는 코드는 scrapScript 에도 있지만 그건 목록·상세·비교
                세 화면에만 들어간다 — 탭바는 모든 화면에 있으므로 탭이 화면마다 생겼다 사라지지
                않도록 여기서 직접 읽는다(읽기만 하고 쓰지 않는다). */
-            var tab = document.getElementById('bottomNavCompare');
-            if (!tab) return;
+            /* 좁은 화면의 탭과 넓은 화면의 헤더 메뉴는 같은 목록을 같은 조건으로 가리킨다 —
+               화면 폭에 따라 둘 중 하나만 보이므로 한쪽만 맞춰 두면 반대쪽이 어긋난다. */
+            var entries = [document.getElementById('bottomNavCompare'),
+                           document.getElementById('navCompare')].filter(Boolean);
+            if (entries.length === 0) return;
 
             function read(key) {
                 try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return []; }
@@ -877,9 +891,13 @@
 
             var sync = function () {
                 var ids = comparePool();
-                tab.hidden = ids.length < 2;
-                tab.href = '/announcements/compare?ids=' + ids.join(',');
-                tab.querySelector('.tab-badge').textContent = ids.length;
+                var href = '/announcements/compare?ids=' + ids.join(',');
+                entries.forEach(function (el) {
+                    el.hidden = ids.length < 2;
+                    el.href = href;
+                    var count = el.querySelector('.tab-badge, .nav-count');
+                    if (count) count.textContent = ids.length;
+                });
             };
             sync();
             /* 같은 화면에서 찜을 껐다 켜거나(scrapScript), 본 기록이 남는 즉시(recentViewsScript)
