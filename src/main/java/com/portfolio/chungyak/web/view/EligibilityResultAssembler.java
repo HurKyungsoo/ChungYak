@@ -73,6 +73,7 @@ public class EligibilityResultAssembler {
                 .filter(h -> h != null).collect(Collectors.toSet());
 
         return new EligibilityResultView.TypeDecision(
+                decision.getType().name(),
                 decision.getType().getLabel(),
                 decision.isEligible(),
                 decision.isUndetermined(),

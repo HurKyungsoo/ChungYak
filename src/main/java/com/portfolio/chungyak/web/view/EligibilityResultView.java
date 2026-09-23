@@ -43,6 +43,8 @@ public record EligibilityResultView(
      * 화면에 두 번 강조하지 않기 위한 것뿐, 새 판정을 하는 게 아니다.
      */
     public record TypeDecision(
+            /** 유형 enum 이름 — 화면이 특정 유형만 다르게 안내할 때 쓴다(라벨 문자열 비교는 깨지기 쉽다) */
+            String typeName,
             String typeLabel,
             boolean eligible,
             boolean undetermined,

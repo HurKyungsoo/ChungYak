@@ -16,7 +16,8 @@ class CommonRequirementRailTest {
     private record TypeDecisionStub(List<CommonCheckView> checks) {
         EligibilityResultView.TypeDecision toView() {
             return new EligibilityResultView.TypeDecision(
-                    "테스트유형", true, false, List.of(), List.of(), List.of(), List.of(),
+                    "TEST_TYPE", "테스트유형", true, false,
+                    List.of(), List.of(), List.of(), List.of(),
                     checks, List.of(), List.of(), List.of(), List.of());
         }
     }

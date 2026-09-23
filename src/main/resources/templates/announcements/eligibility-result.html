@@ -160,7 +160,24 @@
                 <li th:each="r : ${d.satisfiedReasons}" class="r-ok" th:text="${r}">이유</li>
             </ul>
         </details>
-        <p class="muted" style="margin:6px 0 0">이 공고의 어떤 주택형에도 이 유형 배정 세대가 없습니다.</p>
+        <!-- 신혼희망타운은 일반 공고 안의 특별공급 한 칸이 아니라 별도 공고로 공급된다.
+             그래서 보통 공고에서는 "물량 없음"이 정상이고, 신혼희망타운 공고에서는 청약홈이
+             유형별 세대수를 주지 않아(총 특공 세대수만 온다) 0 으로 남는다 — 둘은 사정이
+             완전히 다른데 같은 문장을 쓰면 데이터가 빠진 것처럼 읽힌다. -->
+        <th:block th:if="${d.typeName == 'NEWLYWED_HOPE_TOWN'}">
+            <p class="muted" style="margin:6px 0 0"
+               th:if="${announcement.houseType?.name() == 'NEWLYWED_HOPE_TOWN'}">
+                이 공고는 신혼희망타운입니다. 다만 청약홈이 신혼희망타운은 유형별 배정 세대수를 주지 않아
+                여기서는 세대수를 세지 못했습니다 — 실제 공급 세대수는 입주자모집공고문을 확인하세요.
+            </p>
+            <p class="muted" style="margin:6px 0 0"
+               th:unless="${announcement.houseType?.name() == 'NEWLYWED_HOPE_TOWN'}">
+                신혼희망타운은 이 공고 안의 특별공급이 아니라 <strong>별도 공고</strong>로 공급됩니다 —
+                이 공고에 물량이 없는 건 정상입니다. 신혼희망타운 공고를 따로 찾아보세요.
+            </p>
+        </th:block>
+        <p th:unless="${d.typeName == 'NEWLYWED_HOPE_TOWN'}"
+           class="muted" style="margin:6px 0 0">이 공고의 어떤 주택형에도 이 유형 배정 세대가 없습니다.</p>
     </div>
 
     <h2>전체 판정 근거</h2>
