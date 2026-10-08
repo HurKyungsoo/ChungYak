@@ -17,7 +17,7 @@ LLM 은 앞(자연어 → 조건)과 뒤(판정 결과 → 설명)에만 쓰고,
 | 화면 | Thymeleaf + 손 CSS 디자인시스템 | 서버 렌더링. `fragments/common.html` 에 토큰·다크모드·컴포넌트, Pretendard, 반응형. 빌드 단계 없음 |
 | 빌드 | Gradle 8.10.2 | Spring Boot 3.3 Gradle 플러그인 호환 (9.x 는 `bootJar` 에서 깨짐) |
 | 스키마 | Flyway (`db/migration`) | `ddl-auto: validate`. H2·MariaDB 공용 SQL |
-| 배포 | Docker Compose (app + MariaDB + Caddy) | Caddy 가 Let's Encrypt 자동. CI: GitHub Actions |
+| 배포 | Docker Compose (app + MariaDB + Caddy 또는 Cloudflare Tunnel) | 프로필로 선택. 무료 배포 가이드는 `docs/DEPLOYMENT.md`. CI: GitHub Actions |
 | 외부 API | 한국부동산원 청약홈 (odcloud), 한국토지주택공사 LH (승인 대기) | 공공데이터포털 |
 | LLM | 공식 Anthropic Java SDK (`com.anthropic:anthropic-java`) | Spring AI 는 2.x 가 Spring Boot 4.0 을 요구 — 버전에 묶이지 않게 SDK 직접 사용. 구조화 출력(`output_config.format`)으로 "애매하면 null" 을 파싱이 아니라 **스키마로 강제** |
 
@@ -225,10 +225,10 @@ ANTHROPIC_API_KEY=<키> ./gradlew test --tests '*IntegrationTest*'
 
 ### 배포
 
-서버 배포는 Docker Compose (MariaDB + app + Caddy 자동 HTTPS).
+서버 배포는 Docker Compose (MariaDB + app + 외부 공개 방식은 프로필로 선택: Caddy 자동 HTTPS / Cloudflare Tunnel).
 
 ```bash
-cp .env.example .env    # DOMAIN, DB_PASSWORD, PUBLICDATA_SERVICE_KEY, ADMIN_PASSWORD ...
+cp .env.example .env    # COMPOSE_PROFILES, TUNNEL_TOKEN(또는 DOMAIN), DB_PASSWORD, PUBLICDATA_SERVICE_KEY, ADMIN_PASSWORD ...
 docker compose up -d --build
 ```
 

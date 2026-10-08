@@ -3,8 +3,10 @@
 #   cp .env.example .env   # 값 채우기
 #   docker compose up -d --build
 #
-# Caddy 가 ${DOMAIN} 에 대해 Let's Encrypt 인증서를 자동 발급한다.
-# 서버 80/443 포트가 열려 있고 DNS 가 이 서버를 가리켜야 한다.
+# 외부 공개 방식은 프로필로 고른다 (.env 의 COMPOSE_PROFILES 또는 --profile):
+#   caddy        — 서버 80/443 직접 공개. Caddy 가 ${DOMAIN} 인증서 자동 발급.
+#   tunnel       — Cloudflare Tunnel (고정 주소). 포트 개방·인증서 불필요. TUNNEL_TOKEN 필요.
+#   quick-tunnel — Cloudflare 임시 주소(trycloudflare.com). 계정·도메인 불필요, 재시작마다 주소 변경.
 
 services:
   db:
@@ -52,6 +54,7 @@ services:
 
   caddy:
     image: caddy:2
+    profiles: ["caddy"]
     restart: unless-stopped
     depends_on:
       - app
@@ -59,11 +62,33 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      DOMAIN: ${DOMAIN:-localhost}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    # 공개 호스트명 -> http://app:8080 매핑은 Cloudflare 대시보드(Tunnel > Public Hostname)에서 한다.
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+
+  cloudflared-quick:
+    image: cloudflare/cloudflared:latest
+    profiles: ["quick-tunnel"]
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    # 주소는 로그에 찍힌다: docker compose logs cloudflared-quick | grep trycloudflare
+    command: tunnel --no-autoupdate --url http://app:8080
 
 volumes:
   db-data:

@@ -213,3 +213,7 @@ spring:
     password: ${DB_PASSWORD}
   thymeleaf:
     cache: true
+# 앱은 Caddy/Cloudflare Tunnel 뒤에서만 접근된다(외부 직접 노출 없음) — 프록시가 보낸
+# X-Forwarded-* 를 믿어야 sitemap·canonical 이 https 주소로 나온다.
+server:
+  forward-headers-strategy: framework
