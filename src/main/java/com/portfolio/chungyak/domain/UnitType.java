@@ -36,7 +36,7 @@ public class UnitType {
     private String modelNo;
 
     /** 주택형 표기 ("084.9730A") */
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 200)
     private String typeName;
 
     /** 공급면적 (제곱미터) */

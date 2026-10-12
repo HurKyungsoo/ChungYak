@@ -153,6 +153,8 @@ public class LhClient implements AnnouncementSource {
         for (JsonNode row : rows) {
             String typeName = firstText(row, F_TYPE_NAME);
             if (typeName == null) continue;
+            // 컬럼 상한(200)을 넘는 이름 하나가 수집 전체를 중단시키지 않게 자른다.
+            if (typeName.length() > 200) typeName = typeName.substring(0, 200);
             idx++;
             result.add(ExternalUnitType.builder()
                     .modelNo(String.format("%02d", idx))
