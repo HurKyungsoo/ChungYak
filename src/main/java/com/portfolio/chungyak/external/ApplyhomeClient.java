@@ -7,6 +7,7 @@ import com.portfolio.chungyak.domain.HouseType;
 import com.portfolio.chungyak.domain.RegulationFlags;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.domain.SupplyBreakdown;
+import com.portfolio.chungyak.domain.SupplyCategory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -163,12 +164,16 @@ public class ApplyhomeClient implements AnnouncementSource {
                 .publicHousingSpecialLaw(parser.flag(item, "PUBLIC_HOUSE_SPCLW_APPLC_AT"))
                 .build();
 
+        HouseType houseType = HouseType.from(parser.text(item, "HOUSE_SECD"));
         return ExternalAnnouncement.builder()
                 .externalId(SOURCE_PREFIX + houseManageNo + "-" + pblancNo)
                 .houseManageNo(houseManageNo)
                 .pblancNo(pblancNo)
                 .houseName(parser.text(item, "HOUSE_NM"))
-                .houseType(HouseType.from(parser.text(item, "HOUSE_SECD")))
+                .houseType(houseType)
+                // APT 분양정보 API 만 수집하므로 신혼희망타운이 아니면 전부 분양이다.
+                .supplyCategory(houseType == HouseType.NEWLYWED_HOPE_TOWN
+                        ? SupplyCategory.HOPE_TOWN : SupplyCategory.SALE)
                 .houseDetailType(HouseDetailType.from(parser.text(item, "HOUSE_DTL_SECD")))
                 .regionName(parser.text(item, "SUBSCRPT_AREA_CODE_NM"))
                 .regionCode(parser.text(item, "SUBSCRPT_AREA_CODE"))

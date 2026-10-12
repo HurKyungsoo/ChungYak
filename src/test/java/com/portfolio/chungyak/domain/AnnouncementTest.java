@@ -115,7 +115,7 @@ class AnnouncementTest {
         Announcement a = Announcement.builder().houseName("하남").build();
         a.addUnitType(counted(40, 0));
 
-        a.updateFromExternal("하남", "경기도", null, null, null, null, null, null);
+        a.updateFromExternal("하남", "경기도", null, null, null, null, null, null, null, null);
 
         assertThat(a.getTotalSupplyCount()).isEqualTo(40);
     }

@@ -55,7 +55,8 @@ public class AnnouncementSyncService {
                         external.getHouseName(), external.getRegionName(), external.getAddress(),
                         external.getTotalSupplyCount(), external.getReceptBeginDate(),
                         external.getReceptEndDate(), external.getWinnerAnnounceDate(),
-                        external.getRegulationFlags());
+                        external.getRegulationFlags(),
+                        external.getSupplyCategory(), external.getSupplyTypeName());
                 updated++;
             }
         }
@@ -91,6 +92,9 @@ public class AnnouncementSyncService {
                 .developerName(e.getDeveloperName())
                 .constructorName(e.getConstructorName())
                 .moveInYearMonth(e.getMoveInYearMonth())
+                .supplyCategory(e.getSupplyCategory())
+                .supplyTypeName(e.getSupplyTypeName())
+                .noticePdfUrl(e.getNoticePdfUrl())
                 .build();
     }
 

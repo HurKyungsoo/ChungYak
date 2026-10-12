@@ -3,6 +3,7 @@ package com.portfolio.chungyak.external;
 import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.HouseType;
 import com.portfolio.chungyak.domain.RegulationFlags;
+import com.portfolio.chungyak.domain.SupplyCategory;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -22,7 +23,7 @@ import java.util.Map;
  * 그 차이를 각 클라이언트가 흡수하고, 서비스 계층은 이 타입만 안다.
  */
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public class ExternalAnnouncement {
 
     private String externalId;
@@ -49,6 +50,9 @@ public class ExternalAnnouncement {
     private String developerName;
     private String constructorName;
     private String moveInYearMonth;
+    private SupplyCategory supplyCategory;
+    private String supplyTypeName;
+    private String noticePdfUrl;
 
     /** LH 소스에서만 채워진다 — 벡터 검색 대상이 될 비정형 텍스트 */
     private String noticeContent;

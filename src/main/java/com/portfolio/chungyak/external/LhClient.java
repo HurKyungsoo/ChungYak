@@ -7,6 +7,7 @@ import com.portfolio.chungyak.domain.HouseType;
 import com.portfolio.chungyak.domain.RegulationFlags;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.domain.SupplyBreakdown;
+import com.portfolio.chungyak.domain.SupplyCategory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -59,6 +60,9 @@ public class LhClient implements AnnouncementSource {
     /** 상세/공급 API 재조회에 필요한 목록 응답 코드 필드 */
     private static final List<String> RE_QUERY_FIELDS =
             List.of("SPL_INF_TP_CD", "CCR_CNNT_SYS_DS_CD", "UPP_AIS_TP_CD", "AIS_TP_CD");
+
+    /** 주택 상위유형 아래 섞여 오는 비주택 세부유형 — 40 가정어린이집 (2026-10-12 라이브 확인) */
+    private static final Set<String> NON_HOUSING_SUB_TYPES = Set.of("40");
 
     /** 공급 API dsList 의 주택형 필드 후보 (유형그룹마다 이름이 다름) */
     private static final String[] F_TYPE_NAME = {"HTY_NM", "HTY_NNA"};
@@ -491,6 +495,9 @@ public class LhClient implements AnnouncementSource {
 
         // 청약과 무관한 토지·상가(희망상가 등) 공급 공고는 수집하지 않는다.
         if (!isHousing(providerParams.get("UPP_AIS_TP_CD"))) return null;
+        // 임대주택(06) 아래 "가정어린이집"(AIS_TP_CD=40)은 단지 내 어린이집 운영자 모집이다 — 주택 아님.
+        String aisTpCd = providerParams.get("AIS_TP_CD");
+        if (aisTpCd != null && NON_HOUSING_SUB_TYPES.contains(aisTpCd)) return null;   // Set.of 는 null 조회에 NPE
 
         return ExternalAnnouncement.builder()
                 .externalId(SOURCE_PREFIX + panId)
@@ -504,6 +511,8 @@ public class LhClient implements AnnouncementSource {
                         ? HouseType.NEWLYWED_HOPE_TOWN : HouseType.UNKNOWN)
                 // LH 주택 공급은 전부 공공(국민주택)이다. (비주택은 위에서 이미 걸러냈다.)
                 .houseDetailType(HouseDetailType.PUBLIC)
+                .supplyCategory(SupplyCategory.fromLhUpperCode(providerParams.get("UPP_AIS_TP_CD")))
+                .supplyTypeName(truncate(parser.text(item, "AIS_TP_CD_NM"), 30))
                 .regionName(parser.text(item, "CNP_CD_NM"))
                 // LH open API 는 규제지역 여부를 주지 않는다. 전부 false 로 둔다
                 // (규칙 엔진도 null 을 비규제로 취급하지만, 임베디드 값이 null 이면 저장 시 NOT NULL 위반).
@@ -520,6 +529,11 @@ public class LhClient implements AnnouncementSource {
     /** UPP_AIS_TP_CD: 05 분양주택 / 06 임대주택 / 39 신혼희망타운 / 13 주거복지 = 주택 */
     private boolean isHousing(String uppAisTpCd) {
         return List.of("05", "06", "13", "39").contains(uppAisTpCd);
+    }
+
+    /** 컬럼 상한을 넘는 값 하나가 수집 전체를 중단시키지 않게 자른다 (MariaDB "Data too long"). */
+    private static String truncate(String s, int max) {
+        return s == null || s.length() <= max ? s : s.substring(0, max);
     }
 
     private String firstText(JsonNode node, String... fields) {

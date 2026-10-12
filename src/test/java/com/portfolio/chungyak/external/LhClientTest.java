@@ -3,6 +3,7 @@ package com.portfolio.chungyak.external;
 import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.HouseType;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
+import com.portfolio.chungyak.domain.SupplyCategory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -107,6 +108,37 @@ class LhClientTest {
             ExternalAnnouncement a = result.get(0);
             assertThat(a.getHouseType()).isEqualTo(HouseType.NEWLYWED_HOPE_TOWN);
             assertThat(a.getHouseDetailType()).isEqualTo(HouseDetailType.PUBLIC);   // 신혼희망타운도 주택은 주택
+        }
+
+        @Test
+        @DisplayName("상위유형코드로 분양/임대/신혼희망타운 구분 + 세부 유형명 보관 (2026-10-12 라이브 값)")
+        void classifiesSupplyCategory() throws Exception {
+            String json = """
+                [{"dsList":[
+                  {"PAN_ID":"S-1","PAN_NM":"양주회천 공공분양","UPP_AIS_TP_CD":"05","AIS_TP_CD":"05","AIS_TP_CD_NM":"분양주택","SPL_INF_TP_CD":"050"},
+                  {"PAN_ID":"R-1","PAN_NM":"원주무실1 국민임대주택 예비입주자 모집","UPP_AIS_TP_CD":"06","AIS_TP_CD":"07","AIS_TP_CD_NM":"국민임대","SPL_INF_TP_CD":"062"},
+                  {"PAN_ID":"R-2","PAN_NM":"청년 매입임대주택","UPP_AIS_TP_CD":"13","AIS_TP_CD":"26","AIS_TP_CD_NM":"매입임대","SPL_INF_TP_CD":"131"},
+                  {"PAN_ID":"2015122300020859","PAN_NM":"하남시 신혼희망타운 행복주택 예비입주자 모집공고(2026.10.01)",
+                   "UPP_AIS_TP_CD":"39","AIS_TP_CD":"42","AIS_TP_CD_NM":"행복주택(신혼희망)","SPL_INF_TP_CD":"063"}
+                ]}]
+                """;
+            List<ExternalAnnouncement> result =
+                    client(props(true)).parseAnnouncements(json.getBytes(StandardCharsets.UTF_8));
+
+            assertThat(result).extracting(ExternalAnnouncement::getSupplyCategory).containsExactly(
+                    SupplyCategory.SALE, SupplyCategory.RENTAL, SupplyCategory.RENTAL, SupplyCategory.HOPE_TOWN);
+            // 신혼희망타운이지만 임대(행복주택)인 공고 — 세부 유형명으로 구별할 수 있어야 한다
+            assertThat(result.get(3).getSupplyTypeName()).isEqualTo("행복주택(신혼희망)");
+        }
+
+        @Test
+        @DisplayName("임대주택 아래 가정어린이집(AIS_TP_CD=40) 운영자 모집은 주택이 아니라 수집하지 않는다")
+        void daycareIsSkipped() throws Exception {
+            String json = """
+                [{"dsList":[{"PAN_ID":"DC-1","PAN_NM":"성남신촌 A1블록 가정어린이집 운영예정자 모집공고",
+                             "UPP_AIS_TP_CD":"06","AIS_TP_CD":"40","AIS_TP_CD_NM":"가정어린이집","SPL_INF_TP_CD":"064"}]}]
+                """;
+            assertThat(client(props(true)).parseAnnouncements(json.getBytes(StandardCharsets.UTF_8))).isEmpty();
         }
 
         @Test

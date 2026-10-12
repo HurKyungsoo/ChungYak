@@ -106,6 +106,19 @@ public class Announcement {
     @Column(length = 10)
     private String moveInYearMonth;
 
+    /** 분양/임대/신혼희망타운 — 목록 탭·배지용. 판정에는 쓰지 않는다. */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private SupplyCategory supplyCategory;
+
+    /** LH 세부 공급유형명 (AIS_TP_CD_NM: 국민임대·행복주택(신혼희망)·매입임대 …). 청약홈은 null. */
+    @Column(length = 30)
+    private String supplyTypeName;
+
+    /** 입주자모집공고문 PDF 내려받기 링크 (LH 상세 dsAhflInfo). 없으면 noticeUrl 로 안내한다. */
+    @Column(length = 500)
+    private String noticePdfUrl;
+
     @Builder.Default
     @OneToMany(mappedBy = "announcement", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UnitType> unitTypes = new ArrayList<>();
@@ -137,8 +150,11 @@ public class Announcement {
     public void updateFromExternal(String houseName, String regionName, String address,
                                    Integer totalSupplyCount, LocalDate receptBeginDate,
                                    LocalDate receptEndDate, LocalDate winnerAnnounceDate,
-                                   RegulationFlags regulationFlags) {
+                                   RegulationFlags regulationFlags,
+                                   SupplyCategory supplyCategory, String supplyTypeName) {
         this.houseName = houseName;
+        if (supplyCategory != null) this.supplyCategory = supplyCategory;
+        if (supplyTypeName != null) this.supplyTypeName = supplyTypeName;
         this.regionName = regionName;
         this.address = address;
         this.totalSupplyCount = totalSupplyCount;
