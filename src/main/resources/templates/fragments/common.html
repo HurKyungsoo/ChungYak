@@ -782,6 +782,7 @@
 
         /* 하단 탭바는 좁은 화면에서만 — 넓은 화면은 헤더 nav 로 충분하다 */
         .bottom-nav { display: none; }
+        .sticky-cta { display: none; }   /* 넓은 화면엔 없다 — 아래 모바일 블록에서만 켠다 */
 
         @media (max-width: 560px) {
             .site-header nav a { padding: 7px 9px; }
@@ -817,6 +818,24 @@
                 background: var(--brand); color: #fff;
                 font-size: .6rem; font-weight: 700; line-height: 17px; text-align: center;
             }
+
+            /* 상세 하단 고정 CTA (#19-4) — 탭바 바로 위. --tabbar-h 는 stickyCtaScript 가 실제 탭바
+               높이(safe-area 여백 포함)를 재서 넣는다. 위쪽 원래 버튼이 화면에 있는 동안엔 숨긴다. */
+            .sticky-cta {
+                position: fixed; left: 0; right: 0; bottom: var(--tabbar-h, 58px); z-index: 44;
+                display: flex; gap: 8px; padding: 10px 16px;
+                background: var(--surface); border-top: 1px solid var(--border);
+                box-shadow: 0 -6px 20px rgba(20, 25, 35, .06);
+                transition: transform .18s ease, opacity .18s ease;
+            }
+            .sticky-cta:not(.show) { transform: translateY(100%); opacity: 0; visibility: hidden; }
+            .sticky-cta .btn { flex: 1; width: auto; min-height: 48px; }
+            .sticky-cta .cta-scrap {
+                flex: none; width: 48px; height: 48px; border-radius: 12px; padding: 0;
+                border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
+                display: grid; place-items: center; font-size: 1.15rem;
+            }
+            main.has-sticky-cta { padding-bottom: 140px; }
 
             /* 탭바에 "비교"가 들어왔으니 같은 걸 알리는 바를 겹쳐 띄우지 않는다.
                (넓은 화면에는 탭바가 없으므로 거기서는 그대로 띄운다) */
@@ -983,6 +1002,31 @@
         </li>
     </ol>
 </section>
+
+<!-- ── 하단 고정 CTA 표시 (#19-4) — #stickyCta 가 있는 화면에서만 동작한다.
+     #ctaAnchor(위쪽 원래 버튼 줄)가 화면에서 벗어나면 띄우고, 다시 보이면 숨긴다. ── -->
+<script th:fragment="stickyCtaScript">
+    (function () {
+        var cta = document.getElementById('stickyCta');
+        var anchor = document.getElementById('ctaAnchor');
+        if (!cta || !anchor) return;
+
+        var nav = document.getElementById('bottomNav');
+        var setTabbarHeight = function () {
+            var h = nav && getComputedStyle(nav).display !== 'none' ? nav.offsetHeight : 0;
+            document.documentElement.style.setProperty('--tabbar-h', h + 'px');
+        };
+        setTabbarHeight();
+        window.addEventListener('resize', setTabbarHeight);
+
+        if (!('IntersectionObserver' in window)) { cta.classList.add('show'); return; }
+        new IntersectionObserver(function (entries) {
+            var visible = entries[0].isIntersecting;
+            cta.classList.toggle('show', !visible);
+            cta.setAttribute('aria-hidden', visible ? 'true' : 'false');
+        }).observe(anchor);
+    })();
+</script>
 
 <!-- ── disclaimer (본문 하단) ── -->
 <div th:fragment="disclaimer" class="disclaimer">

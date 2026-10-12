@@ -9,7 +9,7 @@
 <body>
 <header th:replace="~{fragments/common :: header}"></header>
 
-<main class="with-rail">
+<main class="with-rail has-sticky-cta">
 <div class="rail-layout">
 <div class="rail-main">
     <a th:href="@{/announcements}" class="backlink">← 공고 목록</a>
@@ -34,7 +34,7 @@
               th:if="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}">규제지역</span>
     </div>
 
-    <div class="btn-row" style="margin:16px 0 4px">
+    <div class="btn-row" id="ctaAnchor" style="margin:16px 0 4px">
         <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="btn btn-primary btn-lg">내 조건으로 자격 판정 →</a>
         <a th:if="${announcement.noticeUrl != null and !announcement.lh}" th:href="${announcement.noticeUrl}"
            target="_blank" rel="noopener" class="btn btn-ghost btn-lg">청약홈 공고문</a>
@@ -258,6 +258,13 @@
 </div>
 </main>
 
+<!-- 모바일 하단 고정 CTA (#19-4) — 위 버튼 줄이 화면을 벗어나면 탭바 위에 뜬다.
+     찜 버튼은 같은 data-ann-id 라 scrapScript 가 위쪽 버튼과 상태를 함께 맞춘다. -->
+<div class="sticky-cta" id="stickyCta" aria-hidden="true">
+    <button type="button" class="scrap-btn cta-scrap" th:attr="data-ann-id=${announcement.id}" aria-label="찜하기"></button>
+    <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="btn btn-primary">내 조건으로 자격 판정</a>
+</div>
+
 <!-- "오늘 본 공고" 기록용 — 이 값을 읽어 브라우저에만 남긴다(서버는 모른다) -->
 <div id="recentViewMarker" hidden
      th:attr="data-ann-id=${announcement.id}, data-ann-name=${announcement.houseName}"></div>
@@ -268,5 +275,6 @@
 <script th:replace="~{fragments/common :: supplyColPickerScript}"></script>
 <script th:replace="~{fragments/common :: scrollHintScript}"></script>
 <script th:replace="~{fragments/common :: recentViewsScript}"></script>
+<script th:replace="~{fragments/common :: stickyCtaScript}"></script>
 </body>
 </html>
