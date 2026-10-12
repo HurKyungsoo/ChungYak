@@ -4,6 +4,7 @@ import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.UnitType;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -28,7 +29,11 @@ public record DetailHighlights(
         String supplyAreaNote,
         Integer totalSupply,
         int specialSum,
-        int generalSum) {
+        int generalSum,
+        List<TypeTotal> typeTotals) {
+
+    /** 특별공급 유형 하나의 공고 전체 배정(주택형 합계) — "특별공급 유형별 배정" 카드 (목업 Main) */
+    public record TypeTotal(String label, int count) {}
 
     private static final double M2_PER_PYEONG = 400d / 121d;
 
@@ -50,11 +55,22 @@ public record DetailHighlights(
 
         int special = a.getUnitTypes().stream().mapToInt(UnitType::getSpecialSupplyCount).sum();
         int general = a.getUnitTypes().stream().mapToInt(UnitType::getGeneralSupplyCount).sum();
+
+        // 배정이 있는 유형만, 많은 순. 세대수를 모르는 주택형(LH, countsKnown=false)은 countOf 가 세대수가 아니라
+        // "유형 있음" 표시(1)라 더하면 1세대로 보인다 — 세대수를 아는 주택형만 센다.
+        List<TypeTotal> totals = a.visibleSupplyTypes().stream()
+                .map(t -> new TypeTotal(t.getLabel(), a.getUnitTypes().stream()
+                        .filter(u -> u.getSupplyBreakdown() != null && u.getSupplyBreakdown().isCountsKnown())
+                        .mapToInt(u -> u.getSupplyBreakdown().countOf(t)).sum()))
+                .filter(t -> t.count() > 0)
+                .sorted(Comparator.comparingInt(TypeTotal::count).reversed())
+                .toList();
+
         return new DetailHighlights(
                 top == null ? null : Prices.formatManwon(top.getTopAmount()),
                 top == null ? null : top.getTypeName(),
                 perPyeong, areaNote,
-                a.getTotalSupplyCount(), special, general);
+                a.getTotalSupplyCount(), special, general, totals);
     }
 
     /** 특공/일반 비중 막대를 그릴 수 있는지 — 둘 다 있어야 비율이 의미가 있다. */

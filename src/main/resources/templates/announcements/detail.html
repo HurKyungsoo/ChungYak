@@ -14,25 +14,38 @@
 <div class="rail-main">
     <a th:href="@{/announcements}" class="backlink">← 공고 목록</a>
 
-    <h1 th:text="${announcement.houseName}">공고명</h1>
-    <div class="chips" style="margin-bottom:4px">
-        <span class="chip">
+    <!-- 머리 (목업 Main/LhDetail): 배지 줄 → 제목 → 주소·시공사 한 줄.
+         오늘 진행 중인 접수가 있으면 맨 앞에 채운 강조 배지. D-day 가 있으면 "접수중" 상태 칩은 생략
+         ("마감 D-2"가 이미 접수 중이라는 뜻) — 없을 때(마감·미정)만 상태를 보여 준다. -->
+    <div class="chips detail-badges" th:with="highlight=${timeline.currentHighlight()},
+            regulated=${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}">
+        <span class="chip live" th:if="${highlight != null}"><span class="live-dot" aria-hidden="true"></span><span th:text="${highlight}">오늘 특별공급 접수</span></span>
+        <span class="chip dday" th:if="${dday != null and dday.present()}"
+              th:classappend="${dday.urgent()} ? 'soon' : ''" th:text="${dday.label()}">마감 D-2</span>
+        <span class="chip" th:unless="${dday != null and dday.present()}">
             <span class="dot"
                   th:classappend="${status == '접수중'} ? 'open' : (${status == '접수예정'} ? 'soon' : '')"></span>
             <span class="status-text"
                   th:classappend="${status == '접수중'} ? 'open' : (${status == '접수예정'} ? 'soon' : '')"
                   th:text="${status}">상태</span>
         </span>
-        <span class="chip dday" th:if="${dday != null and dday.present()}"
-              th:classappend="${dday.urgent()} ? 'soon' : ''" th:text="${dday.label()}">D-2</span>
+        <span class="chip" th:unless="${announcement.lh}" th:text="${announcement.houseDetailType.label}">민영</span>
         <span class="chip" th:unless="${announcement.lh}"
-              th:text="${announcement.houseDetailType.label} + ' · ' + ${announcement.houseType.label}">민영 · APT</span>
+              th:classappend="${regulated} ? 'reg' : ''"
+              th:text="(${announcement.regionName} ?: '지역 미상') + ' · ' + (${regulated} ? '규제지역' : '비규제')">대구 · 비규제</span>
         <span class="chip" th:if="${announcement.lh}"
               th:text="'LH · ' + (${announcement.supplyTypeName} ?: ${announcement.houseDetailType.label})">LH · 국민임대</span>
-        <span class="chip hl" th:if="${announcement.waitlist}">대기자 모집</span>
-        <span class="chip" style="color:var(--no)"
-              th:if="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}">규제지역</span>
+        <span class="chip hl" th:if="${announcement.waitlist}">예비입주자(대기자) 모집</span>
     </div>
+    <h1 class="detail-title" th:text="${announcement.houseName}">공고명</h1>
+    <!-- th:if 가 th:with 보다 먼저 평가되므로 변수는 바깥 블록에서 만든다 -->
+    <th:block th:with="adr=${#strings.isEmpty(announcement.address) ? null : announcement.address},
+                       builder=${announcement.lh or #strings.isEmpty(announcement.constructorName) ? null : announcement.constructorName}">
+    <p class="detail-sub" th:if="${adr != null or builder != null}">
+        <span th:if="${adr != null}" th:text="${adr}">대구광역시 중구 동인동1가 9 일원</span><span
+            th:if="${adr != null and builder != null}"> · </span><span th:if="${builder != null}" th:text="${builder}">(주)포스코이앤씨</span>
+    </p>
+    </th:block>
 
     <div class="btn-row" id="ctaAnchor" style="margin:16px 0 4px">
         <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="btn btn-primary btn-lg">내 조건으로 자격 판정 →</a>
@@ -91,32 +104,23 @@
         </div>
     </section>
 
-    <div class="card">
-        <table class="kv">
-            <tr><th>지역</th><td th:text="${announcement.regionName} ?: '-'">서울</td></tr>
-            <tr th:if="${announcement.address != null and !announcement.address.isBlank()}">
-                <th>주소</th><td th:text="${announcement.address}">주소</td></tr>
-            <!-- 아래 네 줄은 공고에 값이 없는 경우가 있어(특히 LH) 있을 때만 보여준다.
-                 문의처는 폰에서 한 번 탭으로 걸리도록 tel: 링크로 둔다. -->
-            <tr th:if="${announcement.inquiryTel != null and !announcement.inquiryTel.isBlank()}">
-                <th>문의처</th>
-                <td><a th:href="'tel:' + ${announcement.inquiryTel}" th:text="${inquiryTelDisplay}">1522-0125</a></td>
-            </tr>
-            <tr th:if="${announcement.homepageUrl != null and !announcement.homepageUrl.isBlank()}">
-                <th>홈페이지</th>
-                <td><a th:href="${announcement.homepageUrl}" target="_blank" rel="noopener"
-                       th:text="${announcement.homepageUrl}">분양 홈페이지</a></td>
-            </tr>
-            <tr th:if="${announcement.developerName != null and !announcement.developerName.isBlank()}">
-                <th>시행사</th><td th:text="${announcement.developerName}">시행사명</td>
-            </tr>
-            <tr th:if="${announcement.constructorName != null and !announcement.constructorName.isBlank()}">
-                <th>시공사</th><td th:text="${announcement.constructorName}">시공사명</td>
-            </tr>
-        </table>
-    </div>
 
-    <h2>주택형별 분양가 · 특별공급 세대수</h2>
+    <!-- 특별공급 유형별 배정 (목업 Main) — 공고 전체 합계. 어느 유형이 이 공고에 몇 세대 있는지가
+         주택형 표보다 먼저 궁금한 정보라 카드로 꺼낸다. 세대수를 아는 주택형만 센다(DetailHighlights). -->
+    <section class="card type-totals" th:if="${!highlights.typeTotals().isEmpty()}" aria-label="특별공급 유형별 배정">
+        <div class="sec-head" style="margin:0 0 10px">
+            <h2 style="margin:0">특별공급 유형별 배정</h2>
+            <span class="count" th:text="|주택형 ${announcement.unitTypes.size()}개 합계|">주택형 4개 합계</span>
+        </div>
+        <div class="type-total-grid">
+            <div class="type-total" th:each="t : ${highlights.typeTotals()}">
+                <span class="tt-label" th:text="${t.label()}">신혼부부</span>
+                <strong class="tt-count" th:text="${#numbers.formatInteger(t.count(), 1, 'COMMA')}">48</strong>
+            </div>
+        </div>
+    </section>
+
+    <h2>주택형</h2>
     <p class="muted">특별공급 배정은 공고가 아니라 <strong>주택형마다</strong> 다릅니다. 0 세대는 그 유형 물량이 없다는 뜻입니다.
         <span th:if="${!announcement.unitTypes.isEmpty()}">이 공고에 아예 없는 유형(예: 청년은 공공주택에만 배정)은 표에서 뺐습니다.</span>
         분양가는 공고에 실린 주택형별 <strong>최고 공급금액</strong>이라, 같은 주택형이라도 층·향에 따라 실제 금액은 더 낮을 수 있습니다.
@@ -141,20 +145,25 @@
     <!-- 유형 열 접기 — 표가 유형 수만큼 넓어져 좁은 화면에서 계속 밀린다. 어떤 유형이 나에게
          해당되는지는 판정이라 여기서 따지지 않는다(그건 rule 패키지 몫이다). 관심 없는 열을
          사용자가 직접 접을 뿐이고, 고른 결과는 이 브라우저에만 남아 다음 공고에도 이어진다. -->
+
+    <div class="supply-table" id="supplyTable">
+    <div class="btn-row" style="margin:0 0 8px" th:if="${!visibleTypes.isEmpty()}">
+        <button type="button" class="chip type-cols-toggle" data-type-cols-toggle aria-expanded="false"
+                aria-controls="supplyTable">특별공급 유형별 세대 보기</button>
+    </div>
     <div id="supplyColPicker" class="chips" hidden style="margin-bottom:10px">
         <span class="muted" style="font-size:.8rem;margin-right:2px">유형 열</span>
         <button type="button" class="chip" th:each="t : ${visibleTypes}"
                 th:attr="data-supply-type=${t.name()}" th:text="${t.label}">다자녀</button>
     </div>
-
     <div class="table-scroll sticky-first" data-scroll-hint>
         <table>
             <thead>
             <tr>
-                <th>주택형</th><th class="num">공급면적 <button type="button" class="area-toggle" data-area-toggle aria-label="면적 단위 바꾸기 (㎡/평)">㎡</button></th><th class="num">분양가(최고)</th><th class="num">일반</th>
+                <th>주택형</th><th class="num">공급면적 <button type="button" class="area-toggle" data-area-toggle aria-label="면적 단위 바꾸기 (㎡/평)">㎡</button></th><th class="num">분양가(최고)</th>
+                <th class="num">특별공급</th><th class="num">일반</th>
                 <th class="num" th:if="${lotteryByUnitType != null}">가점제</th>
                 <th class="num" th:if="${lotteryByUnitType != null}">추첨제</th>
-                <th class="num">특공 합계</th>
                 <th class="num" th:each="t : ${visibleTypes}"
                     th:attr="data-supply-type=${t.name()}" th:text="${t.label}">다자녀</th>
             </tr>
@@ -170,6 +179,7 @@
                     <div th:if="${perPyeong != null}" class="subtle" style="font-size:.78rem"
                          th:text="'평당 ' + ${perPyeong}">평당 2,694만원</div>
                 </td>
+                <td class="num"><strong th:text="${u.specialSupplyCount}">172</strong></td>
                 <td class="num" th:text="${u.generalSupplyCount}">141</td>
                 <td class="num" th:if="${lotteryByUnitType != null}" th:with="lot=${lotteryByUnitType.get(u.id)}">
                     <span th:if="${lot != null and lot.known()}"
@@ -181,7 +191,6 @@
                           th:text="${lot.lotteryUnits} + '세대(' + ${lot.lotteryRatioPercent} + '%)'">42세대(30%)</span>
                     <span th:unless="${lot != null and lot.known()}" class="subtle">-</span>
                 </td>
-                <td class="num"><strong th:text="${u.specialSupplyCount}">172</strong></td>
                 <td class="num" th:each="t : ${visibleTypes}" th:attr="data-supply-type=${t.name()}"
                     th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.countOf(t)} : 0">31</td>
             </tr>
@@ -192,6 +201,30 @@
             </tbody>
         </table>
     </div>
+    </div><!-- /supplyTable -->
+
+    <!-- 문의 · 사업자 — 목업엔 없지만 전화·홈페이지는 실제로 쓰는 정보라 표 아래에 둔다.
+         지역·주소·시공사는 머리(배지·부제)에 있어 여기서 반복하지 않는다. 값이 하나도 없으면 카드째 숨김.
+         문의처는 폰에서 한 번 탭으로 걸리도록 tel: 링크. -->
+    <section class="card" style="margin-top:16px" aria-label="문의 · 사업자"
+             th:if="${!#strings.isEmpty(announcement.inquiryTel) or !#strings.isEmpty(announcement.homepageUrl)
+                     or !#strings.isEmpty(announcement.developerName)}">
+        <h2 style="margin:0 0 6px;font-size:1rem">문의 · 사업자</h2>
+        <table class="kv">
+            <tr th:if="${!#strings.isEmpty(announcement.inquiryTel)}">
+                <th>문의처</th>
+                <td><a th:href="'tel:' + ${announcement.inquiryTel}" th:text="${inquiryTelDisplay}">1522-0125</a></td>
+            </tr>
+            <tr th:if="${!#strings.isEmpty(announcement.homepageUrl)}">
+                <th>홈페이지</th>
+                <td><a th:href="${announcement.homepageUrl}" target="_blank" rel="noopener"
+                       th:text="${announcement.homepageUrl}">분양 홈페이지</a></td>
+            </tr>
+            <tr th:if="${!#strings.isEmpty(announcement.developerName)}">
+                <th>시행사</th><td th:text="${announcement.developerName}">시행사명</td>
+            </tr>
+        </table>
+    </section>
 
     </th:block>
     </th:block><!-- /청약홈 공고 -->
@@ -272,6 +305,7 @@
 <footer th:replace="~{fragments/common :: footer}"></footer>
 <script th:replace="~{fragments/common :: scrapScript}"></script>
 <!-- 열을 접으면 표 폭이 바뀌므로 스크롤 안내(scrollHintScript)보다 먼저 돌려 둔다 -->
+<script th:replace="~{fragments/common :: typeColsToggleScript}"></script>
 <script th:replace="~{fragments/common :: supplyColPickerScript}"></script>
 <script th:replace="~{fragments/common :: scrollHintScript}"></script>
 <script th:replace="~{fragments/common :: recentViewsScript}"></script>

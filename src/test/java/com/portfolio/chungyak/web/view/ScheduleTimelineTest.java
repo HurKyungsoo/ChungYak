@@ -40,6 +40,21 @@ class ScheduleTimelineTest {
     }
 
     @Test
+    @DisplayName("강조 배지: 오늘 하루짜리 특공이면 '오늘 특별공급 접수', 여러 날 접수면 '청약 접수 중', 없으면 null")
+    void currentHighlight() {
+        assertThat(ScheduleTimeline.of(applyhome().build(), TODAY).currentHighlight()).isEqualTo("오늘 특별공급 접수");
+
+        Announcement receptOnly = applyhome().specialReceptBeginDate(null).specialReceptEndDate(null)
+                .receptBeginDate(TODAY.minusDays(1)).receptEndDate(TODAY.plusDays(1)).build();
+        receptOnly.addUnitType(UnitType.builder().modelNo("01").typeName("84A").specialSupplyCount(3).build());
+        assertThat(ScheduleTimeline.of(receptOnly, TODAY).currentHighlight()).isEqualTo("청약 접수 중");
+
+        Announcement later = applyhome().specialReceptBeginDate(TODAY.plusDays(3)).specialReceptEndDate(TODAY.plusDays(3))
+                .receptBeginDate(TODAY.plusDays(4)).receptEndDate(TODAY.plusDays(5)).build();
+        assertThat(ScheduleTimeline.of(later, TODAY).currentHighlight()).isNull();
+    }
+
+    @Test
     @DisplayName("진행 중 단계가 없으면 가장 가까운 예정 단계 하나만 '다음'")
     void marksNextWhenNothingCurrent() {
         ScheduleTimeline t = ScheduleTimeline.of(applyhome()

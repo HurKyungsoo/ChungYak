@@ -72,6 +72,22 @@ public record ScheduleTimeline(List<Step> steps) {
         return new ScheduleTimeline(steps);
     }
 
+    /**
+     * 상세 머리의 강조 배지 — 오늘 진행 중인 접수 단계. 특별공급과 청약 접수가 겹치면 특별공급이 먼저다
+     * (당일만 받는 경우가 많아 놓치기 쉽다). 하루짜리 단계면 "오늘 …", 여러 날이면 "… 접수 중". 없으면 null.
+     */
+    public String currentHighlight() {
+        for (String label : List.of("특별공급", "청약 접수")) {
+            for (Step s : steps) {
+                if (!s.label().equals(label) || !s.current()) continue;
+                boolean oneDay = s.when() != null && !s.when().contains("~");
+                String name = label.equals("특별공급") ? "특별공급 접수" : "청약 접수";
+                return oneDay ? "오늘 " + name : name + " 중";
+            }
+        }
+        return null;
+    }
+
     /** 모르는 단계가 하나라도 있는지 — 화면이 "공고문에서 확인" 안내를 붙일지 정한다. */
     public boolean hasUnknown() {
         return steps.stream().anyMatch(Step::unknown);
