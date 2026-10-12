@@ -213,3 +213,7 @@ spring:
     password: ${DB_PASSWORD}
   thymeleaf:
     cache: true
+# Caddy 가 HTTPS 를 끝내고 http 로 넘긴다 — X-Forwarded-Proto/Host 를 믿어야 앱이 만드는 절대 주소
+# (리다이렉트, .ics 의 공고 링크)가 https 가 된다. native = Tomcat RemoteIpValve: 사설망(도커) 프록시만 신뢰.
+server:
+  forward-headers-strategy: native
