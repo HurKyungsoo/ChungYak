@@ -164,6 +164,27 @@ class EligibilityResultAssemblerTest {
     }
 
     @Test
+    @DisplayName("카드별 '이 공고 배정 N세대' = 주택형 합계, 세대수를 모르는 공고(LH)는 null")
+    void allocatedInAnnouncement() {
+        ApplicantProfile profile = passing().married(true).monthsSinceMarriage(24).houseless(true).accountMonths(24).build();
+
+        EligibilityResultView view = assembler.assemble(engine.evaluate(profile, publicAnnouncement()));
+        assertThat(view.allDecisions()).filteredOn(d -> d.typeLabel().equals("신혼부부"))
+                .extracting(EligibilityResultView.TypeDecision::allocatedInAnnouncement).containsExactly(47);
+        // 신혼희망타운은 일반 공고에 배정이 없다 — null(모름)이 아니라 0(없음)
+        assertThat(view.allDecisions()).filteredOn(d -> d.typeName().equals("NEWLYWED_HOPE_TOWN"))
+                .extracting(EligibilityResultView.TypeDecision::allocatedInAnnouncement).containsExactly(0);
+
+        Announcement lh = Announcement.builder().externalId("LH-1").houseManageNo("03").pblancNo("1")
+                .houseName("LH 국민임대").houseType(HouseType.UNKNOWN).houseDetailType(HouseDetailType.PUBLIC)
+                .regulationFlags(RegulationFlags.builder().build()).build();
+        lh.addUnitType(UnitType.builder().modelNo("01").typeName("26A")
+                .supplyBreakdown(SupplyBreakdown.ofPresentTypes(java.util.Set.of(SpecialSupplyType.NEWLYWED))).build());
+        EligibilityResultView lhView = assembler.assemble(engine.evaluate(profile, lh));
+        assertThat(lhView.allDecisions()).allSatisfy(d -> assertThat(d.allocatedInAnnouncement()).isNull());
+    }
+
+    @Test
     @DisplayName("근거 카드 순서: 충족 → 정보 필요 → 미충족 (판정 자체는 그대로, 개수도 그대로)")
     void ordersCardsEligibleFirst() {
         ApplicantProfile profile = passing()

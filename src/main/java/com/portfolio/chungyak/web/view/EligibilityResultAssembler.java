@@ -1,5 +1,8 @@
 package com.portfolio.chungyak.web.view;
 
+import com.portfolio.chungyak.domain.Announcement;
+import com.portfolio.chungyak.domain.SpecialSupplyType;
+import com.portfolio.chungyak.domain.UnitType;
 import com.portfolio.chungyak.rule.CommonRequirements;
 import com.portfolio.chungyak.rule.EligibilityDecision;
 import com.portfolio.chungyak.rule.EligibilityEngine.MatchResult;
@@ -33,10 +36,10 @@ public class EligibilityResultAssembler {
                 result.hasAnyMatch(),
                 result.matches().stream().map(this::toMatchedUnitType).toList(),
                 result.qualifiedButUnavailable().stream()
-                        .map(type -> toTypeDecision(result.decisions().get(type)))
+                        .map(type -> toTypeDecision(result.decisions().get(type), result.announcement()))
                         .toList(),
                 result.decisions().values().stream()
-                        .map(this::toTypeDecision)
+                        .map(d -> toTypeDecision(d, result.announcement()))
                         .sorted(Comparator.comparingInt(EligibilityResultAssembler::cardOrder))
                         .toList());
     }
@@ -66,7 +69,19 @@ public class EligibilityResultAssembler {
                 allocated);
     }
 
-    private EligibilityResultView.TypeDecision toTypeDecision(EligibilityDecision decision) {
+    /**
+     * 이 공고의 이 유형 배정 세대(주택형 합계). 세대수를 아는 주택형이 하나도 없으면(LH) null —
+     * "유형 있음" 표시(1)를 세대로 보이지 않는다. 판정이 아니라 공고 데이터를 옮겨 담을 뿐이다.
+     */
+    private static Integer allocated(Announcement a, SpecialSupplyType type) {
+        List<UnitType> known = a.getUnitTypes().stream()
+                .filter(u -> u.getSupplyBreakdown() != null && u.getSupplyBreakdown().isCountsKnown())
+                .toList();
+        if (known.isEmpty()) return null;
+        return known.stream().mapToInt(u -> u.getSupplyBreakdown().countOf(type)).sum();
+    }
+
+    private EligibilityResultView.TypeDecision toTypeDecision(EligibilityDecision decision, Announcement announcement) {
         List<RequirementCheck> common = decision.getCommonChecks();
 
         List<CommonCheckView> commonViews = new ArrayList<>();
@@ -97,6 +112,7 @@ public class EligibilityResultAssembler {
                 decision.getSatisfiedReasons().stream().filter(r -> !commonReasons.contains(r)).toList(),
                 decision.getFailedReasons().stream().filter(r -> !commonReasons.contains(r)).toList(),
                 decision.getMissingInputs().stream().filter(r -> !commonReasons.contains(r)).toList(),
-                decision.getImprovementHints().stream().filter(h -> !commonHints.contains(h)).toList());
+                decision.getImprovementHints().stream().filter(h -> !commonHints.contains(h)).toList(),
+                allocated(announcement, decision.getType()));
     }
 }

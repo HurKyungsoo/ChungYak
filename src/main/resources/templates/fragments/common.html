@@ -827,7 +827,13 @@
         .decision-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
                          gap: 12px; align-items: start; }
         .decision-grid .decision-card { margin: 0; }
-        .decision-card.needs-info { border-style: dashed; }
+        .decision-card.needs-info { border-style: dashed; grid-column: 1 / -1; }   /* 목업: 정보 필요는 전체 폭 */
+        .decision-card .alloc-note { font-size: .78rem; color: var(--text-subtle); margin-top: 2px; }
+        .profile-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 4px;
+                         padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+        .profile-strip .ps-label { font-size: .78rem; font-weight: 700; color: var(--text-muted); margin-right: 2px; }
+        .profile-strip .ps-edit { margin-left: auto; font-size: .85rem; font-weight: 600; }
+        .ai-summary-slot { margin-top: 16px; display: grid; gap: 10px; }
         .decision-card .hint-box { margin-top: 10px; padding: 10px 12px; border-radius: 10px;
                                    background: var(--brand-weak); font-size: .88rem; }
         .decision-card .hint-box .reasons { margin-top: 4px; }

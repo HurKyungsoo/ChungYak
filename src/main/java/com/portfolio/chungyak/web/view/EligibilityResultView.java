@@ -56,5 +56,7 @@ public record EligibilityResultView(
             List<String> ownSatisfiedReasons,
             List<String> ownFailedReasons,
             List<String> ownMissingInputs,
-            List<String> ownImprovementHints) {}
+            List<String> ownImprovementHints,
+            /** 이 공고 전체(주택형 합계)의 이 유형 배정 세대 — 세대수를 모르는 공고(LH)면 null (목업 Verdict) */
+            Integer allocatedInAnnouncement) {}
 }
