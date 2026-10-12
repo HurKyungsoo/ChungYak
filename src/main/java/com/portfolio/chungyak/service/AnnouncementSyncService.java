@@ -46,6 +46,7 @@ public class AnnouncementSyncService {
             if (existing == null) {
                 Announcement saved = announcementRepository.save(toEntity(external));
                 attachUnitTypes(saved, external.getUnitTypes());
+                saved.fillTotalSupplyCountFromUnitTypes();
                 saveNoticeContent(saved, external);
                 created++;
                 createdAnnouncements.add(saved);

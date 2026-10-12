@@ -146,6 +146,20 @@ public class Announcement {
         this.receptEndDate = receptEndDate;
         this.winnerAnnounceDate = winnerAnnounceDate;
         if (regulationFlags != null) this.regulationFlags = regulationFlags;
+        fillTotalSupplyCountFromUnitTypes();
+    }
+
+    /**
+     * 원천이 총 공급세대수를 주지 않으면(LH) 주택형 세대수 합계로 채운다.
+     * LH 목록 응답의 {@code ALL_CNT} 는 세대수가 아니라 조회 전체 건수다(2026-10-12 라이브 확인 —
+     * 페이지가 달라도 모든 행이 같은 값) — 그래서 원천 값이 아니라 이 합계를 쓴다.
+     * 합계가 0 이면(예비입주자 모집 등 주택형이 없거나 세대수 0) 모른다는 뜻으로 null 을 유지한다.
+     * 기존 공고는 재수집 때 주택형을 다시 받지 않지만 이미 붙어 있는 주택형으로 채워진다.
+     */
+    public void fillTotalSupplyCountFromUnitTypes() {
+        if (totalSupplyCount != null) return;
+        int sum = unitTypes.stream().mapToInt(UnitType::totalSupplyCount).sum();
+        if (sum > 0) this.totalSupplyCount = sum;
     }
 
     /** 접수 진행 중인지 */

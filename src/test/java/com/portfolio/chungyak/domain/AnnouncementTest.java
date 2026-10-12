@@ -66,4 +66,57 @@ class AnnouncementTest {
 
         assertThat(a.visibleSupplyTypes()).containsExactly(SpecialSupplyType.YOUTH);
     }
+
+    // === 총 공급세대수 폴백 (LH 는 원천이 총계를 안 준다) ===
+
+    private static UnitType counted(int general, int special) {
+        return UnitType.builder().modelNo("01").typeName("26A")
+                .generalSupplyCount(general).specialSupplyCount(special).build();
+    }
+
+    @Test
+    @DisplayName("총 세대수가 없으면 주택형 세대수(일반+특별) 합계로 채운다")
+    void fillsTotalFromUnitTypesWhenMissing() {
+        Announcement a = Announcement.builder().build();
+        a.addUnitType(counted(30, 0));
+        a.addUnitType(counted(12, 5));
+
+        a.fillTotalSupplyCountFromUnitTypes();
+
+        assertThat(a.getTotalSupplyCount()).isEqualTo(47);
+    }
+
+    @Test
+    @DisplayName("원천이 준 총 세대수는 덮어쓰지 않는다")
+    void keepsTotalFromSource() {
+        Announcement a = Announcement.builder().totalSupplyCount(500).build();
+        a.addUnitType(counted(30, 0));
+
+        a.fillTotalSupplyCountFromUnitTypes();
+
+        assertThat(a.getTotalSupplyCount()).isEqualTo(500);
+    }
+
+    @Test
+    @DisplayName("주택형이 없거나 합계가 0 이면 모름(null)으로 둔다 — 0세대로 단정하지 않는다")
+    void staysNullWhenNoCounts() {
+        Announcement a = Announcement.builder().build();
+        a.fillTotalSupplyCountFromUnitTypes();
+        assertThat(a.getTotalSupplyCount()).isNull();
+
+        a.addUnitType(counted(0, 0));   // 예비입주자 모집 — 금회 공급 0
+        a.fillTotalSupplyCountFromUnitTypes();
+        assertThat(a.getTotalSupplyCount()).isNull();
+    }
+
+    @Test
+    @DisplayName("재수집이 총계를 null 로 보내도 붙어 있는 주택형으로 다시 채운다")
+    void updateFromExternalRefillsFromExistingUnitTypes() {
+        Announcement a = Announcement.builder().houseName("하남").build();
+        a.addUnitType(counted(40, 0));
+
+        a.updateFromExternal("하남", "경기도", null, null, null, null, null, null);
+
+        assertThat(a.getTotalSupplyCount()).isEqualTo(40);
+    }
 }
