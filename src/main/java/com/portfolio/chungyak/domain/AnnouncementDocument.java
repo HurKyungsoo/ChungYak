@@ -35,13 +35,13 @@ public class AnnouncementDocument {
     private String source;
 
     /**
-     * 공고문 본문(첨부 PDF 추출 or PAN_DTL_CTS). 컬럼은 VARCHAR(20000) 이라
+     * 공고문 본문(첨부 PDF 추출 or PAN_DTL_CTS). 컬럼은 VARCHAR(16000) 이라
      * 수집 시 {@code MAX_LEN} 로 잘라 넣는다 — 앞부분(자격요건·세대수·일정)이 핵심이라 충분하다.
      * (전체 원문 보존이 필요해지면 TEXT 컬럼으로 마이그레이션.)
      */
-    public static final int MAX_LEN = 19_500;
+    public static final int MAX_LEN = 15_500;
 
-    @Column(name = "raw_text", nullable = false, length = 20_000)
+    @Column(name = "raw_text", nullable = false, length = 16_000)
     private String rawText;
 
     @Column(name = "text_hash", nullable = false, length = 64)
