@@ -37,10 +37,7 @@ public record RequirementCheck(Status status, String reason, String improvementH
     public void describe(EligibilityDecision decision) {
         switch (status) {
             case PASS -> decision.satisfied(reason);
-            case FAIL -> {
-                decision.failed(reason);
-                if (improvementHint != null) decision.hint(improvementHint);
-            }
+            case FAIL -> decision.failedWithHint(reason, improvementHint);   // 힌트 없으면 메울 수 없는 미충족
             case MISSING -> decision.missing(reason);
         }
     }

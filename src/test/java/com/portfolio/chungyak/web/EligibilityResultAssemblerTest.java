@@ -185,6 +185,20 @@ class EligibilityResultAssemblerTest {
     }
 
     @Test
+    @DisplayName("fixable 은 엔진 판정 그대로 옮긴다 — 통장만 모자라면 참, 혼인 7년 초과가 섞이면 거짓")
+    void carriesEngineFixable() {
+        var onlyAccount = assembler.assemble(engine.evaluate(passing().married(true).monthsSinceMarriage(24)
+                .houseless(true).accountMonths(3).build(), publicAnnouncement()));
+        var mixed = assembler.assemble(engine.evaluate(passing().married(true).monthsSinceMarriage(100)
+                .houseless(true).accountMonths(3).build(), publicAnnouncement()));
+
+        assertThat(onlyAccount.allDecisions()).filteredOn(d -> d.typeName().equals("NEWLYWED"))
+                .extracting(EligibilityResultView.TypeDecision::fixable).containsExactly(true);
+        assertThat(mixed.allDecisions()).filteredOn(d -> d.typeName().equals("NEWLYWED"))
+                .extracting(EligibilityResultView.TypeDecision::fixable).containsExactly(false);
+    }
+
+    @Test
     @DisplayName("근거 카드 순서: 충족 → 정보 필요 → 미충족 (판정 자체는 그대로, 개수도 그대로)")
     void ordersCardsEligibleFirst() {
         ApplicantProfile profile = passing()

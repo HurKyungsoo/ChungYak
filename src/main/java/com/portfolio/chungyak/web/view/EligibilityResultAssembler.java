@@ -113,6 +113,7 @@ public class EligibilityResultAssembler {
                 decision.getFailedReasons().stream().filter(r -> !commonReasons.contains(r)).toList(),
                 decision.getMissingInputs().stream().filter(r -> !commonReasons.contains(r)).toList(),
                 decision.getImprovementHints().stream().filter(h -> !commonHints.contains(h)).toList(),
-                allocated(announcement, decision.getType()));
+                allocated(announcement, decision.getType()),
+                decision.isFixable());
     }
 }

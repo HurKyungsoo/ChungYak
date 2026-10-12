@@ -38,6 +38,17 @@ public class IncomeReference {
     }
 
     /**
+     * 상한 %에 해당하는 월소득 금액(원) — 미충족 사유에 "상한 월 N만원, M만원 초과"를 적기 위해.
+     * percentOf 와 같은 표·같은 산수(기준 × % / 100)라 새 제도 수치를 만들지 않는다. 기준표가 없으면 null.
+     */
+    public Long limitAmount(Integer householdSize, int percent) {
+        if (householdSize == null || householdSize < 1) return null;
+        Long base = baseFor(householdSize);
+        if (base == null || base <= 0) return null;
+        return Math.round(base * percent / 100.0);
+    }
+
+    /**
      * 가구원 수별 기준 소득. 표에 없는 큰 가구는 마지막 두 구간의 증가분만큼 선형 연장한다
      * (통계청 방식: 8인 초과 시 1인 증가마다 (8인-7인) 만큼 가산).
      */

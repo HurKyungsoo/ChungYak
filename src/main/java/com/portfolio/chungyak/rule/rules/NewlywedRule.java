@@ -90,11 +90,11 @@ public class NewlywedRule implements EligibilityRule {
             decision.satisfied("청약통장 가입 " + accountMonths + "개월로 요건("
                     + requiredAccount + "개월)을 충족합니다.");
         } else {
-            decision.failed("청약통장 가입기간이 " + accountMonths + "개월로 요건("
+            decision.failedWithHint("청약통장 가입기간이 " + accountMonths + "개월로 요건("
                     + requiredAccount + "개월)에 미달합니다."
                     + (requiredAccount == MIN_ACCOUNT_MONTHS_REGULATED
-                        ? " 이 공고는 규제지역이라 24개월이 필요합니다." : ""))
-                    .hint(ImprovementHints.accountMonths(accountMonths, requiredAccount));
+                        ? " 이 공고는 규제지역이라 24개월이 필요합니다." : ""),
+                    ImprovementHints.accountMonths(accountMonths, requiredAccount));
         }
 
         CommonRequirements.describeAll(common, decision);

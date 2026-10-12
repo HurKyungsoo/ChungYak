@@ -31,6 +31,17 @@ class IncomeRequirementTest {
     }
 
     @Test
+    @DisplayName("초과하면 상한 금액과 초과 금액을 적는다 — 같은 기준표·같은 산수 (#19-1b)")
+    void failReasonCarriesGap() {
+        // 3인 7,198,649원 × 140% = 10,078,109원(반올림) → 1,007만원. 11,000,000 - 10,078,109 = 921,891 → 92만원
+        assertThat(req.check(profile(11_000_000, 3, false), SpecialSupplyType.NEWLYWED).reason())
+                .endsWith("상한은 월 1,007만원으로 월 92만원 초과입니다.");
+        // 통과하면 금액을 덧붙이지 않는다
+        assertThat(req.check(profile(7_000_000, 3, false), SpecialSupplyType.NEWLYWED).reason())
+                .doesNotContain("상한은 월");
+    }
+
+    @Test
     @DisplayName("맞벌이는 완화된 상한을 쓴다")
     void dualIncomeUsesRelaxedLimit() {
         // 약 146% — 단독 140 초과, 맞벌이 160 이내

@@ -34,7 +34,8 @@ public class AssetRequirement {
         }
         if (profile.getTotalAssets() > limit.totalAssets()) {
             return RequirementCheck.fail("총자산 " + won(profile.getTotalAssets())
-                    + "이 공공주택 특별공급 요건(" + won(limit.totalAssets()) + " 이하)을 초과합니다.");
+                    + "이 공공주택 특별공급 요건(" + won(limit.totalAssets()) + " 이하)을 초과합니다 — "
+                    + won(profile.getTotalAssets() - limit.totalAssets()) + " 초과.");
         }
 
         if (profile.getCarValue() == null) {
@@ -42,7 +43,8 @@ public class AssetRequirement {
         }
         if (profile.getCarValue() > limit.carValue()) {
             return RequirementCheck.fail("자동차가액 " + won(profile.getCarValue())
-                    + "이 요건(" + won(limit.carValue()) + " 이하)을 초과합니다.");
+                    + "이 요건(" + won(limit.carValue()) + " 이하)을 초과합니다 — "
+                    + won(profile.getCarValue() - limit.carValue()) + " 초과.");
         }
 
         return RequirementCheck.pass("총자산·자동차가액이 공공주택 특별공급 자산 요건을 충족합니다.");

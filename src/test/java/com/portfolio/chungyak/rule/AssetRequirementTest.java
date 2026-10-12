@@ -52,6 +52,14 @@ class AssetRequirementTest {
     }
 
     @Test
+    @DisplayName("초과하면 얼마나 넘었는지 금액도 적는다 (#19-1b)")
+    void failReasonCarriesGap() {
+        Announcement pub = announcement(HouseDetailType.PUBLIC);
+        assertThat(req.check(assets(400_000_000L, 0), pub).reason()).endsWith("— 2,100만원 초과.");
+        assertThat(req.check(assets(100_000_000L, 40_000_000), pub).reason()).endsWith("— 292만원 초과.");
+    }
+
+    @Test
     @DisplayName("공공주택인데 자산 정보가 없으면 MISSING")
     void publicMissingAssets() {
         Announcement pub = announcement(HouseDetailType.PUBLIC);

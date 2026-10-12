@@ -168,9 +168,9 @@
         재당첨·소득·자산·통장·거주처럼 여러 유형이 공유하는 요건은 위 요약 레일에 한 번만 나오므로
         카드에는 <strong>이 유형만의 요건</strong>을 펼쳐 두고, 공통 요건까지 포함한 전체 목록은 접어 두었습니다.</p>
 
-    <!-- 근거 카드 (#19-1). 배지는 엔진 판정(eligible/undetermined) 그대로 세 가지뿐이다 —
-         "지금은 불가 / 영영 불가"처럼 화면이 미충족을 다시 나누지 않는다. 엔진은 메울 수 있는 격차만
-         improvementHints 로 주므로, 힌트가 있으면 요건 단위로 보여 줄 뿐이다. -->
+    <!-- 근거 카드 (#19-1). 배지는 엔진 판정 그대로다: 자격 충족 / 정보 필요 / 지금은 불가 / 자격 미충족.
+         "지금은 불가"는 엔진의 EligibilityDecision.isFixable()(미충족이 전부 기간·선택으로 메울 수 있음)일
+         때만 — 화면이 미충족을 다시 나누지 않는다 (#19-1b). -->
     <div class="decision-grid">
     <div th:each="d : ${result.allDecisions}" class="card decision-card" th:id="'decision-' + ${d.typeName}"
          th:classappend="${d.undetermined} ? 'needs-info' : ''"
@@ -180,7 +180,7 @@
             <span th:if="${d.undetermined}" class="verdict miss">정보 필요</span>
             <span th:unless="${d.undetermined}"
                   th:classappend="${d.eligible} ? 'ok' : 'no'" class="verdict"
-                  th:text="${d.eligible} ? '자격 충족' : '자격 미충족'">결과</span>
+                  th:text="${d.eligible} ? '자격 충족' : (${d.fixable} ? '지금은 불가' : '자격 미충족')">결과</span>
         </div>
 
         <!-- 이 공고의 이 유형 배정 (목업 Verdict) — 세대수를 모르는 공고(LH)는 생략 -->
@@ -207,11 +207,11 @@
         </ul>
 
         <!--/* 개선 경로 — 엔진이 결정론적으로 계산한 힌트만(공통요건 힌트 포함, 이 카드만 봐도 알 수 있게).
-             제목을 "이것만 바뀌면 가능"으로 쓰면 안 된다: 혼인기간 초과(못 메움) + 통장 미달(메움)처럼
-             둘 다 걸린 경우 통장만 채워도 여전히 불가다. 엔진은 힌트를 요건 단위로 줄 뿐
-             "이 유형 전체가 메울 수 있는지"는 판정하지 않으므로, 화면은 요건 단위로만 말한다. */-->
+             제목은 엔진의 isFixable 로 고른다: 미충족이 전부 메울 수 있으면 "이것만 바뀌면 가능",
+             혼인기간 초과(못 메움) + 통장 미달(메움)처럼 섞였으면 통장만 채워도 여전히 불가이므로
+             "기간이 지나면 채워지는 요건"(요건 단위)으로만 말한다. 화면이 따로 판단하지 않는다. */-->
         <div class="hint-box" th:if="${!d.eligible and !d.improvementHints.isEmpty()}">
-            <strong>기간이 지나면 채워지는 요건</strong>
+            <strong th:text="${d.fixable} ? '이것만 바뀌면 가능' : '기간이 지나면 채워지는 요건'">이것만 바뀌면 가능</strong>
             <ul class="reasons">
                 <li th:each="h : ${d.improvementHints}" class="r-hint" th:text="${h}">이렇게 하면 충족</li>
             </ul>

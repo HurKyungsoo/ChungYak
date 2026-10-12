@@ -18,7 +18,7 @@ class CommonRequirementRailTest {
             return new EligibilityResultView.TypeDecision(
                     "TEST_TYPE", "테스트유형", true, false,
                     List.of(), List.of(), List.of(), List.of(),
-                    checks, List.of(), List.of(), List.of(), List.of(), null);
+                    checks, List.of(), List.of(), List.of(), List.of(), null, false);
         }
     }
 
