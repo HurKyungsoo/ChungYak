@@ -68,7 +68,7 @@ class DetailHighlightsTest {
     }
 
     @Test
-    @DisplayName("비율은 타일 합계 대비(더하면 100%), 기관추천에는 '기관 추천 필요' 표시")
+    @DisplayName("비율은 타일 합계 대비(타일마다 반올림), 기관추천에는 '기관 추천 필요' 표시")
     void shareAndRestrictedNote() {
         Announcement a = Announcement.builder().build();
         a.addUnitType(UnitType.builder().modelNo("01").typeName("84A")

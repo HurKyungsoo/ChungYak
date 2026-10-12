@@ -87,7 +87,8 @@ public record DetailHighlights(
                     .mapToInt(u -> u.getSupplyBreakdown().countOf(t)).sum();
             if (c > 0) counts.put(t, c);
         }
-        // 비율의 분모는 타일 숫자의 합 — 원본의 "특공 합계"(specialSum)와 다를 수 있어, 타일끼리 더하면 100% 가 되게 한다.
+        // 비율의 분모는 타일 숫자의 합 — 원본의 "특공 합계"(specialSum)와 다를 수 있어 타일끼리 기준을 맞춘다.
+        // 타일마다 따로 반올림하므로 합이 99·101% 가 될 수 있다 — 한 타일을 비틀어 100% 로 맞추지 않는다.
         // 비율은 "이 공고 특공 중 이 유형의 몫"일 뿐이다 — 세대가 많다고 당첨이 쉽다는 뜻이 아니다(경쟁률 데이터 없음).
         int typeSum = counts.values().stream().mapToInt(Integer::intValue).sum();
         // 많은 순(목업 Main) — 한 공고 안에서 어느 유형이 큰지가 먼저 보이게. 같으면 enum 선언 순서.
