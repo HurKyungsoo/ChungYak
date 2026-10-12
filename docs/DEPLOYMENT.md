@@ -38,8 +38,14 @@ curl https://$DOMAIN/actuator/health   # {"status":"UP"}
 
 ```bash
 curl -u admin:$ADMIN_PASSWORD -X POST https://$DOMAIN/api/admin/sync
-# → {"pagesFetched":29,"received":2861,...}  (약 5분)
+# → {"pagesFetched":35,"received":3213,...}  (청약홈 + LH, 2026-10-12)
 ```
+
+- **동기 응답이라 오래 걸린다.** LH 공고문 PDF 본문 추출이 건당 수 초라, 빈 DB 첫 수집은 20분 넘게,
+  이후엔 수 분. curl 에 짧은 `-m` 을 걸면 응답만 못 받고 서버 수집은 계속 돈다 —
+  서버 안에서 `nohup` 으로 돌리고 `docker compose logs app` 의 `전체 동기화 완료` 로 확인.
+- **수집 중에 재빌드·재시작하지 말 것** (진행 중 수집이 끊긴다). 중복 호출은 `SyncAlreadyRunningException` 으로 막힌다.
+- 수집이 정상 완료되기 전에는 `/actuator/health` 가 DOWN(503) 일 수 있다.
 
 이후 매일 04시(Asia/Seoul) 자동 수집. `AnnouncementSyncScheduler`.
 

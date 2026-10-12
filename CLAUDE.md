@@ -16,6 +16,8 @@
 - MariaDB(prod) / H2 MODE=MySQL(local, test)
 - 스키마: **Flyway** (`db/migration/V{n}__*.sql`). `ddl-auto: validate`.
   적용된 마이그레이션은 수정 금지 — 새 파일 추가. H2·MariaDB 공용 SQL 로 작성.
+  **H2 그린 ≠ MariaDB OK.** utf8mb4 는 글자당 4B — VARCHAR 길이×4 가 행 상한 65,535B 안이어야 한다
+  (V3·V1 이 첫 서버 배포에서 실패했다). TEXT 로 바꾸면 Hibernate validate 가 막으니 VARCHAR 유지 + 숫자/JSON 은 ascii.
 - Thymeleaf
 - 배포: Docker Compose (app + MariaDB + Caddy). `docs/DEPLOYMENT.md`, 계획은 `docs/ROADMAP.md`
 - LLM: 공식 Anthropic Java SDK (`com.anthropic:anthropic-java`) — Spring AI 아님.
@@ -104,6 +106,10 @@
   은 옮길 값이 없어 한 번도 발동하지 않는다(코드가 틀린 게 아니라 원본에 값이 없는 것).
   → 총계를 희망타운 배정으로 단정하지 말 것. 신혼희망타운은 우선공급/잔여공급 구조라
   특공 총계와 유형 배정이 같지 않다. 화면은 "세대수를 세지 못했다"고 밝히고 공고문으로 넘긴다.
+- **LH 토지·상가 공고는 수집하지 않는다** (`UPP_AIS_TP_CD` ∉ {05,06,13,39} → `toExternal` 이 null).
+  LH 주택 공고의 약 70% 는 "예비입주자 모집"(2026-10-12 서버 DB 기준 265건 중 184건)이고,
+  이 유형의 상세 API 응답에는 `dsSbd`/`dsSplScdl` 이 없고 첨부(`dsAhflInfo`)만 온다 —
+  일정·주소는 API 로 못 채운다. 화면은 "공고문에서 확인"으로 넘긴다 (#18).
 - 분양가(`LTTOT_TOP_AMOUNT` -> `UnitType.topAmount`)는 **만원 단위**이고 주택형 14,713건
   전부 채워져 있다(2026-09-23, 범위 116 ~ 1,600,000). 층·향과 무관한 **최고** 공급금액이라
   화면 라벨에 "(최고)"를 붙인다. `SUPLY_AR` 은 전용이 아니라 **공급면적**이다
@@ -140,4 +146,6 @@
    `SpecialSupplyType.NEWLYWED_HOPE_TOWN` + `NewlywedHopeTownRule` + 두 클라이언트의
    `reclassifyForHopeTown` 까지 있다. 남은 건 코드가 아니라 **원본 데이터**다 —
    위 "데이터에서 확인된 사실" 참고(유형별 세대수가 오지 않아 배정이 늘 0 이다).
-5. Docker + CI + 배포
+5. ~~Docker + CI + 배포~~ 서버 배포 완료 (2026-10-12, Lightsail, `docs/DEPLOYMENT.md`).
+   남은 건 정식 도메인과 CI 자동 배포.
+6. LH 공고 화면 보강 — 이슈 #18. UI 개선(판정 근거 카드·타임라인 등) — 이슈 #19. #18 먼저.
