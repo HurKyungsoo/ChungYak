@@ -701,6 +701,12 @@
         .decision-card .reasons-fold[open] > summary { color: var(--ok); margin-bottom: 2px; }
         .decision-card .reasons-fold[open] > summary::before { content: "▾"; }
         .decision-card .reasons-fold .reasons { margin-top: 4px; }
+        /* 공고 상세 "내 판정 요약" (목업 Main) — 강조 배경 카드 */
+        .verdict-mini { background: var(--brand-weak); border-color: color-mix(in srgb, var(--brand) 22%, transparent);
+                        margin-top: 14px; display: grid; gap: 8px; }
+        .verdict-mini .vm-text { margin: 0; font-size: .92rem; }
+        .verdict-mini .vm-link { font-weight: 600; font-size: .9rem; }
+
         /* LH 상세 (목업 LhDetail) — 핵심 3카드, "공고문에서 확인하세요" 묶음 */
         .lh-notice { margin: 14px 0 0; }
         .lh-check { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
@@ -1282,6 +1288,36 @@
             }, { rootMargin: '-30% 0px -50% 0px' });   // 화면 가운데 띠에 걸친 섹션 = 지금 보는 섹션
             sets.forEach(function (f) { io.observe(f); });
         });
+    })();
+</script>
+
+<!-- ── 공고 상세 "내 판정 요약" — 저장된 조건(chungyak:profileDraft)이 있을 때만 서버에 POST 해
+     판정 요약 조각(announcements/verdict-summary :: card)을 받아 #verdictSummarySlot 에 끼운다.
+     조건은 본문으로만 보낸다(URL 에 소득·자산이 남지 않게). 서버는 저장하지 않는다.
+     금액 칸은 입력 중 천단위 콤마가 섞여 저장될 수 있어 숫자만 남겨 보낸다. 실패하면 기본 안내 카드 그대로. ── -->
+<script th:fragment="verdictSummaryScript">
+    (function () {
+        var slot = document.getElementById('verdictSummarySlot');
+        if (!slot || !window.fetch) return;
+        var draft;
+        try { draft = JSON.parse(localStorage.getItem('chungyak:profileDraft') || 'null'); } catch (e) { return; }
+        if (!draft) return;
+
+        var MONEY = ['monthlyHouseholdIncome', 'totalAssets', 'carValue', 'accountDeposit'];
+        var body = new URLSearchParams();
+        Object.keys(draft).forEach(function (name) {
+            var v = draft[name];
+            if (v === '' || v === null || v === false || name === 'naturalText') return;
+            if (MONEY.indexOf(name) >= 0) v = String(v).replace(/[^0-9]/g, '');
+            if (v === '') return;
+            body.append(name, v === true ? 'true' : v);
+        });
+
+        fetch('/announcements/' + slot.dataset.annId + '/verdict-summary', {
+            method: 'POST', body: body, headers: { 'Accept': 'text/html' }
+        }).then(function (r) { return r.ok ? r.text() : null; })
+          .then(function (html) { if (html) slot.innerHTML = html; })   // 우리 서버가 그린 조각(값은 Thymeleaf 가 이스케이프)
+          .catch(function () { /* 기본 안내 카드 그대로 */ });
     })();
 </script>
 

@@ -118,6 +118,16 @@
         </div>
     </section>
 
+    <!-- 내 판정 요약 (목업 Main) — 저장된 조건이 있으면 verdictSummaryScript 가 POST 로 판정해
+         이 자리를 요약 카드로 바꾼다. 없으면 아래 안내 카드가 그대로 남는다. -->
+    <div id="verdictSummarySlot" th:attr="data-ann-id=${announcement.id}">
+        <section class="card verdict-mini" aria-label="내 판정 요약">
+            <h2 style="margin:0 0 6px">내 판정 요약</h2>
+            <p class="vm-text">내 조건을 한 번 입력해 두면, 공고를 열 때마다 넣을 수 있는 특별공급 유형을 여기서 바로 보여 드려요.</p>
+            <a class="vm-link" th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}">내 조건으로 자격 판정 →</a>
+        </section>
+    </div>
+
     <h2>주택형</h2>
     <p class="muted">특별공급 배정은 공고가 아니라 <strong>주택형마다</strong> 다릅니다. 0 세대는 그 유형 물량이 없다는 뜻입니다.
         <span th:if="${!announcement.unitTypes.isEmpty()}">이 공고에 아예 없는 유형(예: 청년은 공공주택에만 배정)은 표에서 뺐습니다.</span>
@@ -308,6 +318,7 @@
 <script th:replace="~{fragments/common :: scrollHintScript}"></script>
 <script th:replace="~{fragments/common :: recentViewsScript}"></script>
 <script th:replace="~{fragments/common :: stickyCtaScript}"></script>
+<script th:replace="~{fragments/common :: verdictSummaryScript}"></script>
 <script th:replace="~{fragments/common :: areaUnitScript}"></script>
 <script th:replace="~{fragments/common :: pendingSubmitScript}"></script>
 </body>

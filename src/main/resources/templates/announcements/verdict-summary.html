@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/* 공고 상세 "내 판정 요약" 카드 (목업 Main) — VerdictSummaryController 가 조각으로 돌려준다.
+     저장된 조건으로 규칙 엔진이 낸 결과를 셋(자격 충족·정보 필요·미충족)으로만 센다.
+     "넣을 수 있는 유형" = 자격 충족 + 이 공고에 배정 있음(세대수를 모르는 LH 는 배정 미상도 포함). */-->
+<section th:fragment="card" class="card verdict-mini" aria-label="내 판정 요약"
+         th:with="ok=${result.allDecisions.?[eligible]},
+                  info=${result.allDecisions.?[!eligible and undetermined]},
+                  no=${result.allDecisions.?[!eligible and !undetermined]},
+                  canApply=${result.allDecisions.?[eligible and (allocatedInAnnouncement == null or allocatedInAnnouncement > 0)]}">
+    <div class="sec-head" style="margin:0 0 10px">
+        <h2 style="margin:0">내 판정 요약</h2>
+        <span class="count">저장된 조건 · 규칙 엔진 결과</span>
+    </div>
+    <div class="vs-row">
+        <span class="vs-head ok" th:text="|자격 충족 ${ok.size()}|">자격 충족 2</span>
+        <span class="vs-head no" th:text="|미충족 ${no.size()}|">미충족 2</span>
+        <span class="vs-head miss" th:if="${!info.isEmpty()}" th:text="|정보 필요 ${info.size()}|">정보 필요 1</span>
+    </div>
+    <p class="vm-text" th:if="${!canApply.isEmpty()}">
+        <strong th:text="${#strings.listJoin(canApply.![typeLabel], ' · ')}">신혼부부 · 신생아</strong> 특별공급에 넣을 수 있어요.
+    </p>
+    <!--/* 넣을 수 있는 유형이 없을 때 — 판정을 못 한 유형(정보 필요)이 남았으면 "없다"고 단정하지 않는다 */-->
+    <p class="vm-text" th:if="${canApply.isEmpty() and !info.isEmpty()}">
+        저장된 조건에 비어 있는 칸이 있어 <strong th:text="|${info.size()}개 유형|">5개 유형</strong>은 아직 판정하지 못했어요.
+        조건을 더 채우면 바로 알 수 있어요.
+    </p>
+    <p class="vm-text" th:if="${canApply.isEmpty() and info.isEmpty()}">
+        저장된 조건으로는 이 공고에서 넣을 수 있는 특별공급 유형이 없습니다.
+    </p>
+    <a class="vm-link" th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}">조건 확인하고 근거 자세히 보기 →</a>
+</section>
+</body>
+</html>
