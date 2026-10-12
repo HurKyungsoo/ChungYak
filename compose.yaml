@@ -48,6 +48,9 @@ services:
       PUBLICDATA_SERVICE_KEY: ${PUBLICDATA_SERVICE_KEY:?set PUBLICDATA_SERVICE_KEY in .env}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-REPLACE_ME}
       LLM_MODEL: ${LLM_MODEL:-claude-sonnet-5}
+      GROQ_API_KEY: ${GROQ_API_KEY:-REPLACE_ME}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      GROQ_EXPLAIN_ENABLED: ${GROQ_EXPLAIN_ENABLED:-false}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
       # 새 공고 알림 메일 — MAIL_HOST 가 비면 발송을 끄고 화면의 구독 입구도 숨긴다

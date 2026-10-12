@@ -16,7 +16,7 @@ class AnthropicDocumentAnswerer implements DocumentAnswerer {
 
     private static final long MAX_TOKENS = 1024L;
 
-    private static final String SYSTEM_PROMPT = """
+    static final String SYSTEM_PROMPT = """
             너는 분양 공고문 내용을 안내하는 도우미다.
             아래에 번호가 붙은 공고문 발췌문이 주어진다. 사용자 질문에 이 발췌문만 근거로 답한다.
 

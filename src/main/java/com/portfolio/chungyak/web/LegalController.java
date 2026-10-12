@@ -2,6 +2,8 @@ package com.portfolio.chungyak.web;
 
 import com.anthropic.client.AnthropicClient;
 import com.portfolio.chungyak.alert.AlertMailer;
+import com.portfolio.chungyak.llm.GroqChatClient;
+import com.portfolio.chungyak.llm.LlmExplainer;
 import com.portfolio.chungyak.rag.DocumentQaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
@@ -22,6 +24,8 @@ public class LegalController {
 
     private final AlertMailer alertMailer;
     private final ObjectProvider<AnthropicClient> anthropicClient;
+    private final ObjectProvider<GroqChatClient> groqClient;
+    private final ObjectProvider<LlmExplainer> explainer;
     private final DocumentQaService qaService;
 
     /** 개인정보 보호책임자 연락처 — 비어 있으면 화면이 "준비 중"으로 표시한다(실제 연락처는 운영자가 넣는다). */
@@ -32,6 +36,9 @@ public class LegalController {
     public String privacy(Model model) {
         model.addAttribute("mailEnabled", alertMailer.isEnabled());
         model.addAttribute("aiEnabled", anthropicClient.getIfAvailable() != null);
+        // Groq 는 판정 요약을 켠 경우에만 소득·자산이 담긴 판정 근거를 보낸다 — 켜졌을 때만 그 사실을 적는다
+        model.addAttribute("groqEnabled", groqClient.getIfAvailable() != null);
+        model.addAttribute("groqExplain", groqClient.getIfAvailable() != null && explainer.getIfAvailable() != null);
         model.addAttribute("qaEnabled", qaService.isEnabled());
         model.addAttribute("privacyContact", privacyContact);
         return "legal/privacy";

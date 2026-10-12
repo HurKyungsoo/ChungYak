@@ -16,7 +16,7 @@ class AnthropicProfileCaller implements LlmProfileCaller {
 
     private static final long MAX_TOKENS = 2048L;
 
-    private static final String SYSTEM_PROMPT = """
+    static final String SYSTEM_PROMPT = """
             너는 청약 상담 폼을 채워주는 보조 도구다.
             사용자가 자연어로 쓴 상황에서 청약 신청자 조건을 뽑아 구조화된 값으로만 답한다.
 

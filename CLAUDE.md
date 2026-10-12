@@ -22,6 +22,11 @@
 - 배포: Docker Compose (app + MariaDB + Caddy). `docs/DEPLOYMENT.md`, 계획은 `docs/ROADMAP.md`
 - LLM: 공식 Anthropic Java SDK (`com.anthropic:anthropic-java`) — Spring AI 아님.
   자연어 추출 + 판정 요약. SDK 호출은 `llm/AnthropicProfileCaller`·`llm/AnthropicExplainer` 두 곳에만.
+  무료 대안: **Groq**(OpenAI 호환, raw HTTP — `llm/GroqChatClient`). `ANTHROPIC_API_KEY` 가 없고 `GROQ_API_KEY` 가
+  있을 때만 켜진다(Anthropic 우선). 자연어 추출·공고문 Q&A 답변에만 쓰고, **판정 요약은 기본 꺼짐**
+  (`GROQ_EXPLAIN_ENABLED=false` — 요약 입력에 소득·자산이 들어가 무료 등급으로 내보내지 않는다. 꺼두면 `FallbackSummary`).
+  외부 LLM 호출 코드는 `llm/`·`rag/` 의 구현체에만 두고, `rule/` 에는 어떤 경우에도 들이지 않는다(절대 규칙 1).
+  AI 를 새로 켜거나 공급자를 바꾸면 `/privacy`(처리방침) 위탁 항목이 켜진 기능을 따라가므로 `LegalController` 도 함께 본다.
 
 ## 빌드 · 실행
 
@@ -32,7 +37,7 @@
 ```
 
 `PUBLICDATA_SERVICE_KEY` 가 없으면 외부 API 는 빈 리스트를 반환한다(앱은 정상 기동).
-`ANTHROPIC_API_KEY` 가 없으면 자연어 입력 기능만 꺼진다(`@ConditionalOnExpression`).
+`ANTHROPIC_API_KEY` 도 `GROQ_API_KEY` 도 없으면 자연어 입력 기능만 꺼진다(`@ConditionalOnExpression`).
 통합테스트(`*ProfileExtractionIntegrationTest*`)는 키 없으면 skip.
 
 ## ★ 절대 규칙 — LLM 과 규칙 엔진의 경계

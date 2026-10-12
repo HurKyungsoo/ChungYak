@@ -15,7 +15,7 @@ class AnthropicExplainer implements LlmExplainer {
 
     private static final long MAX_TOKENS = 1024L;
 
-    private static final String SYSTEM_PROMPT = """
+    static final String SYSTEM_PROMPT = """
             너는 청약 자격 판정 결과를 설명하는 도우미다.
             아래 판정은 규칙 엔진이 이미 확정한 것이다. 너의 일은 주어진 근거를
             자연스러운 한국어 2~5문장으로 정리하는 것뿐이다.
