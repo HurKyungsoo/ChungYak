@@ -56,17 +56,46 @@
     </th:block>
 
     <th:block th:unless="${announcement.lh}">
+    <!-- 핵심 숫자 벤토 (#19-3) — 값이 없는 카드는 통째로 숨긴다("-" 나열 금지).
+         규제 카드 문구는 기존 "규제" 줄과 같다(규제 여부 → 통장·거주 기준 안내일 뿐 판정이 아니다). -->
+    <section class="bento" aria-label="핵심 정보"
+             th:with="regulated=${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}">
+        <div class="bento-card" th:if="${highlights.topPrice() != null}">
+            <span class="b-label">최고 분양가</span>
+            <strong class="b-value" th:text="${highlights.topPrice()}">8억 6,878만원</strong>
+            <span class="b-note" th:text="${highlights.topPriceType()} + ' · 층·향 무관 최고 공급금액'">084.9 · 최고 공급금액</span>
+        </div>
+        <div class="bento-card" th:if="${highlights.perPyeong() != null}">
+            <span class="b-label">평당가 (최고가 기준)</span>
+            <strong class="b-value" th:text="'약 ' + ${highlights.perPyeong()}">약 2,470만원</strong>
+            <span class="b-note" th:text="${highlights.supplyAreaNote()} + '로 나눔'">공급면적 116.39㎡ (35.2평)로 나눔</span>
+        </div>
+        <div class="bento-card" th:if="${highlights.totalSupply() != null}">
+            <span class="b-label">총 공급</span>
+            <strong class="b-value" th:text="${#numbers.formatInteger(highlights.totalSupply(), 1, 'COMMA')} + '세대'">314세대</strong>
+            <th:block th:if="${highlights.hasSplit()}">
+                <div class="b-bar" role="img"
+                     th:attr="aria-label='특별공급 ' + ${highlights.specialSum()} + '세대, 일반공급 ' + ${highlights.generalSum()} + '세대'">
+                    <span class="b-bar-special" th:style="'width:' + ${highlights.specialPercent()} + '%'"></span>
+                </div>
+                <span class="b-note b-split">
+                    <span th:text="'특별공급 ' + ${highlights.specialSum()}">특별공급 185</span>
+                    <span th:text="'일반 ' + ${highlights.generalSum()}">일반 129</span>
+                </span>
+            </th:block>
+        </div>
+        <div class="bento-card">
+            <span class="b-label">규제 · 청약통장</span>
+            <strong class="b-value b-value-sm" th:text="${regulated} ? '규제지역' : '비규제'">비규제</strong>
+            <span class="b-note" th:text="${regulated} ? '청약통장 24개월·해당지역 2년 거주 필요' : '청약통장 6개월'">청약통장 6개월</span>
+        </div>
+    </section>
+
     <div class="card">
         <table class="kv">
             <tr><th>지역</th><td th:text="${announcement.regionName} ?: '-'">서울</td></tr>
-            <tr><th>주소</th><td th:text="${announcement.address} ?: '-'">주소</td></tr>
-            <tr><th>총 공급세대</th><td th:text="${announcement.totalSupplyCount} ?: '-'">100</td></tr>
-            <tr><th>규제</th><td>
-                <span th:if="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}">
-                    규제지역 <span class="subtle">— 청약통장 24개월·해당지역 2년 거주 필요</span></span>
-                <span th:unless="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}"
-                      class="subtle">비규제 (청약통장 6개월)</span>
-            </td></tr>
+            <tr th:if="${announcement.address != null and !announcement.address.isBlank()}">
+                <th>주소</th><td th:text="${announcement.address}">주소</td></tr>
             <!-- 아래 네 줄은 공고에 값이 없는 경우가 있어(특히 LH) 있을 때만 보여준다.
                  문의처는 폰에서 한 번 탭으로 걸리도록 tel: 링크로 둔다. -->
             <tr th:if="${announcement.inquiryTel != null and !announcement.inquiryTel.isBlank()}">

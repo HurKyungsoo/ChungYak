@@ -18,6 +18,7 @@ import com.portfolio.chungyak.web.view.AnnouncementListRow;
 import com.portfolio.chungyak.web.view.AnnouncementListSort;
 import com.portfolio.chungyak.web.view.CalendarView;
 import com.portfolio.chungyak.web.view.Dday;
+import com.portfolio.chungyak.web.view.DetailHighlights;
 import com.portfolio.chungyak.web.view.PhoneNumbers;
 import com.portfolio.chungyak.web.view.Prices;
 import com.portfolio.chungyak.web.view.ScheduleTimeline;
@@ -246,6 +247,7 @@ public class AnnouncementController {
         model.addAttribute("dday", Dday.of(status, announcement.getReceptBeginDate(),
                 announcement.getReceptEndDate(), queryService.today()));
         model.addAttribute("timeline", ScheduleTimeline.of(announcement, queryService.today()));
+        model.addAttribute("highlights", DetailHighlights.of(announcement));
         model.addAttribute("qaEnabled", qaService.isEnabled());
         model.addAttribute("qaIndexed", qaService.hasIndex(id));
         // 문의처는 하이픈 없는 숫자로 들어온다 — 읽을 수 있게 끊어서 보여주고,

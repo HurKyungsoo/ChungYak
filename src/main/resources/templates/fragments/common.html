@@ -690,6 +690,27 @@
         .timeline li.unknown .tl-dot { border-style: dashed; }
         .timeline li.unknown .tl-label, .timeline li.unknown .tl-when { color: var(--text-subtle); font-weight: 500; }
 
+        /* 핵심 숫자 벤토 (#19-3) — 좁으면 2열, 넓으면 4열 */
+        .bento { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+                 gap: 12px; margin: 14px 0; }
+        @media (max-width: 520px) {
+            .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+            .bento-card { padding: 14px; }
+            .bento-card .b-value { font-size: 1.15rem; }
+            .bento-card .b-value-sm { font-size: 1.05rem; }
+        }
+        .bento-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+                      padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .bento-card .b-label { font-size: .8rem; color: var(--text-muted); }
+        .bento-card .b-value { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.02em;
+                               word-break: keep-all; overflow-wrap: break-word; }   /* "6,878만원" 이 글자 단위로 쪼개지지 않게 */
+        .bento-card .b-value-sm { font-size: 1.15rem; }
+        .bento-card .b-note { font-size: .76rem; color: var(--text-subtle); }
+        .bento-card .b-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden;
+                             background: color-mix(in srgb, var(--brand) 25%, var(--surface-2)); margin-top: 4px; }
+        .bento-card .b-bar-special { background: var(--brand); }
+        .bento-card .b-split { display: flex; justify-content: space-between; gap: 6px; }
+
         /* 근거 카드 그리드 (#19-1) — 넓으면 두 줄, 좁으면 한 줄. 색은 전부 토큰(다크 모드 대응). */
         .decision-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
                          gap: 12px; align-items: start; }
