@@ -682,6 +682,8 @@
         .reasons { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 5px; }
         .reasons li { display: flex; gap: 8px; font-size: .88rem; line-height: 1.5; }
         .reasons li::before { flex: none; font-weight: 700; width: 1.1em; }
+        /* li 가 flex 라 문장 속 <strong> 이 각각 별도 칸이 돼 벌어진다 — 문장은 한 칸(span)으로 묶는다 */
+        .reasons li .r-text { min-width: 0; }
         .reasons li.r-ok   { color: var(--text); }
         .reasons li.r-ok::before   { content: "✓"; color: var(--ok); }
         .reasons li.r-no::before   { content: "✗"; color: var(--no); }

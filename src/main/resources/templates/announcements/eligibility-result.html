@@ -140,7 +140,7 @@
         <details th:if="${!d.satisfiedReasons.isEmpty()}" class="reasons-fold">
             <summary th:text="|충족한 요건 ${d.satisfiedReasons.size()}개 보기|">충족한 요건 8개 보기</summary>
             <ul class="reasons">
-                <li th:each="r : ${d.satisfiedReasons}" class="r-ok" th:text="${r}">이유</li>
+                <li th:each="r : ${d.satisfiedReasons}" class="r-ok"><span class="r-text" th:utext="${@emphasis.html(r)}">이유</span></li>
             </ul>
         </details>
         <!-- 신혼희망타운은 일반 공고 안의 특별공급 한 칸이 아니라 별도 공고로 공급된다.
@@ -189,7 +189,7 @@
 
         <!-- 막은 요건 · 입력 필요 — 맨 위에 항상 펼쳐서 -->
         <ul class="reasons" th:if="${!d.ownFailedReasons.isEmpty() or !d.ownMissingInputs.isEmpty()}">
-            <li th:each="r : ${d.ownFailedReasons}" class="r-no" th:text="${r}">미충족</li>
+            <li th:each="r : ${d.ownFailedReasons}" class="r-no"><span class="r-text" th:utext="${@emphasis.html(r)}">미충족</span></li>
             <li th:each="r : ${d.ownMissingInputs}" class="r-miss" th:text="${r} + ' — 입력이 필요합니다'">누락</li>
         </ul>
 
@@ -203,7 +203,7 @@
 
         <!-- 이 유형만의 충족 요건 — 펼쳐 둔다(무엇 때문에 되는지가 근거의 절반이다) -->
         <ul class="reasons" th:if="${!d.ownSatisfiedReasons.isEmpty()}">
-            <li th:each="r : ${d.ownSatisfiedReasons}" class="r-ok" th:text="${r}">충족</li>
+            <li th:each="r : ${d.ownSatisfiedReasons}" class="r-ok"><span class="r-text" th:utext="${@emphasis.html(r)}">충족</span></li>
         </ul>
 
         <!--/* 개선 경로 — 엔진이 결정론적으로 계산한 힌트만(공통요건 힌트 포함, 이 카드만 봐도 알 수 있게).
@@ -213,7 +213,7 @@
         <div class="hint-box" th:if="${!d.eligible and !d.improvementHints.isEmpty()}">
             <strong th:text="${d.fixable} ? '이것만 바뀌면 가능' : '기간이 지나면 채워지는 요건'">이것만 바뀌면 가능</strong>
             <ul class="reasons">
-                <li th:each="h : ${d.improvementHints}" class="r-hint" th:text="${h}">이렇게 하면 충족</li>
+                <li th:each="h : ${d.improvementHints}" class="r-hint"><span class="r-text" th:utext="${@emphasis.html(h)}">이렇게 하면 충족</span></li>
             </ul>
         </div>
         <p class="muted no-path" th:if="${!d.eligible and !d.undetermined and d.improvementHints.isEmpty()}">
@@ -228,7 +228,7 @@
         <details th:if="${d.satisfiedReasons.size() > d.ownSatisfiedReasons.size()}" class="reasons-fold">
             <summary th:text="|공통 요건 포함 충족 ${d.satisfiedReasons.size()}개 보기|">공통 요건 포함 충족 8개 보기</summary>
             <ul class="reasons">
-                <li th:each="r : ${d.satisfiedReasons}" class="r-ok" th:text="${r}">충족</li>
+                <li th:each="r : ${d.satisfiedReasons}" class="r-ok"><span class="r-text" th:utext="${@emphasis.html(r)}">충족</span></li>
             </ul>
         </details>
 
