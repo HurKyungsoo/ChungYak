@@ -487,6 +487,9 @@ public class LhClient implements AnnouncementSource {
             if (value != null) providerParams.put(field, value);
         }
 
+        // 청약과 무관한 토지·상가(희망상가 등) 공급 공고는 수집하지 않는다.
+        if (!isHousing(providerParams.get("UPP_AIS_TP_CD"))) return null;
+
         return ExternalAnnouncement.builder()
                 .externalId(SOURCE_PREFIX + panId)
                 // LH 는 공고번호가 따로 없어 PAN_ID 로 대체. CCR 코드는 재조회 키라 houseManageNo 에도 둔다.
@@ -497,9 +500,8 @@ public class LhClient implements AnnouncementSource {
                 // 청약홈처럼 세분화할 근거가 없어 UNKNOWN — 이 값에 기대는 판정은 신혼희망타운뿐이다.
                 .houseType("39".equals(providerParams.get("UPP_AIS_TP_CD"))
                         ? HouseType.NEWLYWED_HOPE_TOWN : HouseType.UNKNOWN)
-                // LH 주택 공급은 전부 공공(국민주택)이다. 토지·상가는 주택이 아니라 UNKNOWN.
-                .houseDetailType(isHousing(providerParams.get("UPP_AIS_TP_CD"))
-                        ? HouseDetailType.PUBLIC : HouseDetailType.UNKNOWN)
+                // LH 주택 공급은 전부 공공(국민주택)이다. (비주택은 위에서 이미 걸러냈다.)
+                .houseDetailType(HouseDetailType.PUBLIC)
                 .regionName(parser.text(item, "CNP_CD_NM"))
                 // LH open API 는 규제지역 여부를 주지 않는다. 전부 false 로 둔다
                 // (규칙 엔진도 null 을 비규제로 취급하지만, 임베디드 값이 null 이면 저장 시 NOT NULL 위반).

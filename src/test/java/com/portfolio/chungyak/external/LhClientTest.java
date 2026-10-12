@@ -85,14 +85,14 @@ class LhClientTest {
         }
 
         @Test
-        @DisplayName("토지(01)·상가는 주택이 아니라 houseDetailType=UNKNOWN")
-        void landIsNotHousing() throws Exception {
+        @DisplayName("토지(01)·상가는 청약과 무관하므로 수집하지 않는다")
+        void landIsSkipped() throws Exception {
             String json = """
                 [{"dsList":[{"PAN_ID":"BN-1","PAN_NM":"부산 명지 토지","UPP_AIS_TP_CD":"01","SPL_INF_TP_CD":"010"}]}]
                 """;
             List<ExternalAnnouncement> result =
                     client(props(true)).parseAnnouncements(json.getBytes(StandardCharsets.UTF_8));
-            assertThat(result.get(0).getHouseDetailType()).isEqualTo(HouseDetailType.UNKNOWN);
+            assertThat(result).isEmpty();
         }
 
         @Test
