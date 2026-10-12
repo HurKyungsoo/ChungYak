@@ -711,6 +711,27 @@
         .bento-card .b-bar-special { background: var(--brand); }
         .bento-card .b-split { display: flex; justify-content: space-between; gap: 6px; }
 
+        /* ㎡/평 전환 버튼 (#19-5) — 표 머리글 안의 작은 단위 버튼 */
+        .area-toggle { font: inherit; font-size: .78rem; font-weight: 700; line-height: 1;
+                       padding: 3px 7px; margin-left: 2px; border-radius: var(--r-pill); cursor: pointer;
+                       border: 1px solid var(--border-strong); background: var(--surface); color: var(--brand); }
+        .area-toggle::after { content: " ⇄"; font-weight: 500; color: var(--text-subtle); }
+        .area-toggle:hover { border-color: var(--brand); }
+
+        /* 제출 중 버튼 (#19-5) */
+        .btn.is-pending { opacity: .75; cursor: progress; pointer-events: none; }
+        .btn.is-pending::before { content: ""; display: inline-block; width: .9em; height: .9em; margin-right: 6px;
+                                  border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+                                  vertical-align: -0.12em; animation: spin .7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .btn.is-pending::before { animation: none; } }
+
+        /* 빈 상태 (#19-5) */
+        .empty-state { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+        .empty-state p { margin: 0; }
+        .empty-state .chips { justify-content: center; margin-top: 6px; }
+        .empty-state a.chip { color: var(--brand); font-weight: 600; text-decoration: none; }
+
         /* 근거 카드 그리드 (#19-1) — 넓으면 두 줄, 좁으면 한 줄. 색은 전부 토큰(다크 모드 대응). */
         .decision-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
                          gap: 12px; align-items: start; }
@@ -1002,6 +1023,67 @@
         </li>
     </ol>
 </section>
+
+<!-- ── 제출 중 표시 (#19-5) — 몇 초 걸리는 폼(LLM 호출: 자연어 추출·AI 요약·공고문 Q&A)에만 붙인다.
+     form[data-pending="문구"] 를 제출하면 제출 버튼 글자를 그 문구로 바꾸고 두 번째 제출을 막는다.
+     버튼을 disabled 로 만들지 않는다 — 제출 이벤트 중에 끄면 브라우저에 따라 버튼 값이 빠질 수 있다.
+     (서버 렌더링 화면이라 스켈레톤을 그릴 비동기 구간이 없다 — 기다림은 여기뿐이다.) ── -->
+<script th:fragment="pendingSubmitScript">
+    (function () {
+        document.querySelectorAll('form[data-pending]').forEach(function (form) {
+            var sent = false;
+            form.addEventListener('submit', function (e) {
+                if (sent) { e.preventDefault(); return; }
+                sent = true;
+                var btn = e.submitter || form.querySelector('[type="submit"]');
+                if (btn) {
+                    btn.textContent = form.getAttribute('data-pending');
+                    btn.classList.add('is-pending');
+                    btn.setAttribute('aria-busy', 'true');
+                }
+            });
+        });
+        // 뒤로 가기로 돌아오면(bfcache) "읽는 중…" 상태가 그대로 남는다 — 새로 그려 다시 누를 수 있게
+        window.addEventListener('pageshow', function (ev) {
+            if (ev.persisted && document.querySelector('.btn.is-pending')) location.reload();
+        });
+    })();
+</script>
+
+<!-- ── ㎡/평 전환 (#19-5) — [data-m2] 칸(원본 ㎡ 문자열)을 평으로 바꿔 쓰고, [data-area-toggle] 버튼은
+     지금 단위를 보여 준다. 고른 단위는 이 브라우저에만 남는다. 1평 = 400/121㎡ (Prices 와 같은 상수).
+     원본 값은 data-m2 에 그대로 있으므로 ㎡ 로 돌아가면 서버가 준 문자열을 다시 쓴다. ── -->
+<script th:fragment="areaUnitScript">
+    (function () {
+        var KEY = 'chungyak:areaUnit';
+        var toggles = document.querySelectorAll('[data-area-toggle]');
+        if (toggles.length === 0) return;
+
+        var read = function () { try { return localStorage.getItem(KEY) === 'pyeong' ? 'pyeong' : 'm2'; } catch (e) { return 'm2'; } };
+        var apply = function (unit) {
+            document.querySelectorAll('[data-m2]').forEach(function (cell) {
+                var raw = cell.getAttribute('data-m2');
+                var m2 = parseFloat(raw);
+                if (!raw || isNaN(m2)) return;   // 값이 없으면 서버가 쓴 "-" 그대로
+                cell.textContent = unit === 'pyeong' ? (m2 * 121 / 400).toFixed(1) : raw;
+            });
+            toggles.forEach(function (t) {
+                t.textContent = unit === 'pyeong' ? '평' : '㎡';
+                t.setAttribute('aria-pressed', unit === 'pyeong' ? 'true' : 'false');
+            });
+        };
+
+        var unit = read();
+        apply(unit);
+        toggles.forEach(function (t) {
+            t.addEventListener('click', function () {
+                unit = unit === 'm2' ? 'pyeong' : 'm2';
+                try { localStorage.setItem(KEY, unit); } catch (e) { /* 저장 못 해도 이번 화면에선 바뀐다 */ }
+                apply(unit);
+            });
+        });
+    })();
+</script>
 
 <!-- ── 하단 고정 CTA 표시 (#19-4) — #stickyCta 가 있는 화면에서만 동작한다.
      #ctaAnchor(위쪽 원래 버튼 줄)가 화면에서 벗어나면 띄우고, 다시 보이면 숨긴다. ── -->

@@ -62,7 +62,7 @@
         <table>
             <thead>
             <tr>
-                <th>주택형</th><th class="num">공급면적(㎡)</th>
+                <th>주택형</th><th class="num">공급면적 <button type="button" class="area-toggle" data-area-toggle aria-label="면적 단위 바꾸기 (㎡/평)">㎡</button></th>
                 <th class="num" th:if="${showPrice}">분양가(최고)</th>
                 <th class="num">금회 공급</th>
             </tr>
@@ -70,7 +70,7 @@
             <tbody>
             <tr th:each="u : ${announcement.unitTypes}">
                 <td th:text="${u.typeName}">26A</td>
-                <td class="num" th:text="${u.supplyArea} ?: '-'">38.50</td>
+                <td class="num" th:attr="data-m2=${u.supplyArea}" th:text="${u.supplyArea} ?: '-'">38.50</td>
                 <td class="num" th:if="${showPrice}">
                     <span th:if="${priceByUnitType.get(u.id) != null}" th:text="${priceByUnitType.get(u.id)}">3억 5,369만원</span>
                     <span th:unless="${priceByUnitType.get(u.id) != null}" class="subtle">-</span>

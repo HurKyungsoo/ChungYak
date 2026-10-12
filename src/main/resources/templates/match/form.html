@@ -25,7 +25,7 @@
             <strong>AI 가 문장에서 필요한 항목을 찾아 자동으로 채워드립니다.</strong>
             채워진 값은 공고를 찾기 전에 직접 확인하고 수정할 수 있습니다.
         </p>
-        <form method="post" th:action="@{/match/extract}">
+        <form method="post" th:action="@{/match/extract}" data-pending="AI 가 읽는 중…">
             <textarea name="naturalText" rows="3"
                       placeholder="예: 결혼한 지 3년 됐고 아이가 둘이에요. 청약통장은 2년 넣었고 무주택입니다."
                       th:text="${naturalText}"></textarea>
@@ -188,5 +188,6 @@
 
 <footer th:replace="~{fragments/common :: footer}"></footer>
 <script th:replace="~{fragments/common :: profileDraftScript}"></script>
+<script th:replace="~{fragments/common :: pendingSubmitScript}"></script>
 </body>
 </html>

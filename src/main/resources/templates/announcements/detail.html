@@ -151,7 +151,7 @@
         <table>
             <thead>
             <tr>
-                <th>주택형</th><th class="num">공급면적(㎡)</th><th class="num">분양가(최고)</th><th class="num">일반</th>
+                <th>주택형</th><th class="num">공급면적 <button type="button" class="area-toggle" data-area-toggle aria-label="면적 단위 바꾸기 (㎡/평)">㎡</button></th><th class="num">분양가(최고)</th><th class="num">일반</th>
                 <th class="num" th:if="${lotteryByUnitType != null}">가점제</th>
                 <th class="num" th:if="${lotteryByUnitType != null}">추첨제</th>
                 <th class="num">특공 합계</th>
@@ -162,7 +162,7 @@
             <tbody>
             <tr th:each="u : ${announcement.unitTypes}">
                 <td th:text="${u.typeName}">084.9730A</td>
-                <td class="num" th:text="${u.supplyArea} ?: '-'">84.97</td>
+                <td class="num" th:attr="data-m2=${u.supplyArea}" th:text="${u.supplyArea} ?: '-'">84.97</td>
                 <td class="num" th:with="price=${priceByUnitType.get(u.id)},
                                          perPyeong=${perPyeongByUnitType.get(u.id)}">
                     <span th:if="${price != null}" th:text="${price}">8억 9,300만원</span>
@@ -202,7 +202,7 @@
         <p class="muted">AI 가 공고문 원문에서 관련 부분을 찾아 근거와 함께 답합니다. 자격 판정은 하지 않습니다 —
             정확한 자격은 <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}">자격 판정</a>을 이용하세요.</p>
 
-        <form th:action="@{/announcements/{id}/qa(id=${announcement.id})}" method="post" class="card">
+        <form th:action="@{/announcements/{id}/qa(id=${announcement.id})}" method="post" class="card" data-pending="공고문에서 찾는 중…">
             <textarea name="question" rows="2" required maxlength="300"
                       placeholder="예) 잔여세대 신청 조건이 어떻게 되나요? / 발코니 확장 비용은?"
                       th:text="${question}"
@@ -276,5 +276,7 @@
 <script th:replace="~{fragments/common :: scrollHintScript}"></script>
 <script th:replace="~{fragments/common :: recentViewsScript}"></script>
 <script th:replace="~{fragments/common :: stickyCtaScript}"></script>
+<script th:replace="~{fragments/common :: areaUnitScript}"></script>
+<script th:replace="~{fragments/common :: pendingSubmitScript}"></script>
 </body>
 </html>

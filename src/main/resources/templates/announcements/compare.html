@@ -184,12 +184,12 @@
                     <summary th:text="${row.houseName} + ' — 주택형 ' + ${row.unitTypeCount} + '개 보기'">공고명 — 주택형 4개 보기</summary>
                     <div class="table-scroll" style="margin-top:8px">
                         <table>
-                            <thead><tr><th>주택형</th><th class="num">면적(㎡)</th><th class="num">분양가(최고)</th>
+                            <thead><tr><th>주택형</th><th class="num">면적 <button type="button" class="area-toggle" data-area-toggle aria-label="면적 단위 바꾸기 (㎡/평)">㎡</button></th><th class="num">분양가(최고)</th>
                                 <th class="num">평당가</th><th class="num">일반</th><th class="num">특공</th></tr></thead>
                             <tbody>
                             <tr th:each="u : ${row.unitTypes}">
                                 <td th:text="${u.typeName}">084A</td>
-                                <td class="num" th:text="${u.supplyArea} ?: '-'">84.97</td>
+                                <td class="num" th:attr="data-m2=${u.supplyArea}" th:text="${u.supplyArea} ?: '-'">84.97</td>
                                 <td class="num" th:text="${u.price} ?: '-'">8억 9,300만원</td>
                                 <td class="num" th:text="${u.pricePerPyeong} ?: '-'">2,694만원</td>
                                 <td class="num" th:text="${u.generalSupplyCount}">141</td>
@@ -381,5 +381,6 @@
         form.style.display = '';
     })();
 </script>
+<script th:replace="~{fragments/common :: areaUnitScript}"></script>
 </body>
 </html>
