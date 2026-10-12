@@ -80,7 +80,7 @@
         </label>
     </form>
 
-    <div class="notice-list" th:if="${!rows.isEmpty()}">
+    <div class="notice-list two-col" th:if="${!rows.isEmpty()}">
         <a class="notice-card" th:each="row : ${rows}"
            th:href="@{/announcements/{id}(id=${row.id})}" th:attr="data-ann-id=${row.id}">
             <div class="top">

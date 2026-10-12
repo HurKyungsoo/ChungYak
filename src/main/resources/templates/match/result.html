@@ -44,7 +44,7 @@
            th:href="@{/match/result/{token}(token=${resultToken})}" class="btn btn-ghost">초기화</a>
     </form>
 
-    <div class="notice-list" th:if="${!rows.isEmpty()}">
+    <div class="notice-list two-col" th:if="${!rows.isEmpty()}">
         <a class="notice-card" th:each="row : ${rows}"
            th:href="@{/announcements/{id}/eligibility(id=${row.id})}">
             <div class="top">

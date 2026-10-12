@@ -216,6 +216,10 @@
 
         /* ── notice cards (공고 목록) ──────────────────────────────── */
         .notice-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 16px 0; }
+        /* 넓은 화면은 2열 — 한 줄짜리 카드 50여 개를 끝없이 내리지 않게. 본문 폭(--maxw)은 그대로 둔다. */
+        @media (min-width: 900px) {
+            .notice-list.two-col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
         .notice-card {
             display: block; min-width: 0; background: var(--surface); color: inherit;
             border: 1px solid var(--border); border-radius: var(--r-lg);
