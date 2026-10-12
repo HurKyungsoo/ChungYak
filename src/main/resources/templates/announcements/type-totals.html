@@ -21,9 +21,14 @@
         <div class="type-total-grid">
             <div class="type-total" th:each="t : ${highlights.typeTotals()}" th:attr="data-type=${t.type()}">
                 <span class="tt-label"><span th:text="${t.label()}">신혼부부</span><span class="tt-mark" aria-hidden="true"></span></span>
-                <strong class="tt-count" th:text="${#numbers.formatInteger(t.count(), 1, 'COMMA')}">48</strong>
+                <span class="tt-figure">
+                    <strong class="tt-count" th:text="${#numbers.formatInteger(t.count(), 1, 'COMMA')}">48</strong>
+                    <span class="tt-share" th:text="${t.sharePercent()} + '%'">26%</span>
+                </span>
+                <span class="tt-note" th:if="${t.note() != null}" th:text="${t.note()}">기관 추천 필요</span>
             </div>
         </div>
+        <!--/* 비율 = 이 공고 특공 중 이 유형의 몫. 세대가 많다고 당첨이 쉽다는 뜻은 아니다(경쟁률 데이터 없음) */-->
         <p class="tt-absent" th:if="${!highlights.absentCommonTypes().isEmpty()}">
             이 공고에 없는 유형:
             <span th:text="${#strings.listJoin(highlights.absentCommonTypes(), ', ')}">청년</span>

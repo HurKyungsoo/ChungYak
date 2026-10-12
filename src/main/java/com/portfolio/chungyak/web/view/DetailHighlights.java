@@ -39,7 +39,15 @@ public record DetailHighlights(
      * 특별공급 유형 하나의 공고 전체 배정(주택형 합계) — "특별공급 유형별 배정" 카드 (목업 Main).
      * {@code type} 은 enum 이름 — 화면이 "내 판정 요약" 결과로 타일에 자격 표시를 칠할 때 쓴다.
      */
-    public record TypeTotal(String type, String label, int count) {}
+    public record TypeTotal(String type, String label, int count, int sharePercent, String note) {}
+
+    /**
+     * 일반인이 직접 신청하는 유형이 아니라 같은 무게로 보이면 오해할 수 있는 유형 — 타일에 짧게 표시한다.
+     * (기관추천은 국가유공자·장애인 등 해당 기관의 추천이 있어야, 이전기관은 이전 대상 기관 종사자만 신청한다)
+     */
+    private static final java.util.Map<SpecialSupplyType, String> TYPE_NOTES = java.util.Map.of(
+            SpecialSupplyType.INSTITUTION_RECOMMEND, "기관 추천 필요",
+            SpecialSupplyType.TRANSFER_INSTITUTION, "이전기관 종사자만");
 
     /**
      * "이 공고에 없는 유형" 한 줄에 올릴 후보 — 일반인이 직접 신청하는 유형만.
@@ -72,11 +80,20 @@ public record DetailHighlights(
 
         // 배정이 있는 유형만, 많은 순. 세대수를 모르는 주택형(LH, countsKnown=false)은 countOf 가 세대수가 아니라
         // "유형 있음" 표시(1)라 더하면 1세대로 보인다 — 세대수를 아는 주택형만 센다.
-        List<TypeTotal> totals = a.visibleSupplyTypes().stream()
-                .map(t -> new TypeTotal(t.name(), t.getLabel(), a.getUnitTypes().stream()
-                        .filter(u -> u.getSupplyBreakdown() != null && u.getSupplyBreakdown().isCountsKnown())
-                        .mapToInt(u -> u.getSupplyBreakdown().countOf(t)).sum()))
-                .filter(t -> t.count() > 0)
+        java.util.Map<SpecialSupplyType, Integer> counts = new java.util.LinkedHashMap<>();
+        for (SpecialSupplyType t : a.visibleSupplyTypes()) {
+            int c = a.getUnitTypes().stream()
+                    .filter(u -> u.getSupplyBreakdown() != null && u.getSupplyBreakdown().isCountsKnown())
+                    .mapToInt(u -> u.getSupplyBreakdown().countOf(t)).sum();
+            if (c > 0) counts.put(t, c);
+        }
+        // 비율의 분모는 타일 숫자의 합 — 원본의 "특공 합계"(specialSum)와 다를 수 있어, 타일끼리 더하면 100% 가 되게 한다.
+        // 비율은 "이 공고 특공 중 이 유형의 몫"일 뿐이다 — 세대가 많다고 당첨이 쉽다는 뜻이 아니다(경쟁률 데이터 없음).
+        int typeSum = counts.values().stream().mapToInt(Integer::intValue).sum();
+        // 많은 순(목업 Main) — 한 공고 안에서 어느 유형이 큰지가 먼저 보이게. 같으면 enum 선언 순서.
+        List<TypeTotal> totals = counts.entrySet().stream()
+                .map(e -> new TypeTotal(e.getKey().name(), e.getKey().getLabel(), e.getValue(),
+                        Math.round(e.getValue() * 100f / typeSum), TYPE_NOTES.get(e.getKey())))
                 .sorted(Comparator.comparingInt(TypeTotal::count).reversed())
                 .toList();
 

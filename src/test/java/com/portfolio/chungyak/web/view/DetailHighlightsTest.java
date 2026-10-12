@@ -68,6 +68,21 @@ class DetailHighlightsTest {
     }
 
     @Test
+    @DisplayName("비율은 타일 합계 대비(더하면 100%), 기관추천에는 '기관 추천 필요' 표시")
+    void shareAndRestrictedNote() {
+        Announcement a = Announcement.builder().build();
+        a.addUnitType(UnitType.builder().modelNo("01").typeName("84A")
+                .supplyBreakdown(SupplyBreakdown.builder().newlywed(48).institutionRecommend(34).oldParents(18).build()).build());
+
+        DetailHighlights h = DetailHighlights.of(a);   // 합계 100
+
+        assertThat(h.typeTotals()).extracting(DetailHighlights.TypeTotal::label,
+                        DetailHighlights.TypeTotal::sharePercent, DetailHighlights.TypeTotal::note)
+                .containsExactly(tuple("신혼부부", 48, null), tuple("기관추천", 34, "기관 추천 필요"),
+                        tuple("노부모부양", 18, null));
+    }
+
+    @Test
     @DisplayName("빠진 유형: 일반인이 신청하는 유형 중 0 인 것만 (기관추천·이전기관·기타·신혼희망타운은 제외)")
     void absentCommonTypes() {
         Announcement a = Announcement.builder().build();

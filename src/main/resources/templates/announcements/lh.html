@@ -65,9 +65,8 @@
 
 <th:block th:fragment="units(announcement, priceByUnitType)">
     <h2>주택형</h2>
-    <p class="muted">LH 는 특별공급 유형별 배정 세대수를 공개 데이터로 주지 않습니다. 유형별 물량·자격 세부는
-        <a th:if="${announcement.noticePdfUrl != null}" th:href="${announcement.noticePdfUrl}" target="_blank" rel="noopener">공고문</a><span
-            th:unless="${announcement.noticePdfUrl != null}">공고문</span>에서 확인하세요.</p>
+    <!--/* "LH 는 유형별 세대수를 주지 않는다" 안내는 위 특별공급 카드(type-totals)가 맡는다 — 특공이 있는
+         공고에만 뜨므로, 임대·예비입주자 공고에 맞지 않는 특공 문구를 여기 반복하지 않는다. */-->
 
     <!-- 분양가는 분양 공고에만 의미가 있다 — 임대 공고의 금액 필드를 분양가로 그리지 않는다. -->
     <div class="table-scroll" data-scroll-hint
