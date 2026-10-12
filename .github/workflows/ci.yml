@@ -4,10 +4,14 @@ on:
   push:
     branches: [master]
   pull_request:
+  # Actions 탭의 "Run workflow" — 변경이 없어도 서버를 다시 빌드·기동한다(수집 때문에 보류됐던 배포 재시도 등)
+  workflow_dispatch:
 
+# master push 는 취소하지 않고 줄 세운다 — 진행 중인 배포가 다음 push 때문에 중간에 끊기면 안 된다.
+# PR 은 새 커밋이 오면 이전 실행을 취소한다.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -37,7 +41,7 @@ jobs:
   docker:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v4
 
@@ -53,3 +57,52 @@ jobs:
           tags: chungyak:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # master 에 push 되고 build·docker 가 통과하면 서버에 배포한다.
+  # 서버 쪽은 deploy 전용 SSH 키가 scripts/deploy-entry.sh 하나만 실행하도록 제한돼 있다.
+  # 필요한 설정(저장소 Settings → Secrets and variables → Actions):
+  #   secrets:   DEPLOY_SSH_KEY, DEPLOY_HOST, DEPLOY_USER, DEPLOY_KNOWN_HOSTS
+  #   variables: DEPLOY_HEALTH_URL  (예: https://도메인/actuator/health/liveness)
+  # 자세한 절차와 키 교체 방법은 docs/DEPLOYMENT.md "자동 배포".
+  deploy:
+    needs: [build, docker]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    timeout-minutes: 50   # 서버에서 수집 종료를 최대 30분 기다릴 수 있다
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - name: SSH 설정
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      # 서버가 git pull → (필요하면) 빌드·기동 → healthy 확인까지 하고, 실패하면 비정상 종료한다.
+      # 수동 실행(workflow_dispatch)이면 `force` 를 넘겨 변경이 없어도 다시 빌드한다.
+      - name: 서버 배포
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          MODE: ${{ github.event_name == 'workflow_dispatch' && 'force' || '' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+              -o ServerAliveInterval=30 -o ServerAliveCountMax=120 \
+              "$DEPLOY_USER@$DEPLOY_HOST" $MODE
+
+      # 서버 안 확인과 별개로, 바깥(Caddy·인증서 포함)에서 실제로 응답하는지 본다.
+      - name: 외부 헬스체크
+        env:
+          HEALTH_URL: ${{ vars.DEPLOY_HEALTH_URL }}
+        run: |
+          for i in $(seq 1 12); do
+            if curl -fsS -m 10 "$HEALTH_URL" | grep -q '"status":"UP"'; then echo "UP"; exit 0; fi
+            echo "아직 응답 없음 ($i/12)"; sleep 10
+          done
+          echo "::error::배포 후 $HEALTH_URL 이 UP 이 아닙니다"
+          exit 1

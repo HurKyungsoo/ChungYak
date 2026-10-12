@@ -51,10 +51,14 @@ curl -u admin:$ADMIN_PASSWORD -X POST https://$DOMAIN/api/admin/sync
 
 ## 업데이트
 
+**평소에는 `master` 에 push 하면 자동 배포된다**(아래 "자동 배포"). 수동으로 해야 할 때만:
+
 ```bash
 git pull
 docker compose up -d --build        # 무중단 아님 (수십 초 다운). Flyway 가 새 마이그레이션 적용
 ```
+
+서버 사용자(`ubuntu`)는 docker 그룹이 아니라 `sudo docker compose ...` 로 실행한다. 저장소는 `~/ChungYak`.
 
 ## 스키마 마이그레이션 (Flyway)
 
@@ -68,12 +72,54 @@ docker compose up -d --build        # 무중단 아님 (수십 초 다운). Flyw
 ## CI (GitHub Actions)
 
 - `push`/`PR` 마다 `./gradlew build` (LLM 통합테스트는 키 없으면 skip).
-- `master` push 시 Docker 이미지 빌드 검증.
-- **레지스트리 푸시/자동 배포는 아직 미설정.** 붙이려면:
-  1. `.github/workflows/ci.yml` 의 `docker` 잡에서 `push: true` + `docker/login-action`(GHCR)
-  2. `tags: ghcr.io/<owner>/chungyak:latest,ghcr.io/<owner>/chungyak:${{ github.sha }}`
-  3. 서버에서 `docker compose pull && docker compose up -d` 하는 배포 잡(SSH action 또는
-     watchtower) 추가
+- `master` push 시 Docker 이미지 빌드 검증 → 통과하면 **서버 자동 배포**(`deploy` 잡).
+- 레지스트리(GHCR) 푸시는 하지 않는다 — 서버가 소스를 받아 직접 빌드한다(1~2분, 2GB 서버에서 충분).
+
+## 자동 배포
+
+`master` 에 push → CI `build` + `docker` 통과 → `deploy` 잡이 서버에 SSH → 서버가 아래를 수행:
+
+1. `git pull --ff-only`
+2. 앱에 영향 없는 변경(문서·`.github/`·`scripts/` 만)이면 **재빌드 생략**
+3. **공고 수집이 진행 중이면 끝날 때까지 대기**(최대 30분) — 재시작하면 수집이 끊긴다.
+   수동 수집은 로그로, 정기 수집은 04:00~04:50(KST) 창으로 판단한다.
+4. `docker compose up -d --build` → app 컨테이너가 `healthy` 될 때까지 대기(최대 4분)
+5. 바깥에서 `DEPLOY_HEALTH_URL` 이 `UP` 인지 한 번 더 확인
+
+실패하면(빌드·기동·헬스체크) 잡이 빨갛게 되어 GitHub 알림이 온다. **자동 롤백은 하지 않는다** —
+Flyway 마이그레이션은 되돌릴 수 없어, 코드만 이전 커밋으로 돌리면 새 스키마와 어긋날 수 있다.
+원인을 보고 수정 커밋을 push 하거나 서버에서 수동 복구한다(복구 전 `~/backup-*.sql` 참고).
+
+**수동 재배포**: Actions 탭 → CI → Run workflow (변경이 없어도 다시 빌드한다. 수집 때문에 보류됐을 때).
+
+### 구성 요소
+
+| 위치 | 이름 | 역할 |
+|---|---|---|
+| 저장소 | `.github/workflows/ci.yml` `deploy` 잡 | SSH 로 서버 진입점 호출 + 외부 헬스체크 |
+| 저장소 | `scripts/deploy.sh` | 서버에서 실행: 수집 대기·빌드·기동·헬스 (버전 관리됨) |
+| 저장소 | `scripts/deploy-entry.sh` | SSH 진입점 원본 — 서버 `~/deploy-entry.sh` 로 복사해 쓴다 |
+| 서버 | `~/deploy-entry.sh` | `git pull` 후 `deploy.sh` 호출. 저장소 밖에 둔 이유: pull 이 실행 중인 스크립트를 바꾸지 않게 |
+| 서버 | `~/.ssh/authorized_keys` | 배포 키 한 줄 — `restrict,command="/home/ubuntu/deploy-entry.sh"` 로 **이 스크립트만 실행 가능** |
+| GitHub | secrets `DEPLOY_SSH_KEY` `DEPLOY_HOST` `DEPLOY_USER` `DEPLOY_KNOWN_HOSTS` | 접속 정보. 호스트 키는 고정(pinning) |
+| GitHub | variable `DEPLOY_HEALTH_URL` | 배포 후 외부 헬스체크 주소 — **도메인을 바꾸면 이것도 바꾼다** |
+
+배포 키는 셸을 열 수도, 다른 명령을 실행할 수도 없어서 유출돼도 "배포 한 번 실행"까지만 가능하다.
+포크 PR 에는 GitHub 이 비밀값을 넘기지 않고, `deploy` 잡은 `master` push/수동 실행에서만 돈다.
+
+### 설정을 바꿀 때
+
+- **`scripts/deploy-entry.sh` 를 고쳤다면** 서버에서 한 번 복사:
+  `cp ~/ChungYak/scripts/deploy-entry.sh ~/deploy-entry.sh && chmod 700 ~/deploy-entry.sh`
+  (`deploy.sh` 는 push 때마다 pull 되므로 따로 할 일 없음)
+- **배포 키 교체**: `ssh-keygen -t ed25519 -N "" -C github-actions-chungyak-deploy -f deploy_key` →
+  서버 `authorized_keys` 의 기존 `chungyak-deploy` 줄을 새 공개키로 교체(`restrict,command=...` 접두 유지) →
+  `gh secret set DEPLOY_SSH_KEY < deploy_key` → 로컬 `deploy_key` 삭제.
+- **서버를 옮기거나 다시 만들면**: 호스트 키가 바뀐다 → `ssh-keyscan -t ed25519 <IP>` 결과를
+  `DEPLOY_KNOWN_HOSTS` 로 다시 등록하고(서버의 `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`
+  지문과 대조), `DEPLOY_HOST` 도 바꾼다.
+- **배포를 잠시 끄려면**: 저장소 Settings → Actions 에서 CI 를 끄지 말고, `ci.yml` 의 `deploy` 잡에
+  `if: false` 를 넣어 push 한다(빌드·테스트는 계속 돈다).
 
 ## 백업
 
