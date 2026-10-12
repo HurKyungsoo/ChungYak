@@ -191,7 +191,7 @@ class ExplanationEvalTest {
 
     private static String oneLine(String s) {
         String t = s.replaceAll("\\s+", " ").strip();
-        return t.length() <= 160 ? t : t.substring(0, 160) + "…";
+        return t.length() <= 1200 ? t : t.substring(0, 1200) + "…";
     }
 
     private static String render(int runs, double cfRate, double cleanRate,
