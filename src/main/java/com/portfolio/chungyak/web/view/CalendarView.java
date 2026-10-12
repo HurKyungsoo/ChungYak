@@ -47,6 +47,20 @@ public record CalendarView(YearMonth month, String label, List<List<CalendarDay>
                 month.minusMonths(1), month.plusMonths(1), month.equals(YearMonth.from(today)));
     }
 
+    /**
+     * 모바일 일정 목록 — 이 달에 일정이 있는 날만, 날짜 순. 이번 달이면 오늘부터(지난 날은 이미
+     * 끝난 일정이라 맨 위를 차지하면 안 된다). 좁은 화면에서 7칸 격자는 공고명이 3~4글자로 잘려 못 읽는다.
+     */
+    public List<CalendarDay> agendaDays() {
+        LocalDate from = weeks.stream().flatMap(List::stream)
+                .filter(CalendarDay::today).map(CalendarDay::date)
+                .findFirst().filter(d -> currentMonth).orElse(null);
+        return weeks.stream().flatMap(List::stream)
+                .filter(d -> d.inMonth() && !d.events().isEmpty())
+                .filter(d -> from == null || !d.date().isBefore(from))
+                .toList();
+    }
+
     private static void addEvent(Map<LocalDate, List<CalendarEvent>> byDate, LocalDate date,
                                   Announcement a, CalendarEvent.Kind kind) {
         if (date == null) return;

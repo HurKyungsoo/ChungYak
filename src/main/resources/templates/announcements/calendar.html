@@ -35,13 +35,46 @@
             <div class="cal-day" th:each="day : ${week}"
                  th:classappend="${!day.inMonth} ? 'out' : (${day.today} ? 'today' : '')">
                 <span class="num" th:text="${day.date.dayOfMonth}">1</span>
-                <a th:each="ev : ${day.events}" class="cal-event"
+                <!-- 하루 20건씩 몰리는 날이 있어 3건까지만 펼치고 나머지는 접는다(마감 먼저) -->
+                <a th:each="ev : ${day.visibleEvents()}" class="cal-event"
                    th:classappend="${ev.kind.name() == 'START'} ? 'start' : 'end'"
                    th:href="@{/announcements/{id}(id=${ev.announcementId})}"
                    th:text="${ev.houseName}"
                    th:title="${(ev.kind.name() == 'START' ? '접수 시작: ' : '접수 마감: ') + ev.houseName}">공고명</a>
+                <details class="cal-more" th:if="${!day.hiddenEvents().isEmpty()}">
+                    <summary th:text="|+${day.hiddenEvents().size()}개 더|">+5개 더</summary>
+                    <a th:each="ev : ${day.hiddenEvents()}" class="cal-event"
+                       th:classappend="${ev.kind.name() == 'START'} ? 'start' : 'end'"
+                       th:href="@{/announcements/{id}(id=${ev.announcementId})}"
+                       th:text="${ev.houseName}"
+                       th:title="${(ev.kind.name() == 'START' ? '접수 시작: ' : '접수 마감: ') + ev.houseName}">공고명</a>
+                </details>
             </div>
         </th:block>
+    </div>
+
+    <!-- 좁은 화면 전용 일정 목록 — 7칸 격자는 공고명이 3~4글자로 잘려 못 읽는다.
+         날짜별로 마감 → 시작 순, 공고명을 다 보여 주고 줄 전체를 누를 수 있게 한다. -->
+    <div class="cal-agenda">
+        <p class="muted" th:if="${calendar.agendaDays().isEmpty()}">이 달에는 남은 접수 일정이 없습니다.</p>
+        <section class="agenda-day" th:each="day : ${calendar.agendaDays()}" th:classappend="${day.today} ? 'today' : ''">
+            <h3>
+                <span th:text="${day.agendaLabel()}">10.12 (월)</span>
+                <span class="agenda-today" th:if="${day.today}">오늘</span>
+            </h3>
+            <ul>
+                <li th:each="ev : ${day.endEvents()}">
+                    <a class="agenda-item end" th:href="@{/announcements/{id}(id=${ev.announcementId})}">
+                        <span class="agenda-kind">마감</span><span class="agenda-name" th:text="${ev.houseName}">공고명</span>
+                    </a>
+                </li>
+                <li th:each="ev : ${day.startEvents()}">
+                    <a class="agenda-item start" th:href="@{/announcements/{id}(id=${ev.announcementId})}">
+                        <span class="agenda-kind">시작</span><span class="agenda-name" th:text="${ev.houseName}">공고명</span>
+                    </a>
+                </li>
+            </ul>
+        </section>
     </div>
 
     <div th:replace="~{fragments/common :: disclaimer}"></div>

@@ -212,9 +212,9 @@
         .sec-head .count { color: var(--text-subtle); font-size: .85rem; font-weight: 500; }
 
         /* ── notice cards (공고 목록) ──────────────────────────────── */
-        .notice-list { display: grid; gap: 12px; margin: 16px 0; }
+        .notice-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 16px 0; }
         .notice-card {
-            display: block; background: var(--surface); color: inherit;
+            display: block; min-width: 0; background: var(--surface); color: inherit;
             border: 1px solid var(--border); border-radius: var(--r-lg);
             padding: 17px 20px; box-shadow: var(--shadow-sm);
             transition: border-color .12s, box-shadow .12s, transform .12s;
@@ -222,7 +222,10 @@
         .notice-card:hover { text-decoration: none; border-color: var(--border-strong);
                              box-shadow: var(--shadow); transform: translateY(-2px); }
         .notice-card .top { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
-        .notice-card .meta { color: var(--text-muted); font-size: .82rem; font-weight: 500; }
+        .notice-card .meta { color: var(--text-muted); font-size: .82rem; font-weight: 500;
+                             min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                             flex: 1 1 auto; }   /* 남은 폭을 차지해 찜·D-day 를 항상 오른쪽 끝으로 민다 */
+        .notice-card .dday { flex: none; white-space: nowrap; }
         .notice-card .dday {
             font-size: .77rem; font-weight: 700; white-space: nowrap;
             padding: 3px 9px; border-radius: var(--r-pill);
@@ -294,7 +297,7 @@
         .dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--text-subtle); }
         .dot.open { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-weak); }
         .dot.soon { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-weak); }
-        .status-text { font-size: .82rem; font-weight: 650; }
+        .status-text { font-size: .82rem; font-weight: 650; white-space: nowrap; flex: none; }
         .status-text.open { color: var(--ok); }
         .status-text.soon { color: var(--warn); }
 
@@ -596,6 +599,22 @@
         input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--brand); }
         .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 18px 0; }
         .filter-bar select { width: auto; min-width: 140px; }
+        /* 좁은 화면 필터 — 검색은 한 줄 통째로, 고르는 칸은 2열로 맞춰 세 줄로 흩어지지 않게 */
+        @media (max-width: 560px) {
+            .filter-bar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+            .filter-bar input[type=text], .filter-bar .scrap-filter { grid-column: 1 / -1; }
+            .filter-bar select { min-width: 0; width: 100%; }
+        }
+
+        /* 손가락으로 누르는 화면 — 뒤로가기 링크·㎡ 전환·체크박스 줄의 탭 영역을 넓힌다.
+           (체크박스·.check 기본 규칙보다 뒤에 있어야 덮어쓴다) */
+        @media (hover: none) {
+            .backlink { padding: 10px 0; margin: -10px 0; }
+            .area-toggle { padding: 7px 10px; margin: -4px 0; }
+            .check { min-height: 40px; align-items: center; margin: 4px 0; }
+            .check input { margin-top: 0; }
+            input[type=checkbox] { width: 20px; height: 20px; }
+        }
 
         /* ── tables ────────────────────────────────────────────────── */
         .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r);
@@ -800,6 +819,30 @@
                      text-overflow: ellipsis; color: inherit; }
         .cal-event.start { background: var(--brand-weak); color: var(--brand); }
         .cal-event.end   { background: var(--warn-weak); color: var(--warn); }
+        .cal-more > summary { list-style: none; cursor: pointer; font-size: .68rem; font-weight: 700;
+                              color: var(--text-muted); padding: 2px 5px; border-radius: 5px; }
+        .cal-more > summary::-webkit-details-marker { display: none; }
+        .cal-more > summary:hover { background: var(--surface-2); color: var(--text); }
+        .cal-more[open] > summary { color: var(--brand); }
+        .cal-more { display: flex; flex-direction: column; gap: 3px; }
+        .cal-more[open] { gap: 3px; }
+
+        /* 좁은 화면 일정 목록 — 격자 대신 */
+        .cal-agenda { display: none; }
+        .agenda-day { margin-bottom: 18px; }
+        .agenda-day h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px;
+                         font-size: .95rem; }
+        .agenda-today { font-size: .72rem; font-weight: 700; color: var(--on-brand); background: var(--brand);
+                        padding: 2px 8px; border-radius: var(--r-pill); }
+        .agenda-day ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+        .agenda-item { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 10px 12px;
+                       background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+                       color: var(--text); text-decoration: none; }
+        .agenda-item:hover { text-decoration: none; border-color: var(--border-strong); }
+        .agenda-kind { flex: none; font-size: .72rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+        .agenda-item.end .agenda-kind { background: var(--warn-weak); color: var(--warn); }
+        .agenda-item.start .agenda-kind { background: var(--brand-weak); color: var(--brand); }
+        .agenda-name { font-size: .9rem; font-weight: 600; line-height: 1.4; min-width: 0; overflow-wrap: anywhere; }
 
         /* 하단 탭바는 좁은 화면에서만 — 넓은 화면은 헤더 nav 로 충분하다 */
         .bottom-nav { display: none; }
@@ -812,8 +855,9 @@
             /* 버튼 글자를 줄바꿈시켜 억지로 한 줄에 욱여넣지 않는다 — 자연스러운 폭을 유지하고
                다 안 들어가면(.btn-row 는 flex-wrap:wrap) 다음 줄로 넘어가게 한다. */
             .btn-row .btn { width: auto; flex: 0 1 auto; white-space: nowrap; }
-            .cal-day { min-height: 60px; padding: 4px; }
-            .cal-event { font-size: .6rem; padding: 1px 4px; }
+            /* 7칸 격자는 공고명이 3~4글자로 잘려 못 읽는다 — 일정 목록으로 바꿔 보여 준다 */
+            .cal-grid, .cal-legend { display: none; }
+            .cal-agenda { display: block; }
 
             /* 같은 메뉴를 위아래 두 번 두지 않는다 — 좁은 화면에서는 탭바만 남긴다 */
             .site-header nav { display: none; }

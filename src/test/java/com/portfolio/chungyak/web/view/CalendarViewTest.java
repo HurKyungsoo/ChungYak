@@ -90,4 +90,37 @@ class CalendarViewTest {
                 .filter(d -> d.date().equals(date))
                 .findFirst().orElseThrow();
     }
+
+    @Test
+    void dayShowsThreeEventsDeadlinesFirstAndFoldsTheRest() {
+        LocalDate d = LocalDate.of(2026, 10, 12);
+        List<Announcement> many = new java.util.ArrayList<>();
+        for (long i = 1; i <= 3; i++) many.add(announcement(i, "시작" + i, d, d.plusDays(3)));     // START x3
+        for (long i = 4; i <= 5; i++) many.add(announcement(i, "마감" + i, d.minusDays(3), d));   // END x2
+
+        CalendarDay day = dayOf(CalendarView.of(many, YearMonth.of(2026, 10), d), d);
+
+        assertThat(day.visibleEvents()).extracting(CalendarEvent::houseName)
+                .containsExactly("마감4", "마감5", "시작1");
+        assertThat(day.hiddenEvents()).extracting(CalendarEvent::houseName).containsExactly("시작2", "시작3");
+    }
+
+    @Test
+    void agendaListsOnlyDaysWithEventsFromTodayInCurrentMonth() {
+        LocalDate today = LocalDate.of(2026, 10, 12);
+        List<Announcement> list = List.of(
+                announcement(1L, "지난", LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 14)),
+                announcement(2L, "다음달", LocalDate.of(2026, 10, 20), LocalDate.of(2026, 11, 2)));
+
+        CalendarView view = CalendarView.of(list, YearMonth.of(2026, 10), today);
+
+        // 10-05(지난 시작)는 빼고, 10-14(마감)·10-20(시작)만. 11-02 는 다음 달이라 없음
+        assertThat(view.agendaDays()).extracting(CalendarDay::date)
+                .containsExactly(LocalDate.of(2026, 10, 14), LocalDate.of(2026, 10, 20));
+        assertThat(view.agendaDays().get(0).agendaLabel()).isEqualTo("10.14 (수)");
+
+        // 다른 달은 처음부터 다 보여 준다
+        CalendarView nov = CalendarView.of(list, YearMonth.of(2026, 11), today);
+        assertThat(nov.agendaDays()).extracting(CalendarDay::date).containsExactly(LocalDate.of(2026, 11, 2));
+    }
 }
