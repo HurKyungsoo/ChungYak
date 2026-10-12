@@ -35,6 +35,11 @@
                 <td class="num">
                     <strong th:if="${item.score != null}" th:text="${item.score} + '점'">0점</strong>
                     <span th:unless="${item.score != null}" class="verdict miss">산정 불가</span>
+                    <!-- 만점 대비 채운 정도 — 어느 항목에서 점수를 더 얻을 여지가 큰지 한눈에 -->
+                    <div class="score-bar" th:if="${item.score != null and item.max > 0}" role="img"
+                         th:attr="aria-label=${item.label} + ' ' + ${item.score} + '점 / ' + ${item.max} + '점'">
+                        <span th:style="'width:' + ${item.score * 100 / item.max} + '%'"></span>
+                    </div>
                 </td>
                 <td class="num muted" th:text="${item.max} + '점'">32점</td>
                 <td class="muted" th:text="${item.detail} ?: '입력이 필요합니다.'">근거</td>
@@ -54,6 +59,12 @@
         <ul class="reasons">
             <li th:each="m : ${score.missingInputs}" class="r-miss" th:text="${m}">항목</li>
         </ul>
+    </div>
+
+    <!-- 다음 행동 — 가점제는 민영주택 일반공급에만 있다(국민주택은 저축액·납입횟수 순) -->
+    <div class="btn-row" style="margin:18px 0">
+        <a th:href="@{/announcements(detailType='PRIVATE')}" class="btn btn-primary">접수중 민영주택 공고 보기 →</a>
+        <a th:href="@{/match}" class="btn btn-ghost">특별공급 자격도 확인하기</a>
     </div>
 
     <div class="disclaimer">

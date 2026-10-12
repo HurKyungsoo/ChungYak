@@ -764,6 +764,11 @@
         .empty-state .chips { justify-content: center; margin-top: 6px; }
         .empty-state a.chip { color: var(--brand); font-weight: 600; text-decoration: none; }
 
+        /* 가점 항목별 만점 대비 막대 */
+        .score-bar { width: 72px; height: 6px; margin: 5px 0 0 auto; border-radius: 999px; overflow: hidden;
+                     background: var(--surface-2); }
+        .score-bar span { display: block; height: 100%; background: var(--brand); border-radius: 999px; }
+
         /* 판정 요약 칩 — 결과 배너 아래, 누르면 해당 근거 카드로 */
         .verdict-summary { display: grid; gap: 8px; margin: 12px 0 4px; padding: 14px 16px;
                            background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }

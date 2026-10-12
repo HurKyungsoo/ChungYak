@@ -31,10 +31,13 @@
             <div class="chips" style="margin-bottom:10px">
                 <span class="chip hl" th:each="row : ${result.possible}" th:text="${row.typeLabel}">신혼부부</span>
             </div>
-            <p class="muted" style="margin:0" th:if="${!result.remainingInputs.isEmpty()}">
-                판정을 끝내려면 이 항목들이 더 필요합니다 —
-                <span th:text="${#strings.listJoin(result.remainingInputs, ', ')}">소득, 자산</span>
-            </p>
+            <!-- 열 개 가까운 항목을 쉼표로 이으면 한 문단이 돼 못 읽는다 — 칩으로 나눈다 -->
+            <th:block th:if="${!result.remainingInputs.isEmpty()}">
+                <p class="muted" style="margin:0 0 6px">판정을 끝내려면 이 항목들이 더 필요합니다</p>
+                <div class="chips">
+                    <span class="chip" th:each="input : ${result.remainingInputs}" th:text="${input}">소득</span>
+                </div>
+            </th:block>
         </div>
 
         <div class="card" th:unless="${result.hasPossible()}">
