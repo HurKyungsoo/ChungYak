@@ -6,8 +6,19 @@
         ? ' · 청약접수 ' + ${announcement.receptBeginDate} + '~' + (${announcement.receptEndDate} ?: '?')
         : (${announcement.receptEndDate} != null ? ' · 접수 마감 ' + ${announcement.receptEndDate} : ''))
     + '. 내 조건으로 특별공급 자격을 바로 확인하세요.')}"></head>
-<body>
+<body class="page-detail">
 <header th:replace="~{fragments/common :: header}"></header>
+<!-- 좁은 화면 전용 앱형 머리 (목업 Mobile) — 사이트 머리 대신 뒤로 · 공고명 · 공유.
+     넓은 화면에서는 숨는다. 뒤로는 이 사이트 안에서 왔으면 history.back, 아니면 공고 목록(mobileAppbarScript). -->
+<div class="mobile-appbar">
+    <a th:href="@{/announcements}" class="ma-back" data-history-back aria-label="뒤로">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+    </a>
+    <span class="ma-title" th:text="${announcement.houseName}">공고명</span>
+    <button type="button" class="ma-share" data-share th:attr="data-share-title=${announcement.houseName}" aria-label="공유">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path><path d="m16 6-4-4-4 4"></path><path d="M12 2v13"></path></svg>
+    </button>
+</div>
 
 <main class="with-rail has-sticky-cta">
 <div class="rail-layout">
@@ -319,6 +330,7 @@
 <script th:replace="~{fragments/common :: recentViewsScript}"></script>
 <script th:replace="~{fragments/common :: stickyCtaScript}"></script>
 <script th:replace="~{fragments/common :: verdictSummaryScript}"></script>
+<script th:replace="~{fragments/common :: mobileAppbarScript}"></script>
 <script th:replace="~{fragments/common :: areaUnitScript}"></script>
 <script th:replace="~{fragments/common :: pendingSubmitScript}"></script>
 </body>
