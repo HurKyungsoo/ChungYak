@@ -117,6 +117,7 @@ class GroqClientTest {
         String prompt = GroqProfileCaller.buildSystemPrompt();
 
         assertThat(prompt).contains("추측하지 않는다").contains("JSON");
+        assertThat(prompt).contains("재작년");   // 상대적 시점은 개월로 환산하지 않는다(eval 에서 24 로 추측한 사례)
         for (var c : ExtractedProfile.class.getRecordComponents()) {
             assertThat(prompt).as("필드 %s", c.getName()).contains("- " + c.getName() + " (");
         }
