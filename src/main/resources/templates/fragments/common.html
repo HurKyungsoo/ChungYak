@@ -701,6 +701,12 @@
         .decision-card .reasons-fold[open] > summary { color: var(--ok); margin-bottom: 2px; }
         .decision-card .reasons-fold[open] > summary::before { content: "▾"; }
         .decision-card .reasons-fold .reasons { margin-top: 4px; }
+        /* LH 상세 (목업 LhDetail) — 핵심 3카드, "공고문에서 확인하세요" 묶음 */
+        .lh-notice { margin: 14px 0 0; }
+        .lh-check { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+        .lh-check h2 { margin: 0 0 8px; font-size: 1rem; }
+        .chip.missing { background: transparent; border: 1px dashed var(--border-strong); color: var(--text-muted); }
+
         /* 특별공급 유형별 배정 카드 (목업 Main) */
         .type-total-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 120px), 1fr)); gap: 8px; }
         .type-total { background: var(--surface-2); border-radius: 12px; padding: 10px 14px;

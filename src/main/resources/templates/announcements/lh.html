@@ -11,43 +11,57 @@
 -->
 <body>
 
-<th:block th:fragment="noticeButtons(announcement)">
-    <a th:if="${announcement.noticePdfUrl != null}" th:href="${announcement.noticePdfUrl}"
-       target="_blank" rel="noopener" class="btn btn-ghost btn-lg">공고문 PDF</a>
-    <a th:if="${announcement.noticeUrl != null}" th:href="${announcement.noticeUrl}"
-       target="_blank" rel="noopener" class="btn btn-ghost btn-lg">LH 공고 페이지</a>
-</th:block>
-
-<div th:fragment="info(announcement)" class="card">
-    <div class="card tint" th:if="${announcement.waitlist}" style="margin-bottom:12px">
-        <strong>예비입주자(대기자) 모집입니다.</strong>
-        <span class="muted">지금 입주할 세대를 뽑는 게 아니라, 빈 집이 생기면 순번대로 입주할 대기자를 모읍니다.
-            특별공급 몇 세대가 배정되는 공고가 아닙니다 — 순번 산정 기준은 공고문을 확인하세요.</span>
+<!-- LH 기본정보 (목업 LhDetail): 대기자 안내 → 핵심 3카드 → "공고문에서 확인하세요" 묶음.
+     목업은 일정을 채우기(#18) 전에 그려 빈 항목을 고정으로 나열했지만, 지금은 상세 API 로 대부분
+     채우므로 실제로 비어 있는 것만 묶음에 넣는다. 보증금·월 임대료는 수집하지 않아 임대면 늘 넣는다. -->
+<th:block th:fragment="info(announcement)">
+    <div class="banner info lh-notice" th:if="${announcement.waitlist}">
+        <p><strong>대기자 명단을 모집하는 공고예요.</strong>
+            당첨 즉시 입주가 아니라, 빈 집이 생기면 순번대로 계약 안내를 받습니다.
+            특별공급 몇 세대가 배정되는 공고가 아닙니다 — 순번 산정 기준은 공고문을 확인하세요.</p>
     </div>
-    <table class="kv">
-        <tr th:if="${announcement.supplyTypeName != null}">
-            <th>공급유형</th>
-            <td th:text="'LH ' + ${announcement.supplyTypeName}">LH 행복주택(신혼희망)</td>
-        </tr>
-        <tr><th>지역</th><td th:text="${announcement.regionName} ?: '-'">경기도</td></tr>
-        <tr><th>주소</th>
-            <td>
-                <span th:if="${announcement.address != null}" th:text="${announcement.address}">주소</span>
-                <span th:unless="${announcement.address != null}" class="subtle">공고문에서 확인하세요</span>
-            </td>
-        </tr>
+
+    <section class="bento lh-bento" aria-label="핵심 정보">
+        <div class="bento-card" th:if="${announcement.receptEndDate != null}">
+            <span class="b-label">접수 마감</span>
+            <strong class="b-value" th:text="${T(com.portfolio.chungyak.web.view.KoreanDates).monthDay(announcement.receptEndDate)}">10.14 (수)</strong>
+            <span class="b-note" th:if="${announcement.noticeDate != null}"
+                  th:text="'공고 ' + ${T(com.portfolio.chungyak.web.view.KoreanDates).monthDayPlain(announcement.noticeDate)}">공고 10.01</span>
+        </div>
         <!-- LH 공급 API 의 NOW_HSH_CNT 라벨("금회공급 세대수") 그대로 — 예비입주자 공고에서 이 수가
              입주 확정 세대인지 대기 정원인지 API 만으로는 알 수 없어 해석해 부르지 않는다. -->
-        <tr><th>금회 공급</th>
-            <td>
-                <span th:if="${announcement.totalSupplyCount != null}"
-                      th:text="${#numbers.formatInteger(announcement.totalSupplyCount, 1, 'COMMA')} + '세대'">40세대</span>
-                <span th:unless="${announcement.totalSupplyCount != null}" class="subtle">공고문에서 확인하세요</span>
-            </td>
-        </tr>
-        <!-- 일정(공고일·접수·발표·입주)은 상단 타임라인이 그린다 (#19-2) -->
-    </table>
-</div>
+        <div class="bento-card" th:if="${announcement.totalSupplyCount != null}">
+            <span class="b-label">금회 공급</span>
+            <strong class="b-value" th:text="${#numbers.formatInteger(announcement.totalSupplyCount, 1, 'COMMA')} + '세대'">73세대</strong>
+            <span class="b-note" th:text="|주택형 ${announcement.unitTypes.size()}개 합계|">주택형 6개 합계</span>
+        </div>
+        <div class="bento-card" th:if="${announcement.regionName != null}">
+            <span class="b-label">지역</span>
+            <strong class="b-value b-value-sm" th:text="${announcement.regionName}">경기도</strong>
+            <span class="b-note" th:if="${announcement.address == null}">상세 주소는 공고문</span>
+        </div>
+    </section>
+
+    <section class="card lh-check" aria-label="공고문에서 확인할 항목"
+             th:with="rental=${announcement.supplyCategory == null or announcement.supplyCategory.name() != 'SALE'}">
+        <div class="lh-check-body">
+            <h2>공고문에서 확인하세요</h2>
+            <div class="chips">
+                <span class="chip missing" th:if="${announcement.receptBeginDate == null}">접수 시작일</span>
+                <span class="chip missing" th:if="${announcement.winnerAnnounceDate == null}">당첨자 발표</span>
+                <span class="chip missing" th:if="${announcement.address == null}">단지 주소</span>
+                <span class="chip missing" th:if="${rental}">보증금 · 월 임대료</span>
+                <span class="chip missing">세부 자격 · 순번 기준</span>
+            </div>
+        </div>
+        <div class="btn-row" style="margin:0">
+            <a th:if="${announcement.noticePdfUrl != null}" th:href="${announcement.noticePdfUrl}"
+               target="_blank" rel="noopener" class="btn btn-primary">공고문 PDF</a>
+            <a th:if="${announcement.noticeUrl != null}" th:href="${announcement.noticeUrl}"
+               target="_blank" rel="noopener" class="btn btn-ghost">LH 공고 페이지</a>
+        </div>
+    </section>
+</th:block>
 
 <th:block th:fragment="units(announcement, priceByUnitType)">
     <h2>주택형</h2>

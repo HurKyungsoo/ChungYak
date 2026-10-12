@@ -51,9 +51,7 @@
         <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="btn btn-primary btn-lg">내 조건으로 자격 판정 →</a>
         <a th:if="${announcement.noticeUrl != null and !announcement.lh}" th:href="${announcement.noticeUrl}"
            target="_blank" rel="noopener" class="btn btn-ghost btn-lg">청약홈 공고문</a>
-        <th:block th:if="${announcement.lh}">
-            <th:block th:replace="~{announcements/lh :: noticeButtons(${announcement})}"></th:block>
-        </th:block>
+        <!-- LH 의 공고문 PDF·LH 페이지 버튼은 아래 "공고문에서 확인하세요" 묶음에 있다 (목업 LhDetail) -->
         <button type="button" class="btn btn-ghost btn-lg scrap-btn scrap-btn-lg" th:attr="data-ann-id=${announcement.id}"
                 aria-label="찜하기"></button>
     </div>
