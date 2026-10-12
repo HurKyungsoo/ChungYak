@@ -2,6 +2,10 @@ package com.portfolio.chungyak.llm;
 
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
+import org.junit.jupiter.api.condition.EnabledIf;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.web.client.RestClient;
+import java.time.Duration;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.rule.EligibilityEngine.MatchResult;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,8 +39,24 @@ import static org.assertj.core.api.Assertions.assertThat;
  *   <li>미충족 근거에 수치가 있으면(개선 경로) 요약에도 수치가 나온다.</li>
  * </ul>
  */
-@EnabledIfEnvironmentVariable(named = "ANTHROPIC_API_KEY", matches = ".+")
+@EnabledIf("hasAnyKey")
 class ExplanationEvalTest {
+
+    /**
+     * Anthropic 키가 있으면 그것을(유료), 없고 GROQ_API_KEY 만 있으면 Groq 를 잰다.
+     * EVAL_PROVIDER=groq 이면 Anthropic 키가 환경에 있어도 Groq 만 쓴다 — 유료 호출을 실수로 하지 않게.
+     */
+    static boolean hasAnyKey() {
+        return useAnthropic() || notBlank(System.getenv("GROQ_API_KEY"));
+    }
+
+    private static boolean useAnthropic() {
+        return notBlank(System.getenv("ANTHROPIC_API_KEY")) && !"groq".equals(System.getenv("EVAL_PROVIDER"));
+    }
+
+    private static boolean notBlank(String s) {
+        return s != null && !s.isBlank();
+    }
 
     private static final double MIN_CONTRADICTION_FREE = 0.85;
     private static final double MIN_CLEAN_RATE         = 0.70;
@@ -52,17 +72,28 @@ class ExplanationEvalTest {
                 new Scenario("qualified-but-unavailable", "다자녀 자격 되나 공고에 물량 0", MatchResults.qualifiedButUnavailable()));
     }
 
-    private AnthropicExplainer explainer;
+    private LlmExplainer explainer;
+    private boolean groq;
     private String model;
     private int reps;
 
     @BeforeEach
     void setUp() {
-        model = System.getenv().getOrDefault("LLM_MODEL", "claude-sonnet-5");
         reps = Integer.parseInt(System.getenv().getOrDefault("EVAL_REPS", "2"));
-        AnthropicClient client = AnthropicOkHttpClient.builder()
-                .apiKey(System.getenv("ANTHROPIC_API_KEY")).build();
-        explainer = new AnthropicExplainer(client, new LlmProperties(System.getenv("ANTHROPIC_API_KEY"), model));
+        if (useAnthropic()) {
+            model = System.getenv().getOrDefault("LLM_MODEL", "claude-sonnet-5");
+            AnthropicClient client = AnthropicOkHttpClient.builder()
+                    .apiKey(System.getenv("ANTHROPIC_API_KEY")).build();
+            explainer = new AnthropicExplainer(client, new LlmProperties(System.getenv("ANTHROPIC_API_KEY"), model));
+        } else {
+            groq = true;   // 무료 등급 분당 토큰 한도 때문에 호출 사이에 간격을 둔다
+            GroqProperties props = new GroqProperties(System.getenv("GROQ_API_KEY"), System.getenv("GROQ_MODEL"), null, true);
+            model = "groq:" + props.model();
+            SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+            factory.setConnectTimeout(Duration.ofSeconds(5));
+            factory.setReadTimeout(Duration.ofSeconds(30));
+            explainer = new GroqExplainer(new GroqChatClient(RestClient.builder().requestFactory(factory).build(), props));
+        }
     }
 
     @Test
@@ -75,7 +106,7 @@ class ExplanationEvalTest {
             String facts = ExplanationFacts.format(s.result());
             for (int rep = 0; rep < reps; rep++) {
                 runs++;
-                String raw = explainer.explain(facts);
+                String raw = explain(facts);
                 boolean noContradiction = ContradictionCheck.check(s.result(), raw).isEmpty();
                 if (noContradiction) contradictionFree++;
 
@@ -99,6 +130,20 @@ class ExplanationEvalTest {
                 .as("모순 없음 비율 — 요약이 자격 유무를 뒤집으면 안 됨").isGreaterThanOrEqualTo(MIN_CONTRADICTION_FREE);
         assertThat(cleanRate)
                 .as("완전 통과 비율 (스코어카드 참고)").isGreaterThanOrEqualTo(MIN_CLEAN_RATE);
+    }
+
+    private String explain(String facts) {
+        if (!groq) return explainer.explain(facts);
+        try {
+            Thread.sleep(10_000);
+            return explainer.explain(facts);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        } catch (RuntimeException e) {   // 429 등 — 한 번 쉬었다 다시
+            try { Thread.sleep(30_000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            return explainer.explain(facts);
+        }
     }
 
     /** 규칙 엔진 결과에서 끌어낸 기대를 요약 텍스트가 지키는지 — 못 지킨 항목 목록. */

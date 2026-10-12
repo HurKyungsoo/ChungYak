@@ -7,6 +7,9 @@ import com.portfolio.chungyak.domain.RegulationFlags;
 import com.portfolio.chungyak.domain.SupplyBreakdown;
 import com.portfolio.chungyak.domain.SupplyCategory;
 import com.portfolio.chungyak.domain.UnitType;
+import com.portfolio.chungyak.llm.ExtractedProfile;
+import com.portfolio.chungyak.llm.ProfileExtractionResult;
+import com.portfolio.chungyak.llm.ProfileExtractionService;
 import com.portfolio.chungyak.repository.AnnouncementRepository;
 import com.portfolio.chungyak.service.AnnouncementSyncScheduler;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +49,7 @@ class ScreenRenderTest {
     @Autowired private MockMvc mvc;
     @Autowired private AnnouncementRepository repository;
     @MockBean private AnnouncementSyncScheduler scheduler;
+    @MockBean private ProfileExtractionService extractionService;   // 키 없이도 추출 결과 화면을 그려 본다
 
     private Long aptId;
     private Long lhId;
@@ -156,6 +160,26 @@ class ScreenRenderTest {
         assertThat(body).contains("decision-grid").contains("내 조건").contains("자격 충족");
         // 혼인기간 100개월은 내 값 → 굵게, 괄호 안 84개월은 기준 → 그대로
         assertThat(body).contains("<strong>100개월</strong>").contains("(84개월)");
+    }
+
+    @Test
+    @DisplayName("자연어 추출 결과 — '이렇게 읽었어요'·문장 속 기간과 어긋나는 경고·AI 가 채운 칸 목록 (두 화면 공통)")
+    void extractionBanner() throws Exception {
+        String text = "청약통장은 3년 됐어요";
+        // 모델이 3년을 24개월로 읽은 상황
+        ExtractedProfile misread = new ExtractedProfile(null, null, null, null, true, 24, null, null, null);
+        org.mockito.Mockito.when(extractionService.isAvailable()).thenReturn(true);
+        org.mockito.Mockito.when(extractionService.extract(text))
+                .thenReturn(ProfileExtractionResult.extracted(misread, text));
+
+        for (String url : new String[]{"/match/extract", "/announcements/" + aptId + "/eligibility/extract"}) {
+            String body = mvc.perform(post(url).param("naturalText", text))
+                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            assertThat(body.stripTrailing()).as(url).endsWith("</html>");
+            assertThat(body).as(url).contains("청약통장 가입 24개월(2년)")        // 이렇게 읽었어요
+                    .contains("숫자를 한 번 더 확인해 주세요").contains("36개월(3년)")   // 원문 숫자와 대조 경고
+                    .contains("data-filled=\"houseless,accountMonths\"");        // 이 칸들에 "AI 입력"
+        }
     }
 
     @Test

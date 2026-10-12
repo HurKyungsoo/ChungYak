@@ -35,16 +35,7 @@
         </form>
     </fieldset>
 
-    <div th:if="${extraction != null}"
-         th:classappend="${extraction.status.name() == 'EXTRACTED'} ? 'banner good' : 'banner bad'"
-         class="banner">
-        <div>
-            <p th:text="${extraction.message}">안내</p>
-            <ul th:if="${!extraction.unknownFieldLabels.isEmpty()}">
-                <li th:each="f : ${extraction.unknownFieldLabels}" th:text="${f}">항목</li>
-            </ul>
-        </div>
-    </div>
+    <div th:replace="~{fragments/common :: extractionBanner(${extraction})}"></div>
 
     <div th:replace="~{fragments/common :: profileDraftBanner}"></div>
 
@@ -195,6 +186,7 @@
 
 <footer th:replace="~{fragments/common :: footer}"></footer>
 <script th:replace="~{fragments/common :: profileDraftScript}"></script>
+<script th:replace="~{fragments/common :: aiFilledScript}"></script>
 <script th:replace="~{fragments/common :: pendingSubmitScript}"></script>
 <script th:replace="~{fragments/common :: formProgressScript}"></script>
 <script th:replace="~{fragments/common :: requiredFieldsScript}"></script>

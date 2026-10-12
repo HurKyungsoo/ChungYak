@@ -56,7 +56,7 @@ public class ProfileExtractionService {
 
         log.info("자연어 추출 완료 — 입력='{}', 미확인 필드={}",
                 preview(naturalText), extracted.unknownFieldLabels());
-        return ProfileExtractionResult.extracted(extracted);
+        return ProfileExtractionResult.extracted(extracted, naturalText);
     }
 
     private static String preview(String s) {

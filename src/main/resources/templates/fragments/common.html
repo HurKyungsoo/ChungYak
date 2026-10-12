@@ -595,6 +595,13 @@
         .banner.bad::before  { background: var(--no); }
         .banner.info { background: var(--brand-weak); color: color-mix(in srgb, var(--brand) 78%, var(--text)); }
         .banner.info::before { background: var(--brand); }
+        .banner.warn { background: var(--warn-weak); color: color-mix(in srgb, var(--warn) 82%, var(--text)); }
+        .banner.warn::before { background: var(--warn); }
+        .banner .read-back { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 8px; }
+        .banner .read-back li { background: var(--surface); color: var(--text); border-radius: 999px; padding: 2px 10px;
+                                font-size: .82rem; font-weight: 600; }
+        .field.ai-filled .lbl .ai-chip, label.check.ai-filled .ai-chip { margin-left: 6px; }
+        .ai-filled input:not([type=checkbox]) { border-color: var(--brand); }
         .banner p { margin: 0; }
         .banner ul { margin: 6px 0 0; padding-left: 18px; }
         .banner .big { font-size: 1.05rem; font-weight: 700; }
@@ -1567,6 +1574,53 @@
         <button type="submit" class="btn btn-primary">진단하기</button>
     </div>
 </form>
+
+<!-- ── 자연어 추출 결과 배너 — 판정 폼 두 곳(공고별·공고 찾기)이 같이 쓴다.
+     "이렇게 읽었어요"(채워진 값을 년·개월 함께), 문장 속 기간 숫자와 안 맞는 경고, 못 읽은 항목.
+     AI 가 숫자를 오독하는 것(통장 3년→24개월)은 프롬프트로 다 막을 수 없어 사용자가 눈으로 확인하게 한다.
+     data-filled 는 aiFilledScript 가 해당 칸에 "AI 입력" 표시를 붙일 때 읽는다. ── -->
+<div th:fragment="extractionBanner(extraction)" th:if="${extraction != null}" id="extractionBanner"
+     th:attr="data-filled=${#strings.listJoin(extraction.filledFields, ',')}">
+    <div class="banner" th:classappend="${extraction.status.name() == 'EXTRACTED'} ? 'good' : 'bad'">
+        <div>
+            <p th:text="${extraction.message}">안내</p>
+            <ul class="read-back" th:if="${!extraction.readBack.isEmpty()}" aria-label="AI 가 읽은 값">
+                <li th:each="r : ${extraction.readBack}" th:text="${r}">혼인 기간 36개월(3년)</li>
+            </ul>
+            <ul th:if="${!extraction.unknownFieldLabels.isEmpty()}">
+                <li th:each="f : ${extraction.unknownFieldLabels}" th:text="${f}">항목</li>
+            </ul>
+        </div>
+    </div>
+    <div class="banner warn" th:if="${!extraction.warnings.isEmpty()}" role="alert">
+        <div>
+            <p><strong>숫자를 한 번 더 확인해 주세요</strong></p>
+            <ul>
+                <li th:each="w : ${extraction.warnings}" th:text="${w}">문장에 적힌 기간은 36개월(3년)인데…</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- ── AI 가 채운 칸 표시 — 배너의 data-filled 목록대로 해당 입력의 라벨에 "AI 입력" 을 붙이고 테두리를 강조한다.
+     사용자가 직접 쓴 칸과 AI 가 채운 칸을 구분해야 어디를 확인할지 알 수 있다. textContent 로만 만든다. ── -->
+<script th:fragment="aiFilledScript">
+    (function () {
+        var banner = document.getElementById('extractionBanner');
+        if (!banner) return;
+        (banner.getAttribute('data-filled') || '').split(',').filter(Boolean).forEach(function (name) {
+            var input = document.querySelector('form [name="' + name + '"]');
+            var label = input && input.closest('label');
+            if (!label) return;
+            label.classList.add('ai-filled');
+            var host = label.querySelector('.lbl') || label.querySelector('span') || label;
+            var chip = document.createElement('span');
+            chip.className = 'ai-chip';
+            chip.textContent = 'AI 입력';
+            host.appendChild(chip);
+        });
+    })();
+</script>
 
 <!-- ── 판정 조건 기억 배너 — 이전에 저장된 조건을 불러왔을 때만 JS 가 보여준다 ── -->
 <div th:fragment="profileDraftBanner" id="profileDraftBanner" class="banner info" style="display:none">
