@@ -46,7 +46,7 @@
 
     <div th:replace="~{fragments/common :: profileDraftBanner}"></div>
 
-    <form method="post" th:action="@{/match}" th:object="${form}" data-remember-profile>
+    <form method="post" th:action="@{/match}" th:object="${form}" data-remember-profile data-progress-form>
         <fieldset>
             <legend>혼인 · 자녀</legend>
             <label class="check"><input type="checkbox" th:field="*{married}" id="marriedCheck"> <span>혼인 중이다</span></label>
@@ -148,7 +148,9 @@
             </label>
         </fieldset>
 
-        <div class="btn-row" style="margin-top:18px">
+        <!-- 하단에 붙는 제출 줄 — 긴 폼 어디서든 바로 제출, 지금 섹션 표시(formProgressScript) -->
+        <div class="form-submit-bar">
+            <span class="form-progress" aria-live="polite"></span>
             <button type="submit" class="btn btn-primary btn-lg">신청 가능한 공고 찾기</button>
         </div>
     </form>
@@ -189,5 +191,6 @@
 <footer th:replace="~{fragments/common :: footer}"></footer>
 <script th:replace="~{fragments/common :: profileDraftScript}"></script>
 <script th:replace="~{fragments/common :: pendingSubmitScript}"></script>
+<script th:replace="~{fragments/common :: formProgressScript}"></script>
 </body>
 </html>

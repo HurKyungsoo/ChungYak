@@ -32,6 +32,26 @@
         </div>
     </div>
 
+    <!-- 판정 요약 칩 — 근거 카드가 화면 아래쪽에 있어, 유형별 결과를 여기서 한눈에 보고 눌러서
+         해당 카드로 내려간다. 엔진 판정(eligible/undetermined) 그대로 셋으로만 나눈다. -->
+    <nav class="verdict-summary" aria-label="유형별 판정 요약"
+         th:with="ok=${result.allDecisions.?[eligible]},
+                  info=${result.allDecisions.?[!eligible and undetermined]},
+                  no=${result.allDecisions.?[!eligible and !undetermined]}">
+        <div class="vs-row" th:if="${!ok.isEmpty()}">
+            <span class="vs-head ok" th:text="|자격 충족 ${ok.size()}|">자격 충족 2</span>
+            <a class="vs-chip" th:each="d : ${ok}" th:href="'#decision-' + ${d.typeName}" th:text="${d.typeLabel}">신혼부부</a>
+        </div>
+        <div class="vs-row" th:if="${!info.isEmpty()}">
+            <span class="vs-head miss" th:text="|정보 필요 ${info.size()}|">정보 필요 1</span>
+            <a class="vs-chip" th:each="d : ${info}" th:href="'#decision-' + ${d.typeName}" th:text="${d.typeLabel}">다자녀</a>
+        </div>
+        <div class="vs-row" th:if="${!no.isEmpty()}">
+            <span class="vs-head no" th:text="|미충족 ${no.size()}|">미충족 3</span>
+            <a class="vs-chip" th:each="d : ${no}" th:href="'#decision-' + ${d.typeName}" th:text="${d.typeLabel}">생애최초</a>
+        </div>
+    </nav>
+
     <!-- 공통요건 요약 레일 — 재당첨·소득·자산·통장·거주는 여러 특별공급 유형이 함께 확인하는
          요건이라 유형마다 반복해서 보여주지 않고 한 번만 그린다. 유형별로 결과가 갈리면
          (예: 소득 상한이 유형마다 달라 한쪽만 통과) MIXED 로 표시해 다른 결과를 같다고
@@ -189,7 +209,7 @@
          "지금은 불가 / 영영 불가"처럼 화면이 미충족을 다시 나누지 않는다. 엔진은 메울 수 있는 격차만
          improvementHints 로 주므로, 힌트가 있으면 요건 단위로 보여 줄 뿐이다. -->
     <div class="decision-grid">
-    <div th:each="d : ${result.allDecisions}" class="card decision-card"
+    <div th:each="d : ${result.allDecisions}" class="card decision-card" th:id="'decision-' + ${d.typeName}"
          th:classappend="${d.undetermined} ? 'needs-info' : ''"
          th:with="blockedByCommon=${!d.eligible and !d.undetermined and d.ownFailedReasons.isEmpty() and d.ownMissingInputs.isEmpty()}">
         <div class="head">

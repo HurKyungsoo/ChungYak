@@ -18,10 +18,12 @@
     <form id="compareProfileForm" method="post" th:action="@{/announcements/compare}"
           style="display:none" th:if="${rows.size() >= 2 and !profileApplied}">
         <input type="hidden" name="ids" th:value="${#strings.listJoin(rows.![id], ',')}">
-        <div class="banner info">
-            <p style="margin:0">저장해 둔 조건이 있습니다.
-                <button type="submit" class="btn btn-primary" style="margin-left:6px">내 조건 적용해서 보기</button>
-            </p>
+        <!-- 글과 버튼을 한 문단에 넣으면 좁은 화면에서 버튼이 글 사이로 끼어 줄바꿈된다 — 나란히 두고 넘치면 아래로 -->
+        <div class="banner info" style="align-items:center">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;flex:1">
+                <p style="margin:0">저장해 둔 조건이 있습니다. 공고마다 신청 가능 여부를 함께 볼 수 있어요.</p>
+                <button type="submit" class="btn btn-primary" style="width:auto">내 조건 적용해서 보기</button>
+            </div>
         </div>
     </form>
 

@@ -204,7 +204,10 @@
         .hero-links a:hover { color: var(--brand); }
         .stat-strip { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 18px;
                       font-size: .85rem; color: var(--text-muted); }
-        .stat-strip span { display: inline-flex; align-items: baseline; gap: 5px; }
+        .stat-strip span, .stat-strip a { display: inline-flex; align-items: baseline; gap: 5px; }
+        .stat-strip a.stat-urgent { color: var(--warn); text-decoration: none; }
+        .stat-strip a.stat-urgent b { color: var(--warn); }
+        .stat-strip a.stat-urgent:hover { text-decoration: underline; }
         .stat-strip b { color: var(--text); font-weight: 750; font-size: .98rem; letter-spacing: -0.01em; }
 
         .sec-head { display: flex; align-items: baseline; gap: 10px; margin: 26px 0 2px; }
@@ -737,6 +740,16 @@
         .area-toggle::after { content: " ⇄"; font-weight: 500; color: var(--text-subtle); }
         .area-toggle:hover { border-color: var(--brand); }
 
+        /* 긴 폼의 제출 줄 — 화면 하단(좁은 화면은 탭바 위)에 붙는다. 폼 끝에 닿으면 제자리. */
+        .form-submit-bar { position: sticky; bottom: var(--tabbar-h, 0px); z-index: 30;
+                           display: flex; align-items: center; justify-content: space-between; gap: 12px;
+                           margin: 18px -12px 0; padding: 12px; border-radius: 14px 14px 0 0;
+                           background: color-mix(in srgb, var(--bg) 92%, transparent);
+                           backdrop-filter: blur(6px); border-top: 1px solid var(--border); }
+        .form-submit-bar .form-progress { font-size: .82rem; font-weight: 600; color: var(--text-muted);
+                                          min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .form-submit-bar .btn { flex: none; width: auto; }
+
         /* 제출 중 버튼 (#19-5) */
         .btn.is-pending { opacity: .75; cursor: progress; pointer-events: none; }
         .btn.is-pending::before { content: ""; display: inline-block; width: .9em; height: .9em; margin-right: 6px;
@@ -750,6 +763,21 @@
         .empty-state p { margin: 0; }
         .empty-state .chips { justify-content: center; margin-top: 6px; }
         .empty-state a.chip { color: var(--brand); font-weight: 600; text-decoration: none; }
+
+        /* 판정 요약 칩 — 결과 배너 아래, 누르면 해당 근거 카드로 */
+        .verdict-summary { display: grid; gap: 8px; margin: 12px 0 4px; padding: 14px 16px;
+                           background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+        .vs-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+        .vs-head { font-size: .8rem; font-weight: 700; padding: 3px 10px; border-radius: var(--r-pill);
+                   margin-right: 4px; white-space: nowrap; }
+        .vs-head.ok   { background: var(--ok-weak); color: var(--ok); }
+        .vs-head.miss { background: var(--warn-weak); color: var(--warn); }
+        .vs-head.no   { background: var(--no-weak); color: var(--no); }
+        .vs-chip { font-size: .85rem; font-weight: 600; padding: 4px 10px; border-radius: var(--r-pill);
+                   background: var(--surface-2); color: var(--text); text-decoration: none; }
+        .vs-chip:hover { background: var(--brand-weak); color: var(--brand); text-decoration: none; }
+        .decision-card:target { outline: 2px solid var(--brand); outline-offset: 2px; }
+        .decision-card { scroll-margin-top: 80px; }
 
         /* 근거 카드 그리드 (#19-1) — 넓으면 두 줄, 좁으면 한 줄. 색은 전부 토큰(다크 모드 대응). */
         .decision-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
@@ -985,6 +1013,15 @@
             var nav = document.getElementById('bottomNav');
             if (!nav) return;
 
+            /* 탭바 실제 높이(safe-area 여백 포함)를 --tabbar-h 로 — 하단 고정 버튼·폼 제출 줄이
+               탭바 바로 위에 붙도록. 넓은 화면은 탭바가 없어 0. */
+            var setTabbarHeight = function () {
+                var h = getComputedStyle(nav).display !== 'none' ? nav.offsetHeight : 0;
+                document.documentElement.style.setProperty('--tabbar-h', h + 'px');
+            };
+            setTabbarHeight();
+            window.addEventListener('resize', setTabbarHeight);
+
             /* 지금 보고 있는 화면의 탭을 표시한다. /announcements 와 /announcements/calendar 처럼
                앞부분이 겹치는 경로가 있어 "가장 길게 맞는 것"을 고른다. */
             var path = location.pathname, best = null, bestLen = -1;
@@ -1129,6 +1166,38 @@
     })();
 </script>
 
+<!-- ── 긴 입력 폼의 제출 줄 + 진행 표시 — form[data-progress-form] 안의 .form-submit-bar 가
+     화면 하단(좁은 화면은 탭바 위)에 붙어 있고, 지금 보고 있는 fieldset 을 "3/6 · 청약통장"으로 알려 준다.
+     버튼을 복제하지 않는다 — 원래 제출 줄을 sticky 로 붙일 뿐이라 폼 끝에 오면 제자리로 돌아간다. ── -->
+<script th:fragment="formProgressScript">
+    (function () {
+        document.querySelectorAll('form[data-progress-form]').forEach(function (form) {
+            var label = form.querySelector('.form-progress');
+            var sets = Array.prototype.filter.call(form.querySelectorAll('fieldset'),
+                    function (f) { return f.querySelector('legend'); });
+            if (!label || sets.length < 2 || !('IntersectionObserver' in window)) return;
+
+            var name = function (f) {
+                // legend 안의 배지(필수·AI 등)는 빼고 제목 글자만
+                var lg = f.querySelector('legend').cloneNode(true);
+                lg.querySelectorAll('span').forEach(function (s) { s.remove(); });
+                return lg.textContent.trim();
+            };
+            var visible = new Set();
+            var update = function () {
+                var idx = sets.findIndex(function (f) { return visible.has(f); });
+                if (idx < 0) return;
+                label.textContent = (idx + 1) + '/' + sets.length + ' · ' + name(sets[idx]);
+            };
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (e) { e.isIntersecting ? visible.add(e.target) : visible.delete(e.target); });
+                update();
+            }, { rootMargin: '-30% 0px -50% 0px' });   // 화면 가운데 띠에 걸친 섹션 = 지금 보는 섹션
+            sets.forEach(function (f) { io.observe(f); });
+        });
+    })();
+</script>
+
 <!-- ── 하단 고정 CTA 표시 (#19-4) — #stickyCta 가 있는 화면에서만 동작한다.
      #ctaAnchor(위쪽 원래 버튼 줄)가 화면에서 벗어나면 띄우고, 다시 보이면 숨긴다. ── -->
 <script th:fragment="stickyCtaScript">
@@ -1137,14 +1206,7 @@
         var anchor = document.getElementById('ctaAnchor');
         if (!cta || !anchor) return;
 
-        var nav = document.getElementById('bottomNav');
-        var setTabbarHeight = function () {
-            var h = nav && getComputedStyle(nav).display !== 'none' ? nav.offsetHeight : 0;
-            document.documentElement.style.setProperty('--tabbar-h', h + 'px');
-        };
-        setTabbarHeight();
-        window.addEventListener('resize', setTabbarHeight);
-
+        // --tabbar-h 는 탭바 스크립트(header 조각)가 넣는다
         if (!('IntersectionObserver' in window)) { cta.classList.add('show'); return; }
         new IntersectionObserver(function (entries) {
             var visible = entries[0].isIntersecting;
