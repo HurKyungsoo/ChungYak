@@ -44,6 +44,9 @@ public class EligibilityDecision {
      */
     private List<RequirementCheck> commonChecks = List.of();
 
+    /** {@link #failed} 로 남은(메울 수 없는) 미충족 수 — {@link #isFixable()} 판단용 */
+    private int unfixableFailures = 0;
+
     private EligibilityDecision(SpecialSupplyType type, boolean eligible) {
         this.type = type;
         this.eligible = eligible;
@@ -62,8 +65,24 @@ public class EligibilityDecision {
         return this;
     }
 
+    /**
+     * 메울 수 없는 미충족 — 혼인 7년 초과, 주택 소유, 소득·자산 초과처럼 기간이 지나도 채워지지 않는 것.
+     * 기간·선택으로 메울 수 있는 미충족은 {@link #failedWithHint} 로 남긴다.
+     */
     public EligibilityDecision failed(String reason) {
         this.failedReasons.add(reason);
+        this.unfixableFailures++;
+        return this;
+    }
+
+    /**
+     * 기간이 지나거나 선택으로 메울 수 있는 미충족 + 그 방법. 힌트가 null 이면 메울 수 없는 것으로 본다.
+     * {@link #isFixable()} 은 모든 미충족이 이것으로만 남았을 때 참이다.
+     */
+    public EligibilityDecision failedWithHint(String reason, String improvementHint) {
+        if (improvementHint == null) return failed(reason);
+        this.failedReasons.add(reason);
+        this.improvementHints.add(improvementHint);
         return this;
     }
 
@@ -87,5 +106,15 @@ public class EligibilityDecision {
     /** 입력이 부족해 판정을 못 내린 상태인지 */
     public boolean isUndetermined() {
         return !missingInputs.isEmpty();
+    }
+
+    /**
+     * "지금은 안 되지만 이것만 바뀌면 된다" — 미충족이 있고, 그 미충족이 <b>전부</b> 기간·선택으로
+     * 메울 수 있는 것({@link #failedWithHint})일 때만 참이다. 하나라도 메울 수 없는 미충족(혼인 7년 초과 등)이
+     * 섞이면 거짓 — 통장만 채워도 여전히 불가인 경우를 "가능"으로 읽히게 하지 않기 위해서다.
+     * 입력이 부족한(판정 보류) 상태는 메울 수 있는지 알 수 없으므로 거짓이다.
+     */
+    public boolean isFixable() {
+        return !eligible && !isUndetermined() && !failedReasons.isEmpty() && unfixableFailures == 0;
     }
 }

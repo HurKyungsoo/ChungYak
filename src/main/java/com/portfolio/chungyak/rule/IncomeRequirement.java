@@ -38,8 +38,14 @@ public class IncomeRequirement {
         String bound = "요건(" + limit + "% 이하"
                 + (profile.isDualIncome() ? ", 맞벌이 완화 기준" : "") + ")";
 
-        return percent <= limit
-                ? RequirementCheck.pass(basis + "로 " + bound + "을 충족합니다.")
-                : RequirementCheck.fail(basis + "로 " + bound + "을 초과합니다.");
+        if (percent <= limit) {
+            return RequirementCheck.pass(basis + "로 " + bound + "을 충족합니다.");
+        }
+        // 얼마나 넘었는지 금액으로도 — 같은 기준표에서 상한 금액을 구해 차이만 적는다(#19-1b)
+        Long limitWon = incomeReference.limitAmount(profile.getHouseholdSize(), limit);
+        String gap = limitWon == null ? ""
+                : " 상한은 월 " + AssetRequirement.won(limitWon) + "으로 월 "
+                  + AssetRequirement.won(profile.getMonthlyHouseholdIncome() - limitWon) + " 초과입니다.";
+        return RequirementCheck.fail(basis + "로 " + bound + "을 초과합니다." + gap);
     }
 }

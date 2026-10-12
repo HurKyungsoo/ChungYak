@@ -58,5 +58,7 @@ public record EligibilityResultView(
             List<String> ownMissingInputs,
             List<String> ownImprovementHints,
             /** 이 공고 전체(주택형 합계)의 이 유형 배정 세대 — 세대수를 모르는 공고(LH)면 null (목업 Verdict) */
-            Integer allocatedInAnnouncement) {}
+            Integer allocatedInAnnouncement,
+            /** 미충족이 전부 기간·선택으로 메울 수 있는지 — 엔진 판정(EligibilityDecision.isFixable) 그대로 */
+            boolean fixable) {}
 }
