@@ -11,6 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -160,5 +161,25 @@ class EligibilityResultAssemblerTest {
         // 공통요건(소득 등)은 통과했으니 own 목록엔 안 들어간다 — 위쪽 요약 레일에서만 보여준다.
         assertThat(newlywed.ownSatisfiedReasons()).noneMatch(r -> r.contains("도시근로자"));
         assertThat(newlywed.satisfiedReasons()).anyMatch(r -> r.contains("도시근로자"));
+    }
+
+    @Test
+    @DisplayName("근거 카드 순서: 충족 → 정보 필요 → 미충족 (판정 자체는 그대로, 개수도 그대로)")
+    void ordersCardsEligibleFirst() {
+        ApplicantProfile profile = passing()
+                .married(true).monthsSinceMarriage(100)   // 신혼부부 미충족
+                .hasNewborn(true)                          // 신생아 충족
+                .houseless(true).accountMonths(24)
+                .build();                                  // childCount 없음 → 다자녀 정보 필요
+
+        var result = engine.evaluate(profile, publicAnnouncement());
+        EligibilityResultView view = assembler.assemble(result);
+
+        assertThat(view.allDecisions()).hasSize(result.decisions().size());
+        List<Integer> ranks = view.allDecisions().stream()
+                .map(d -> d.eligible() ? 0 : d.undetermined() ? 1 : 2)
+                .toList();
+        assertThat(ranks).isSorted();
+        assertThat(ranks).contains(0, 2);
     }
 }

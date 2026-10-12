@@ -8,6 +8,7 @@ import com.portfolio.chungyak.rule.RequirementCheck;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -36,7 +37,18 @@ public class EligibilityResultAssembler {
                         .toList(),
                 result.decisions().values().stream()
                         .map(this::toTypeDecision)
+                        .sorted(Comparator.comparingInt(EligibilityResultAssembler::cardOrder))
                         .toList());
+    }
+
+    /**
+     * 근거 카드 순서 — 충족 → 정보 필요 → 미충족. 안정 정렬이라 같은 묶음 안에서는 엔진 순서를 지킨다.
+     * 판정을 바꾸는 게 아니라 "넣을 수 있는 것"을 먼저 보이게 줄만 세운다.
+     */
+    private static int cardOrder(EligibilityResultView.TypeDecision d) {
+        if (d.eligible()) return 0;
+        if (d.undetermined()) return 1;
+        return 2;
     }
 
     private EligibilityResultView.MatchedUnitType toMatchedUnitType(UnitMatch match) {

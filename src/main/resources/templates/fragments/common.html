@@ -670,6 +670,15 @@
         .decision-card .reasons-fold[open] > summary { color: var(--ok); margin-bottom: 2px; }
         .decision-card .reasons-fold[open] > summary::before { content: "▾"; }
         .decision-card .reasons-fold .reasons { margin-top: 4px; }
+        /* 근거 카드 그리드 (#19-1) — 넓으면 두 줄, 좁으면 한 줄. 색은 전부 토큰(다크 모드 대응). */
+        .decision-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+                         gap: 12px; align-items: start; }
+        .decision-grid .decision-card { margin: 0; }
+        .decision-card.needs-info { border-style: dashed; }
+        .decision-card .hint-box { margin-top: 10px; padding: 10px 12px; border-radius: 10px;
+                                   background: var(--brand-weak); font-size: .88rem; }
+        .decision-card .hint-box .reasons { margin-top: 4px; }
+        .decision-card .no-path { margin: 8px 0 0; font-size: .85rem; }
 
         /* ── 공통요건 요약 레일 (판정 결과 상단) ──────────────────────
            재당첨·소득·자산·통장·거주처럼 여러 특별공급 유형이 공유하는 요건을

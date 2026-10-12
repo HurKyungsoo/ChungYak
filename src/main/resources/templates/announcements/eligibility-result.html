@@ -180,27 +180,30 @@
            class="muted" style="margin:6px 0 0">이 공고의 어떤 주택형에도 이 유형 배정 세대가 없습니다.</p>
     </div>
 
-    <h2>전체 판정 근거</h2>
-    <p class="muted">유형별 판정 결과입니다. 재당첨·소득·자산·통장·거주처럼 여러 유형이 공유하는 요건은 위
-        요약 레일에서 한 번만 보여주므로 여기서는 <strong>이 유형만의 이유</strong>만 먼저 보여주고,
-        이미 충족한 요건(공통 포함 전부)은 접어 두었습니다.</p>
+    <h2>판정 근거</h2>
+    <p class="muted">유형별로 규칙 엔진이 요건을 하나씩 대조한 결과입니다 — 넣을 수 있는 유형부터 보여 드립니다.
+        재당첨·소득·자산·통장·거주처럼 여러 유형이 공유하는 요건은 위 요약 레일에 한 번만 나오므로
+        카드에는 <strong>이 유형만의 요건</strong>을 펼쳐 두고, 공통 요건까지 포함한 전체 목록은 접어 두었습니다.</p>
+
+    <!-- 근거 카드 (#19-1). 배지는 엔진 판정(eligible/undetermined) 그대로 세 가지뿐이다 —
+         "지금은 불가 / 영영 불가"처럼 화면이 미충족을 다시 나누지 않는다. 엔진은 메울 수 있는 격차만
+         improvementHints 로 주므로, 힌트가 있으면 요건 단위로 보여 줄 뿐이다. -->
+    <div class="decision-grid">
     <div th:each="d : ${result.allDecisions}" class="card decision-card"
+         th:classappend="${d.undetermined} ? 'needs-info' : ''"
          th:with="blockedByCommon=${!d.eligible and !d.undetermined and d.ownFailedReasons.isEmpty() and d.ownMissingInputs.isEmpty()}">
         <div class="head">
             <strong th:text="${d.typeLabel}">유형</strong>
-            <span th:if="${d.undetermined}" class="verdict miss">판정 불가 · 입력 부족</span>
+            <span th:if="${d.undetermined}" class="verdict miss">정보 필요</span>
             <span th:unless="${d.undetermined}"
                   th:classappend="${d.eligible} ? 'ok' : 'no'" class="verdict"
                   th:text="${d.eligible} ? '자격 충족' : '자격 미충족'">결과</span>
         </div>
 
-        <!-- 이 유형만의 막은 요건 · 입력 필요 · 개선 힌트 — 항상 펼쳐서 맨 위에.
-             공통요건(소득 등)은 위 요약 레일에서 이미 보여줬으니 여기서 반복하지 않는다. -->
-        <ul class="reasons"
-            th:if="${!d.ownFailedReasons.isEmpty() or !d.ownMissingInputs.isEmpty() or !d.ownImprovementHints.isEmpty()}">
+        <!-- 막은 요건 · 입력 필요 — 맨 위에 항상 펼쳐서 -->
+        <ul class="reasons" th:if="${!d.ownFailedReasons.isEmpty() or !d.ownMissingInputs.isEmpty()}">
             <li th:each="r : ${d.ownFailedReasons}" class="r-no" th:text="${r}">미충족</li>
             <li th:each="r : ${d.ownMissingInputs}" class="r-miss" th:text="${r} + ' — 입력이 필요합니다'">누락</li>
-            <li th:each="h : ${d.ownImprovementHints}" class="r-hint" th:text="${h}">이렇게 하면 충족</li>
         </ul>
 
         <!-- 이 유형만의 이유는 다 충족했는데도 미충족이면, 위 공통요건 레일에서 막힌 것이다 —
@@ -211,17 +214,41 @@
                   th:text="${c.kindLabel} + (${it.last} ? '' : ', ')">소득</span>
         </p>
 
-        <!-- 이미 충족한 요건(공통 포함 전부) — 접어 둠 -->
-        <details th:if="${!d.satisfiedReasons.isEmpty()}" class="reasons-fold">
-            <summary th:text="|충족한 요건 ${d.satisfiedReasons.size()}개 보기|">충족한 요건 8개 보기</summary>
+        <!-- 이 유형만의 충족 요건 — 펼쳐 둔다(무엇 때문에 되는지가 근거의 절반이다) -->
+        <ul class="reasons" th:if="${!d.ownSatisfiedReasons.isEmpty()}">
+            <li th:each="r : ${d.ownSatisfiedReasons}" class="r-ok" th:text="${r}">충족</li>
+        </ul>
+
+        <!--/* 개선 경로 — 엔진이 결정론적으로 계산한 힌트만(공통요건 힌트 포함, 이 카드만 봐도 알 수 있게).
+             제목을 "이것만 바뀌면 가능"으로 쓰면 안 된다: 혼인기간 초과(못 메움) + 통장 미달(메움)처럼
+             둘 다 걸린 경우 통장만 채워도 여전히 불가다. 엔진은 힌트를 요건 단위로 줄 뿐
+             "이 유형 전체가 메울 수 있는지"는 판정하지 않으므로, 화면은 요건 단위로만 말한다. */-->
+        <div class="hint-box" th:if="${!d.eligible and !d.improvementHints.isEmpty()}">
+            <strong>기간이 지나면 채워지는 요건</strong>
+            <ul class="reasons">
+                <li th:each="h : ${d.improvementHints}" class="r-hint" th:text="${h}">이렇게 하면 충족</li>
+            </ul>
+        </div>
+        <p class="muted no-path" th:if="${!d.eligible and !d.undetermined and d.improvementHints.isEmpty()}">
+            막힌 요건이 기간이 지나면 채워지는 종류가 아니어서 안내할 개선 경로가 없습니다.</p>
+
+        <div class="btn-row" th:if="${d.undetermined}" style="margin-top:8px">
+            <span class="muted" style="flex:1;min-width:180px">빈 값은 추측하지 않고 판정하지 않았습니다.</span>
+            <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="btn btn-primary">조건 입력하기</a>
+        </div>
+
+        <!-- 공통 요건 포함 충족 요건 전부 — 감사용, 접어 둠 -->
+        <details th:if="${d.satisfiedReasons.size() > d.ownSatisfiedReasons.size()}" class="reasons-fold">
+            <summary th:text="|공통 요건 포함 충족 ${d.satisfiedReasons.size()}개 보기|">공통 요건 포함 충족 8개 보기</summary>
             <ul class="reasons">
                 <li th:each="r : ${d.satisfiedReasons}" class="r-ok" th:text="${r}">충족</li>
             </ul>
         </details>
 
         <p th:if="${d.satisfiedReasons.isEmpty() and d.ownFailedReasons.isEmpty() and d.ownMissingInputs.isEmpty()
-                   and d.ownImprovementHints.isEmpty() and !blockedByCommon}"
+                   and d.improvementHints.isEmpty() and !blockedByCommon}"
            class="muted" style="margin:6px 0 0">표시할 판정 근거가 없습니다.</p>
+    </div>
     </div>
 
     <!-- ── 다음 단계 추천 (Next Steps CTA) ── -->
