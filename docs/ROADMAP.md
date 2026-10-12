@@ -21,7 +21,7 @@ AI(LLM) 활용을 더 밀어붙이는 계획은 → **`docs/AI-ROADMAP.md`**
 
 ---
 
-## A. 배포 인프라 — 🔨 진행 중
+## A. 배포 인프라 — ✅ 완료
 
 | # | 항목 | 상태 | 비고 |
 |---|---|---|---|
@@ -31,8 +31,8 @@ AI(LLM) 활용을 더 밀어붙이는 계획은 → **`docs/AI-ROADMAP.md`**
 | A4 | compose.yaml (db + app + Caddy) | ✅ | Caddy 자동 HTTPS. app 은 미노출 |
 | A5 | `.env.example` + 시크릿 분리 | ✅ | `.env` gitignore. 필수 5개 값 |
 | A6 | GitHub Actions CI | ✅ | build+test / master 시 Docker 빌드 검증 |
-| A7 | **실제 배포 (서버·도메인·DNS)** | ⬜ | 사용자 몫. `docs/DEPLOYMENT.md` 참고 |
-| A8 | CI → 레지스트리 push → 서버 자동 배포 | ⬜ | A7 이후. GHCR + SSH 배포 잡 |
+| A7 | 실제 배포 (서버·도메인·DNS) | ✅ | 2026-10-12 Lightsail(`chungyak-server`), `52-79-238-6.sslip.io`. **정식 도메인은 미연결** — 바꾸면 Caddy·`.env` `DOMAIN`·GitHub 변수 `DEPLOY_HEALTH_URL` 함께 |
+| A8 | `master` push → 서버 자동 배포 | ✅ | GHCR 없이 SSH 로 서버가 직접 빌드. 제한된 배포 키·수집 중 대기·헬스체크. `docs/DEPLOYMENT.md` "자동 배포" |
 
 **남은 것**: A7(서버 준비 + `docker compose up`), A8(자동화). 코드/설정은 준비됨.
 
@@ -66,7 +66,7 @@ AI(LLM) 활용을 더 밀어붙이는 계획은 → **`docs/AI-ROADMAP.md`**
 | C1 | 회원 + 조건 저장 | ⬜ | 매번 폼 재입력 방지. OAuth(카카오) 로그인 |
 | C2 | 새 공고 알림 | ✅ | "내 조건에 맞는 공고" 이메일. `AlertSubscription`(로그인 없이 이메일+판정폼 전체 조건 저장, 확인 전 PENDING) + `NewAnnouncementAlertService`(그날 신규 공고만 `EligibilityEngine`으로 재판정 후 발송) + `AlertMailer`(SMTP 미설정 시 로그로 대체). 카카오는 미구현 |
 | C3 | 청약 캘린더 / D-day | ✅ | 목록·상세에 D-day 배지(`Dday` 뷰모델, 접수중=마감까지·예정=시작까지, 3일 이하 강조). `GET /announcements/calendar` — 월 그리드(6주)에 접수 시작·마감일 배치(`CalendarView`, 순수 함수), 이전달/다음달/이번달 이동. 지난 공고는 조회 단계에서 이미 빠져 과거 달은 비어 보임(의도됨). 알림 연동은 C2 이메일 구독으로 대체됨 |
-| C4 | 모바일 UI 다듬기 | 🔨 | 기본 반응형은 C0 에 포함(카드 리스트). 필요 시 바텀시트 등 |
+| C4 | 모바일 UI 다듬기 | ✅ | 이슈 #19: 판정 근거 카드·타임라인·벤토·하단 고정 CTA·앱형 머리·캘린더 일정 목록·폼 하단 제출 줄·필수 표시 |
 | C5 | 공고 검색 (공고명) + SEO | ✅ | 목록 필터에 공고명 검색(`q`) 추가. `robots.txt`·`sitemap.xml`(`SeoController`, 접수중·접수예정만) + 화면별 고유 `<meta description>`(상세는 공고 요약으로 동적 생성) |
 
 ---
@@ -82,7 +82,7 @@ AI(LLM) 활용을 더 밀어붙이는 계획은 → **`docs/AI-ROADMAP.md`**
 | D5 | 개인정보 처리방침 | C1(조건 저장) 전제 조건 |
 | D6 | 면책 고지 강화 | 판정 결과 상단에도 |
 | D7 | DB 백업 자동화 | C1 이후 필수 |
-| D8 | LH 연동 | API 활용신청 승인 후. `LhClient` + 임대 유형 규칙 (B와 묶어서) |
+| D8 | LH 연동 | ✅ 수집·화면(`LhClient`, #18). **임대 유형 판정 규칙은 미구현**(대기자·순번제라 특공 구조가 아님) |
 
 ---
 
@@ -91,6 +91,6 @@ AI(LLM) 활용을 더 밀어붙이는 계획은 → **`docs/AI-ROADMAP.md`**
 1. ~~**B1** (특공 규칙 확대: 소득·자산·거주요건)~~ ✅ 완료
 2. ~~**B3** (신혼희망타운)~~ ✅ 완료
 3. ~~**C2** (새 공고 알림)~~ ✅ 완료 (이메일만. 카카오는 미구현)
-4. **A7–A8** (배포) — 코드는 준비됨, 서버만 붙이면 됨. 사용자 몫
+4. ~~**A7–A8** (배포)~~ ✅ 완료 (2026-10-12)
 5. D4–D6 (법적) — 공개 전. D4·D6 은 footer 문구로 사실상 이미 반영됨(재검토 권장)
 6. 나머지 트래픽 보면서 — B2b(추첨제)·C5(검색)·D1~D2(성능) 등

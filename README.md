@@ -194,6 +194,39 @@ LLM_MODEL=claude-haiku-4-5 ./gradlew bootRun
   유지된다. 상세(`outcome`, `lastSuccessAt` 등)는 인증 필요. 그 외 actuator 는 차단.
 - **키를 `application.yml` 이나 코드에 하드코딩하지 말 것.**
 
+### 다른 컴퓨터에서 이어서 작업하기 (머신별 최초 1회)
+
+```bash
+git clone https://github.com/HurKyungsoo/ChungYak.git && cd ChungYak
+```
+
+1. **환경변수** — 키는 git 에 없다. 비밀번호 관리자 등에 따로 보관하고 머신마다 설정한다.
+   - Windows: `setx PUBLICDATA_SERVICE_KEY "<발급키>"` (터미널·IDE 재시작)
+   - Mac/Linux: `echo 'export PUBLICDATA_SERVICE_KEY="<발급키>"' >> ~/.zshrc && source ~/.zshrc`
+   - 참고용 목록은 `.env.example` (값 없음). 선택: `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`
+2. **IntelliJ** — `.idea/` 는 gitignore 라 새 머신에서 다시 설정한다.
+   Project SDK = Java 21, `Settings → Build → Compiler → Annotation Processors → Enable annotation
+   processing` 체크, Lombok 플러그인 설치. (Mac 에서는 `./gradlew` 가 바로 실행된다 — 실행 비트가 git 에 들어 있다.)
+3. **로컬 DB** — `data/`(H2 파일)는 gitignore 라 머신마다 처음 한 번 수집이 필요하다.
+   `./gradlew bootRun` 후 아래 "첫 데이터 수집"(전체 수집 5분 안팎). 소량만 받는 로컬 오버라이드
+   (`application-local.yml`)는 gitignore 대상이라 새 머신에는 없다 — 필요하면 직접 만든다.
+   **스키마가 안 맞아 기동이 실패하면**(`Migration checksum mismatch` 등 — 다른 머신에서 마이그레이션이 바뀐 경우)
+   `data/chungyak.mv.db` 를 지우고 다시 기동한다. 로컬 개발 DB 일 뿐이다.
+
+**여러 컴퓨터 git 워크플로우** — 브랜치 없이 `master` 에 바로 커밋한다(1인 프로젝트, 자세한 규칙은 `CLAUDE.md`).
+
+```bash
+git pull --rebase            # 작업 시작 전 항상
+# ... 수정 ...
+./gradlew build              # 커밋 전 그린 확인
+git add -A && git commit -m "feat: ..."
+git pull --rebase && git push origin master    # push 하면 서버에 자동 배포된다 (docs/DEPLOYMENT.md)
+```
+
+- 예외 — 규칙 엔진(`rule/`) 변경이나 며칠짜리 큰 작업만 브랜치(`feat/...`)를 쓰고, 끝나면 master 에 병합한다.
+- 오래된 base 위에 커밋을 쌓지 말 것 — 다른 머신에서 먼저 push 했을 수 있으니 시작 전에 pull.
+- 충돌이 나면 `git pull --rebase` 도중 해결 후 `git rebase --continue`.
+
 ### 첫 데이터 수집
 
 ```bash
@@ -233,7 +266,9 @@ docker compose up -d --build
 ```
 
 전체 절차·업데이트·마이그레이션·백업은 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
-`push`/`PR` 마다 GitHub Actions 가 `./gradlew build` + Docker 빌드를 검증한다.
+`push`/`PR` 마다 GitHub Actions 가 `./gradlew build` + Docker 빌드를 검증하고,
+**`master` push 는 통과 후 서버에 자동 배포**된다(수집 중이면 기다리고, 문서만 바뀌면 재시작 생략 —
+"자동 배포" 절).
 
 ---
 
@@ -244,22 +279,25 @@ docker compose up -d --build
 
 ## 알려진 한계 (정형 데이터 MVP 기준)
 
-- **신혼희망타운**: 청약홈이 이 유형은 특공을 9종으로 쪼개지 않고 총량만 준다
-  (`SPSPLY_HSHLDCO` 만 채워지고 `NWWDS_HSHLDCO` 등은 0). 현재 엔진은 신혼희망타운
-  공고(97건)에서 아무 매칭도 내지 못한다. 별도 `SpecialSupplyType` + 규칙이 필요하다.
+- **신혼희망타운·LH 공고의 유형별 세대수**: 원본(청약홈 신혼희망타운, LH)이 특별공급 **유형별 배정 세대수**를
+  주지 않는다(총량만, LH 는 그마저 없음). `NewlywedHopeTownRule` 등 규칙은 있어 자격 판정은 되지만,
+  세대수는 "세지 못했다"고 밝히고 공고문으로 안내한다 — 총계를 유형 배정으로 단정하지 않는다.
+- **LH 임대·예비입주자 공고**는 특별공급 구조가 아니라(대기자 모집, 순번제) 자격 판정을 하지 않고
+  일정·주택형·공고문 링크만 보여 준다. 보증금·월 임대료는 수집하지 않는다.
 - **소득·자산 요건**은 유형별 기준으로 판정에 반영(맞벌이 완화·공공주택 자산 포함).
   다만 소득·자산의 **세부 인정 기준**(자산 산정 방식, 부채 공제 등)까지는 안 본다.
 - **재당첨 제한**은 판정에 반영(특공 평생 1회 + 지역별 제한 기간). 다만 부적격 당첨·계약
   미체결로 인한 제한은 안 본다.
 - **거주요건**은 판정에 반영(규제지역 2년·수도권 1년 계속 거주). 미충족은 "우선공급 대상 아님,
   기타지역 물량은 가능"으로 안내. 지자체 조례에 따른 세부 기준까지는 안 본다.
-- **특별공급** 규칙 5종만 구현 — 기관추천·이전기관·청년은 아직 없다.
+- **특별공급** 규칙은 신혼부부·생애최초·다자녀·노부모부양·신생아·신혼희망타운 6종 — 기관추천·이전기관·청년은 아직 없다.
   일반공급은 가점 계산기(`/general-supply`)가 있고, 추첨제는 미구현.
 
 ## 남은 작업
 
 [`docs/ROADMAP.md`](docs/ROADMAP.md) 참고. 요약:
-- **A. 배포** — Flyway·Actuator·Docker·Compose·CI 완료. 실제 서버·도메인 연결만 남음
-- **B. 판정 신뢰도** — 일반공급 가점 계산 ✅, 규칙 확대(소득·자산·거주요건), 신혼희망타운
-- **C. 사용자 유지** — 회원·조건 저장, 새 공고 알림
-- **D. 운영** — MyBatis 동적 조회, 캐싱, LH 연동, 벡터 검색
+- **배포** — 완료(서버·CI 자동 배포). 정식 도메인 연결만 남음
+- **판정 신뢰도** — 일반공급 가점 ✅, 특공 규칙 6종·소득·자산·거주요건 ✅, 기관추천·이전기관·청년 규칙은 미구현
+- **사용자 유지** — 새 공고·마감 알림 ✅(이메일, 서버에 메일 설정 필요). 회원·조건 저장은 미구현
+- **운영** — MyBatis 동적 조회·캐싱, 개인정보 처리방침(회원 도입 시), DB 백업 자동화
+- **AI 기능** — 코드는 완료(자연어 입력·판정 요약·공고문 Q&A). 서버에 `ANTHROPIC_API_KEY`·`VOYAGE_API_KEY` 를 넣으면 켜진다

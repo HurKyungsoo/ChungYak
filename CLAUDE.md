@@ -148,12 +148,12 @@
 
 ## 남은 작업
 
-1. LH 목록 API 활용신청 (포털 버튼 404 로 막혀 있음) -> 승인되면 `LhClient` 추가
-2. 벡터 검색 — LH 공고내용(4000자) 임베딩 + 하이브리드 검색
+1. ~~LH 목록 API~~ 완료 — `LhClient` 운영 중(수집·상세·공급, #18). 임대 유형 **판정 규칙**은 미구현(대기자 모집이라 특공 구조가 아님).
+2. ~~벡터 검색~~ 코드 완료 — `rag/` (BM25+벡터 하이브리드, 공고문 Q&A). 서버에 `VOYAGE_API_KEY`·`ANTHROPIC_API_KEY` 가 없어 **꺼져 있다**(2026-10-12 확인).
 3. ~~신혼희망타운 — 별도 `SpecialSupplyType` + 규칙~~ 완료.
    `SpecialSupplyType.NEWLYWED_HOPE_TOWN` + `NewlywedHopeTownRule` + 두 클라이언트의
    `reclassifyForHopeTown` 까지 있다. 남은 건 코드가 아니라 **원본 데이터**다 —
    위 "데이터에서 확인된 사실" 참고(유형별 세대수가 오지 않아 배정이 늘 0 이다).
 5. ~~Docker + CI + 배포~~ 서버 배포 완료 (2026-10-12, Lightsail, `docs/DEPLOYMENT.md`).
    CI 자동 배포 완료(2026-10-12) — `master` push 시 서버 자동 배포, 절차·키 교체는 `docs/DEPLOYMENT.md` "자동 배포". 남은 건 정식 도메인(바꾸면 GitHub 변수 `DEPLOY_HEALTH_URL`도 함께).
-6. ~~LH 공고 화면 보강 — 이슈 #18~~ 완료(2026-10-12). UI 개선(판정 근거 카드·타임라인 등) — 이슈 #19.
+6. ~~LH 공고 화면 보강 — 이슈 #18~~ 완료(2026-10-12). UI 개선(판정 근거 카드·타임라인 등) — 이슈 #19 완료(2026-10-12).
