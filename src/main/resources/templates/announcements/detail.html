@@ -74,6 +74,7 @@
     <!-- LH 공고는 규제·특공 세대수 정보가 원천에 없어 기본정보·주택형 표를 따로 그린다 (announcements/lh.html) -->
     <th:block th:if="${announcement.lh}">
         <div th:replace="~{announcements/lh :: info(${announcement})}"></div>
+        <div th:replace="~{announcements/type-totals :: card(${highlights}, ${announcement})}"></div>
         <th:block th:replace="~{announcements/lh :: units(${announcement}, ${priceByUnitType})}"></th:block>
     </th:block>
 
@@ -116,18 +117,7 @@
 
     <!-- 특별공급 유형별 배정 (목업 Main) — 공고 전체 합계. 어느 유형이 이 공고에 몇 세대 있는지가
          주택형 표보다 먼저 궁금한 정보라 카드로 꺼낸다. 세대수를 아는 주택형만 센다(DetailHighlights). -->
-    <section class="card type-totals" th:if="${!highlights.typeTotals().isEmpty()}" aria-label="특별공급 유형별 배정">
-        <div class="sec-head" style="margin:0 0 10px">
-            <h2 style="margin:0">특별공급 유형별 배정</h2>
-            <span class="count" th:text="|주택형 ${announcement.unitTypes.size()}개 합계|">주택형 4개 합계</span>
-        </div>
-        <div class="type-total-grid">
-            <div class="type-total" th:each="t : ${highlights.typeTotals()}">
-                <span class="tt-label" th:text="${t.label()}">신혼부부</span>
-                <strong class="tt-count" th:text="${#numbers.formatInteger(t.count(), 1, 'COMMA')}">48</strong>
-            </div>
-        </div>
-    </section>
+    <div th:replace="~{announcements/type-totals :: card(${highlights}, ${announcement})}"></div>
 
     <!-- 내 판정 요약 (목업 Main) — 저장된 조건이 있으면 verdictSummaryScript 가 POST 로 판정해
          이 자리를 요약 카드로 바꾼다. 없으면 아래 안내 카드가 그대로 남는다. -->

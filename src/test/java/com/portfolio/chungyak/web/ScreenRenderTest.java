@@ -107,6 +107,8 @@ class ScreenRenderTest {
     void detailScreens() throws Exception {
         String apt = render("/announcements/" + aptId);
         assertThat(apt).contains("특별공급 유형별 배정").contains("bento-card").contains("청약 일정");
+        assertThat(apt).contains("data-type=\"NEWLYWED\"")                        // 자격 표시를 칠할 타일
+                .contains("이 공고에 없는 유형").contains("다자녀가구, 노부모부양, 청년");
 
         String lh = render("/announcements/" + lhId);
         assertThat(lh).contains("공고문에서 확인하세요").contains("공고문 PDF").contains("LH 공고 페이지");
@@ -134,8 +136,14 @@ class ScreenRenderTest {
     void verdictSummaryFragment() throws Exception {
         MvcResult r = mvc.perform(post("/announcements/" + aptId + "/verdict-summary")
                         .param("married", "true").param("monthsSinceMarriage", "12")
-                        .param("houseless", "true").param("accountMonths", "30"))
+                        .param("houseless", "true").param("householdHead", "true").param("accountMonths", "30")
+                        .param("accountDeposit", "3000000").param("householdSize", "3")
+                        .param("monthlyHouseholdIncome", "5000000").param("residenceMonthsInRegion", "30"))
                 .andExpect(status().isOk()).andReturn();
-        assertThat(r.getResponse().getContentAsString()).contains("내 판정 요약").contains("verdict-mini");
+        String body = r.getResponse().getContentAsString();
+        assertThat(body).contains("내 판정 요약").contains("verdict-mini");
+        // 타일 자격 표시용 — 신혼부부는 충족, 다자녀(자녀 0명)는 미충족으로 엔진 결과가 실린다
+        assertThat(body).containsPattern("data-eligible=\"[^\"]*NEWLYWED")
+                .containsPattern("data-ineligible=\"[^\"]*MULTI_CHILD");
     }
 }

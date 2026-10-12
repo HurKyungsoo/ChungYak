@@ -1,6 +1,7 @@
 package com.portfolio.chungyak.web.view;
 
 import com.portfolio.chungyak.domain.Announcement;
+import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.domain.UnitType;
 
 import java.util.Comparator;
@@ -30,10 +31,23 @@ public record DetailHighlights(
         Integer totalSupply,
         int specialSum,
         int generalSum,
-        List<TypeTotal> typeTotals) {
+        List<TypeTotal> typeTotals,
+        List<String> presentTypesWithoutCounts,
+        List<String> absentCommonTypes) {
 
-    /** 특별공급 유형 하나의 공고 전체 배정(주택형 합계) — "특별공급 유형별 배정" 카드 (목업 Main) */
-    public record TypeTotal(String label, int count) {}
+    /**
+     * 특별공급 유형 하나의 공고 전체 배정(주택형 합계) — "특별공급 유형별 배정" 카드 (목업 Main).
+     * {@code type} 은 enum 이름 — 화면이 "내 판정 요약" 결과로 타일에 자격 표시를 칠할 때 쓴다.
+     */
+    public record TypeTotal(String type, String label, int count) {}
+
+    /**
+     * "이 공고에 없는 유형" 한 줄에 올릴 후보 — 일반인이 직접 신청하는 유형만.
+     * 기관추천·이전기관은 추천·이전 대상자만, 기타는 분류 밖, 신혼희망타운은 별도 공고라 빠져 있어도 정상이다.
+     */
+    private static final List<SpecialSupplyType> COMMON_TYPES = List.of(
+            SpecialSupplyType.NEWLYWED, SpecialSupplyType.FIRST_TIME, SpecialSupplyType.MULTI_CHILD,
+            SpecialSupplyType.OLD_PARENTS, SpecialSupplyType.NEWBORN, SpecialSupplyType.YOUTH);
 
     private static final double M2_PER_PYEONG = 400d / 121d;
 
@@ -59,18 +73,39 @@ public record DetailHighlights(
         // 배정이 있는 유형만, 많은 순. 세대수를 모르는 주택형(LH, countsKnown=false)은 countOf 가 세대수가 아니라
         // "유형 있음" 표시(1)라 더하면 1세대로 보인다 — 세대수를 아는 주택형만 센다.
         List<TypeTotal> totals = a.visibleSupplyTypes().stream()
-                .map(t -> new TypeTotal(t.getLabel(), a.getUnitTypes().stream()
+                .map(t -> new TypeTotal(t.name(), t.getLabel(), a.getUnitTypes().stream()
                         .filter(u -> u.getSupplyBreakdown() != null && u.getSupplyBreakdown().isCountsKnown())
                         .mapToInt(u -> u.getSupplyBreakdown().countOf(t)).sum()))
                 .filter(t -> t.count() > 0)
                 .sorted(Comparator.comparingInt(TypeTotal::count).reversed())
                 .toList();
 
+        // 세대수를 모르는 주택형(LH)에서 "있다"고만 표시된 유형 — 카드를 숨기지 않고 유형 이름만 보여 준다.
+        List<String> presentWithoutCounts = java.util.Arrays.stream(SpecialSupplyType.values())
+                .filter(t -> a.getUnitTypes().stream().anyMatch(u -> u.getSupplyBreakdown() != null
+                        && !u.getSupplyBreakdown().isCountsKnown() && u.getSupplyBreakdown().countOf(t) > 0))
+                .map(SpecialSupplyType::getLabel)
+                .toList();
+
+        // 세대수를 아는 공고에서만 "없다"고 말한다 — 모르는 공고에서 0 은 "없음"이 아니라 "모름"이다.
+        List<String> absent = totals.isEmpty() ? List.of() : COMMON_TYPES.stream()
+                .filter(t -> totals.stream().noneMatch(tt -> tt.type().equals(t.name())))
+                .map(SpecialSupplyType::getLabel)
+                .toList();
+
         return new DetailHighlights(
                 top == null ? null : Prices.formatManwon(top.getTopAmount()),
                 top == null ? null : top.getTypeName(),
                 perPyeong, areaNote,
-                a.getTotalSupplyCount(), special, general, totals);
+                a.getTotalSupplyCount(), special, general, totals, presentWithoutCounts, absent);
+    }
+
+    /**
+     * 특별공급은 있는데 유형별 세대수를 모르는 공고인지 — 청약홈 신혼희망타운(총량만 온다)이나 LH(유형만 온다).
+     * 이때 카드를 숨기면 "특공이 없는" 공고처럼 보인다 — CLAUDE.md: 세지 못했다고 밝히고 공고문으로 넘긴다.
+     */
+    public boolean typeCountsUnknown() {
+        return typeTotals.isEmpty() && (specialSum > 0 || !presentTypesWithoutCounts.isEmpty());
     }
 
     /** 특공/일반 비중 막대를 그릴 수 있는지 — 둘 다 있어야 비율이 의미가 있다. */

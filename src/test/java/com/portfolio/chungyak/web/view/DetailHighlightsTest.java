@@ -58,7 +58,53 @@ class DetailHighlightsTest {
         lh.addUnitType(UnitType.builder().modelNo("01").typeName("26A")
                 .supplyBreakdown(SupplyBreakdown.ofPresentTypes(java.util.Set.of(SpecialSupplyType.NEWLYWED))).build());
 
-        assertThat(DetailHighlights.of(lh).typeTotals()).isEmpty();
+        DetailHighlights h = DetailHighlights.of(lh);
+        assertThat(h.typeTotals()).isEmpty();
+        // 대신 "있는 유형"은 이름만 보여 주고, 카드를 숨기지 않는다
+        assertThat(h.presentTypesWithoutCounts()).containsExactly("신혼부부");
+        assertThat(h.typeCountsUnknown()).isTrue();
+        // 세대수를 모르니 "없는 유형"도 말하지 않는다
+        assertThat(h.absentCommonTypes()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("빠진 유형: 일반인이 신청하는 유형 중 0 인 것만 (기관추천·이전기관·기타·신혼희망타운은 제외)")
+    void absentCommonTypes() {
+        Announcement a = Announcement.builder().build();
+        a.addUnitType(UnitType.builder().modelNo("01").typeName("84A")
+                .supplyBreakdown(SupplyBreakdown.builder().newlywed(20).newborn(10).firstTime(5).build()).build());
+
+        DetailHighlights h = DetailHighlights.of(a);
+        assertThat(h.absentCommonTypes()).containsExactly("다자녀가구", "노부모부양", "청년");
+        assertThat(h.typeCountsUnknown()).isFalse();
+        assertThat(h.typeTotals()).extracting(DetailHighlights.TypeTotal::type)
+                .containsExactly("NEWLYWED", "NEWBORN", "FIRST_TIME");
+    }
+
+    @Test
+    @DisplayName("청약홈 신혼희망타운처럼 특공 총량만 있고 유형별이 전부 0 이면 — 카드를 숨기지 않고 '세지 못함'")
+    void totalOnlyIsUnknownNotAbsent() {
+        Announcement hopeTown = Announcement.builder().build();
+        hopeTown.addUnitType(UnitType.builder().modelNo("01").typeName("55A")
+                .specialSupplyCount(120).generalSupplyCount(30)
+                .supplyBreakdown(SupplyBreakdown.builder().build()).build());   // 유형별 전부 0
+
+        DetailHighlights h = DetailHighlights.of(hopeTown);
+        assertThat(h.typeCountsUnknown()).isTrue();
+        assertThat(h.specialSum()).isEqualTo(120);
+        assertThat(h.absentCommonTypes()).isEmpty();   // "신혼부부 없음"이라고 단정하면 틀린다
+    }
+
+    @Test
+    @DisplayName("특공 자체가 없는 공고(일반공급만)는 카드를 띄우지 않는다")
+    void noSpecialSupplyAtAll() {
+        Announcement a = Announcement.builder().build();
+        a.addUnitType(UnitType.builder().modelNo("01").typeName("84A").generalSupplyCount(45)
+                .supplyBreakdown(SupplyBreakdown.builder().build()).build());
+
+        DetailHighlights h = DetailHighlights.of(a);
+        assertThat(h.typeTotals()).isEmpty();
+        assertThat(h.typeCountsUnknown()).isFalse();
     }
 
     @Test

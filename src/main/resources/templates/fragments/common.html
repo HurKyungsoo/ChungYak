@@ -721,6 +721,16 @@
                       display: flex; flex-direction: column; gap: 2px; }
         .type-total .tt-label { font-size: .8rem; color: var(--text-muted); }
         .type-total .tt-count { font-size: 1.25rem; letter-spacing: -0.01em; }
+        .type-total { border: 1px solid transparent; transition: opacity .15s, border-color .15s; }
+        /* 저장된 조건으로 판정한 결과 — 자격 충족 ✓ 강조, 미충족 흐림 */
+        .type-total.is-eligible { background: var(--ok-weak); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+        .type-total.is-eligible .tt-label { color: var(--ok); font-weight: 700; }
+        .type-total.is-eligible .tt-mark::before { content: " ✓"; }
+        .type-total.is-ineligible { opacity: .5; }
+        .tt-legend { color: var(--ok); font-weight: 600; }
+        .type-totals .tt-absent { margin: 10px 0 0; font-size: .82rem; color: var(--text-muted); }
+        .type-totals .tt-unknown-total { margin: 0 0 8px; font-size: 1rem; }
+        .type-totals .tt-unknown-note { margin: 8px 0 0; font-size: .85rem; }
         /* 주택형 표 — 유형별 열은 펼쳤을 때만 */
         .supply-table:not(.show-types) [data-supply-type],
         .supply-table:not(.show-types) #supplyColPicker { display: none !important; }
@@ -1343,6 +1353,24 @@
     (function () {
         var slot = document.getElementById('verdictSummarySlot');
         if (!slot || !window.fetch) return;
+
+        /* 유형별 배정 타일에 판정 결과를 칠한다 — 자격 충족 ✓ 강조, 미충족 흐림, 정보 필요는 그대로.
+           판정은 엔진이 한 것을 조각의 data-eligible/data-ineligible 로 받아 옮길 뿐이다. */
+        function markTypeTiles(src) {
+            if (!src) return;
+            var split = function (v) { return (v || '').split(',').filter(Boolean); };
+            var ok = split(src.getAttribute('data-eligible'));
+            var no = split(src.getAttribute('data-ineligible'));
+            var marked = 0;
+            document.querySelectorAll('.type-total[data-type]').forEach(function (tile) {
+                var t = tile.getAttribute('data-type');
+                tile.classList.toggle('is-eligible', ok.indexOf(t) >= 0);
+                tile.classList.toggle('is-ineligible', no.indexOf(t) >= 0);
+                if (ok.indexOf(t) >= 0) marked++;
+            });
+            var legend = document.getElementById('typeTotalsLegend');
+            if (legend) legend.hidden = marked === 0;
+        }
         var draft;
         try { draft = JSON.parse(localStorage.getItem('chungyak:profileDraft') || 'null'); } catch (e) { return; }
         if (!draft) return;
@@ -1360,7 +1388,12 @@
         fetch('/announcements/' + slot.dataset.annId + '/verdict-summary', {
             method: 'POST', body: body, headers: { 'Accept': 'text/html' }
         }).then(function (r) { return r.ok ? r.text() : null; })
-          .then(function (html) { if (html) slot.innerHTML = html; })   // 우리 서버가 그린 조각(값은 Thymeleaf 가 이스케이프)
+          .then(function (html) {
+              if (!html) return;
+              slot.innerHTML = html;   // 우리 서버가 그린 조각(값은 Thymeleaf 가 이스케이프)
+              // 목록이 비면 Thymeleaf 가 속성을 아예 빼므로 카드 자체를 찾고, 없는 속성은 빈 목록으로 본다
+              markTypeTiles(slot.querySelector('.verdict-mini'));
+          })
           .catch(function () { /* 기본 안내 카드 그대로 */ });
     })();
 </script>

@@ -4,7 +4,10 @@
 <!--/* 공고 상세 "내 판정 요약" 카드 (목업 Main) — VerdictSummaryController 가 조각으로 돌려준다.
      저장된 조건으로 규칙 엔진이 낸 결과를 셋(자격 충족·정보 필요·미충족)으로만 센다.
      "넣을 수 있는 유형" = 자격 충족 + 이 공고에 배정 있음(세대수를 모르는 LH 는 배정 미상도 포함). */-->
+<!--/* data-eligible / data-ineligible: 상세 화면이 유형별 배정 타일에 자격 표시를 칠할 때 읽는다(엔진 결과 그대로) */-->
 <section th:fragment="card" class="card verdict-mini" aria-label="내 판정 요약"
+         th:attr="data-eligible=${#strings.listJoin(result.allDecisions.?[eligible].![typeName], ',')},
+                  data-ineligible=${#strings.listJoin(result.allDecisions.?[!eligible and !undetermined].![typeName], ',')}"
          th:with="ok=${result.allDecisions.?[eligible]},
                   info=${result.allDecisions.?[!eligible and undetermined]},
                   no=${result.allDecisions.?[!eligible and !undetermined]},
