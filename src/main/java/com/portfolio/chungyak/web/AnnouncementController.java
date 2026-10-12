@@ -20,7 +20,7 @@ import com.portfolio.chungyak.web.view.CalendarView;
 import com.portfolio.chungyak.web.view.Dday;
 import com.portfolio.chungyak.web.view.PhoneNumbers;
 import com.portfolio.chungyak.web.view.Prices;
-import com.portfolio.chungyak.web.view.YearMonths;
+import com.portfolio.chungyak.web.view.ScheduleTimeline;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -245,12 +245,12 @@ public class AnnouncementController {
         model.addAttribute("status", status);
         model.addAttribute("dday", Dday.of(status, announcement.getReceptBeginDate(),
                 announcement.getReceptEndDate(), queryService.today()));
+        model.addAttribute("timeline", ScheduleTimeline.of(announcement, queryService.today()));
         model.addAttribute("qaEnabled", qaService.isEnabled());
         model.addAttribute("qaIndexed", qaService.hasIndex(id));
         // 문의처는 하이픈 없는 숫자로 들어온다 — 읽을 수 있게 끊어서 보여주고,
         // 거는 건 원본 그대로 tel: 로 넘긴다(다이얼러가 하이픈도 알아서 처리한다).
         model.addAttribute("inquiryTelDisplay", PhoneNumbers.format(announcement.getInquiryTel()));
-        model.addAttribute("moveInDisplay", YearMonths.format(announcement.getMoveInYearMonth()));
 
         // 분양가는 주택형마다 다르다 — 수집은 하고 있었지만 화면에 쓰인 적이 없었다.
         Map<Long, String> prices = announcement.getUnitTypes().stream()

@@ -45,9 +45,13 @@
                 aria-label="찜하기"></button>
     </div>
 
+    <!-- 일정은 표의 날짜 줄 대신 타임라인으로 — 모르는 단계도 빠짐없이 흐리게 보여 준다 (#19-2) -->
+    <div th:replace="~{fragments/common :: timeline(${timeline},
+            ${announcement.noticePdfUrl} ?: ${announcement.noticeUrl})}"></div>
+
     <!-- LH 공고는 규제·특공 세대수 정보가 원천에 없어 기본정보·주택형 표를 따로 그린다 (announcements/lh.html) -->
     <th:block th:if="${announcement.lh}">
-        <div th:replace="~{announcements/lh :: info(${announcement}, ${moveInDisplay})}"></div>
+        <div th:replace="~{announcements/lh :: info(${announcement})}"></div>
         <th:block th:replace="~{announcements/lh :: units(${announcement}, ${priceByUnitType})}"></th:block>
     </th:block>
 
@@ -57,20 +61,6 @@
             <tr><th>지역</th><td th:text="${announcement.regionName} ?: '-'">서울</td></tr>
             <tr><th>주소</th><td th:text="${announcement.address} ?: '-'">주소</td></tr>
             <tr><th>총 공급세대</th><td th:text="${announcement.totalSupplyCount} ?: '-'">100</td></tr>
-            <tr><th>모집공고일</th><td th:text="${announcement.noticeDate} ?: '-'">2026-01-01</td></tr>
-            <tr><th>청약접수</th><td>
-                <span th:text="${announcement.receptBeginDate} ?: '?'">시작</span> ~
-                <span th:text="${announcement.receptEndDate} ?: '?'">종료</span>
-            </td></tr>
-            <tr><th>특별공급 접수</th><td>
-                <span th:if="${announcement.specialReceptBeginDate != null}"
-                      th:text="${announcement.specialReceptBeginDate} + ' ~ ' + (${announcement.specialReceptEndDate} ?: '?')">특공</span>
-                <span th:unless="${announcement.specialReceptBeginDate != null}" class="subtle">공고에 별도 표기 없음</span>
-            </td></tr>
-            <tr><th>당첨자발표</th><td th:text="${announcement.winnerAnnounceDate} ?: '-'">발표일</td></tr>
-            <tr th:if="${moveInDisplay != null and !moveInDisplay.isBlank()}">
-                <th>입주예정</th><td th:text="${moveInDisplay}">2029-10</td>
-            </tr>
             <tr><th>규제</th><td>
                 <span th:if="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}">
                     규제지역 <span class="subtle">— 청약통장 24개월·해당지역 2년 거주 필요</span></span>

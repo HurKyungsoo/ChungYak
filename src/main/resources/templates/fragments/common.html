@@ -670,6 +670,26 @@
         .decision-card .reasons-fold[open] > summary { color: var(--ok); margin-bottom: 2px; }
         .decision-card .reasons-fold[open] > summary::before { content: "▾"; }
         .decision-card .reasons-fold .reasons { margin-top: 4px; }
+        /* 일정 타임라인 (#19-2) — 넓으면 가로 한 줄, 좁으면 두세 칸씩 줄바꿈. 모르는 단계는 점선·흐리게. */
+        .timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px 0;
+                    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
+        .timeline li { display: flex; flex-direction: column; gap: 4px; padding-right: 10px; min-width: 0; }
+        .timeline .tl-track { display: flex; align-items: center; height: 18px; }
+        .timeline .tl-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; box-sizing: border-box;
+                            background: var(--surface); border: 3px solid var(--border-strong); }
+        .timeline .tl-line { flex: 1; height: 3px; background: var(--border); }
+        .timeline li:last-child .tl-line { display: none; }
+        .timeline .tl-label { font-size: .8rem; color: var(--text-muted); }
+        .timeline .tl-when { font-size: .9rem; font-weight: 600; overflow-wrap: anywhere; }
+        .timeline li.done .tl-dot { background: var(--brand); border-color: var(--brand); }
+        .timeline li.done .tl-line { background: var(--brand); }
+        .timeline li.current .tl-dot { width: 16px; height: 16px; border-width: 4px; border-color: var(--warn); }
+        .timeline li.current .tl-label { color: var(--warn); font-weight: 700; }
+        .timeline li.next .tl-dot { border-color: var(--brand); }
+        .timeline li.next .tl-label { color: var(--brand); font-weight: 600; }
+        .timeline li.unknown .tl-dot { border-style: dashed; }
+        .timeline li.unknown .tl-label, .timeline li.unknown .tl-when { color: var(--text-subtle); font-weight: 500; }
+
         /* 근거 카드 그리드 (#19-1) — 넓으면 두 줄, 좁으면 한 줄. 색은 전부 토큰(다크 모드 대응). */
         .decision-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
                          gap: 12px; align-items: start; }
@@ -922,6 +942,26 @@
         })();
     </script>
 </th:block>
+
+<!-- ── 일정 타임라인 (#19-2) — ScheduleTimeline 을 그린다. noticeLink 는 모르는 단계를 넘길 공고문 링크(없으면 null). ── -->
+<section th:fragment="timeline(timeline, noticeLink)" class="card" aria-label="청약 일정">
+    <div class="sec-head" style="margin:0 0 12px">
+        <h2 style="margin:0">청약 일정</h2>
+        <span class="count" th:if="${timeline.hasUnknown()}">
+            흐린 단계는
+            <a th:if="${noticeLink != null}" th:href="${noticeLink}" target="_blank" rel="noopener">공고문</a><span
+                th:unless="${noticeLink != null}">공고문</span>에서 확인하세요</span>
+    </div>
+    <ol class="timeline">
+        <li th:each="s : ${timeline.steps()}"
+            th:classappend="${s.done()} ? 'done' : (${s.current()} ? 'current' : (${s.next()} ? 'next' : (${s.unknown()} ? 'unknown' : '')))">
+            <div class="tl-track"><span class="tl-dot" aria-hidden="true"></span><span class="tl-line" aria-hidden="true"></span></div>
+            <span class="tl-label"
+                  th:text="${s.label()} + (${s.current()} ? ' · 진행 중' : (${s.next()} ? ' · 다음' : ''))">청약 접수</span>
+            <span class="tl-when" th:text="${s.when()} ?: '공고문에서 확인'">10.12 (월) ~ 10.14 (수)</span>
+        </li>
+    </ol>
+</section>
 
 <!-- ── disclaimer (본문 하단) ── -->
 <div th:fragment="disclaimer" class="disclaimer">

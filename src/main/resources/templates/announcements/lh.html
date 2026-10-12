@@ -18,7 +18,7 @@
        target="_blank" rel="noopener" class="btn btn-ghost btn-lg">LH 공고 페이지</a>
 </th:block>
 
-<div th:fragment="info(announcement, moveInDisplay)" class="card">
+<div th:fragment="info(announcement)" class="card">
     <div class="card tint" th:if="${announcement.waitlist}" style="margin-bottom:12px">
         <strong>예비입주자(대기자) 모집입니다.</strong>
         <span class="muted">지금 입주할 세대를 뽑는 게 아니라, 빈 집이 생기면 순번대로 입주할 대기자를 모읍니다.
@@ -45,28 +45,7 @@
                 <span th:unless="${announcement.totalSupplyCount != null}" class="subtle">공고문에서 확인하세요</span>
             </td>
         </tr>
-        <tr><th>모집공고일</th><td th:text="${announcement.noticeDate} ?: '-'">2026-10-01</td></tr>
-        <tr><th>청약접수</th>
-            <td>
-                <span th:if="${announcement.receptBeginDate != null}"
-                      th:text="${announcement.receptBeginDate} + ' ~ ' + (${announcement.receptEndDate} ?: '?')">2026-10-12 ~ 2026-10-14</span>
-                <span th:if="${announcement.receptBeginDate == null and announcement.receptEndDate != null}">
-                    <span th:text="'마감 ' + ${announcement.receptEndDate}">마감 2026-10-14</span>
-                    <span class="subtle">— 시작일은 공고문에서 확인하세요</span>
-                </span>
-                <span th:if="${announcement.receptBeginDate == null and announcement.receptEndDate == null}"
-                      class="subtle">공고문에서 확인하세요</span>
-            </td>
-        </tr>
-        <tr><th>당첨자발표</th>
-            <td>
-                <span th:if="${announcement.winnerAnnounceDate != null}" th:text="${announcement.winnerAnnounceDate}">2027-01-28</span>
-                <span th:unless="${announcement.winnerAnnounceDate != null}" class="subtle">공고문에서 확인하세요</span>
-            </td>
-        </tr>
-        <tr th:if="${moveInDisplay != null and !moveInDisplay.isBlank()}">
-            <th>입주예정</th><td th:text="${moveInDisplay}">2029-10</td>
-        </tr>
+        <!-- 일정(공고일·접수·발표·입주)은 상단 타임라인이 그린다 (#19-2) -->
     </table>
 </div>
 
