@@ -77,6 +77,32 @@ class LhClientLiveTest {
     }
 
     @Test
+    @DisplayName("상세 기본정보 — 첫 페이지 공고 대부분이 접수 시작일·발표일·PDF 링크를 얻는다 (A형·B형 모두)")
+    void enrichesFromDetail() {
+        List<ExternalAnnouncement> announcements = client.fetchAnnouncements(
+                LocalDate.now().minusMonths(2), LocalDate.now(), 1);
+        List<ExternalAnnouncement> sample = announcements.stream().limit(30).toList();
+
+        int begin = 0, winner = 0, address = 0, pdf = 0;
+        for (ExternalAnnouncement a : sample) {
+            ExternalAnnouncement e = client.enrichWithDetail(a);
+            if (e.getReceptBeginDate() != null) begin++;
+            if (e.getWinnerAnnounceDate() != null) winner++;
+            if (e.getAddress() != null) address++;
+            if (e.getNoticePdfUrl() != null) pdf++;
+            System.out.printf("  %s | %s | %s~%s 발표 %s | %s%n", e.getProviderParams().get("SPL_INF_TP_CD"),
+                    e.getSupplyTypeName(), e.getReceptBeginDate(), e.getReceptEndDate(),
+                    e.getWinnerAnnounceDate(), e.getHouseName());
+        }
+        System.out.printf("%d건 중 시작일 %d / 발표일 %d / 주소 %d / PDF %d%n",
+                sample.size(), begin, winner, address, pdf);
+
+        // 2026-10-12 표본 40건: 시작일 35, 발표일 40(9999 미정 포함), 주소 25, PDF 40
+        assertThat(pdf).isGreaterThan(sample.size() * 8 / 10);
+        assertThat(begin).isGreaterThan(sample.size() * 6 / 10);
+    }
+
+    @Test
     @DisplayName("분양 공고 — 첨부 공고문 PDF 를 내려받아 본문을 추출한다")
     void fetchesNoticeContentFromPdf() {
         List<ExternalAnnouncement> announcements = client.fetchAnnouncements(

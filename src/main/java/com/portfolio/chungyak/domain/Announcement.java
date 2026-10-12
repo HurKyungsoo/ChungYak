@@ -146,22 +146,31 @@ public class Announcement {
         return new ArrayList<>(visible);
     }
 
-    /** 재수집 시 변경분만 반영 */
+    /**
+     * 재수집 시 변경분만 반영.
+     *
+     * 주소·총 세대수·접수 시작일·당첨자 발표일·공고문 PDF 는 <b>null 이면 기존 값을 유지</b>한다.
+     * LH 는 이 값들을 목록이 아니라 상세 조회로만 채우는데, 기존 공고의 재수집은 목록만 받으므로
+     * (상세는 신규·백필 때만 호출) 그대로 대입하면 채워 둔 값이 매일 null 로 지워진다.
+     * null = "원천이 이번엔 안 줬다"이지 "값이 없어졌다"가 아니다.
+     */
     public void updateFromExternal(String houseName, String regionName, String address,
                                    Integer totalSupplyCount, LocalDate receptBeginDate,
                                    LocalDate receptEndDate, LocalDate winnerAnnounceDate,
                                    RegulationFlags regulationFlags,
-                                   SupplyCategory supplyCategory, String supplyTypeName) {
+                                   SupplyCategory supplyCategory, String supplyTypeName,
+                                   String noticePdfUrl) {
         this.houseName = houseName;
+        this.regionName = regionName;
+        this.receptEndDate = receptEndDate;
+        if (address != null) this.address = address;
+        if (totalSupplyCount != null) this.totalSupplyCount = totalSupplyCount;
+        if (receptBeginDate != null) this.receptBeginDate = receptBeginDate;
+        if (winnerAnnounceDate != null) this.winnerAnnounceDate = winnerAnnounceDate;
+        if (regulationFlags != null) this.regulationFlags = regulationFlags;
         if (supplyCategory != null) this.supplyCategory = supplyCategory;
         if (supplyTypeName != null) this.supplyTypeName = supplyTypeName;
-        this.regionName = regionName;
-        this.address = address;
-        this.totalSupplyCount = totalSupplyCount;
-        this.receptBeginDate = receptBeginDate;
-        this.receptEndDate = receptEndDate;
-        this.winnerAnnounceDate = winnerAnnounceDate;
-        if (regulationFlags != null) this.regulationFlags = regulationFlags;
+        if (noticePdfUrl != null) this.noticePdfUrl = noticePdfUrl;
         fillTotalSupplyCountFromUnitTypes();
     }
 

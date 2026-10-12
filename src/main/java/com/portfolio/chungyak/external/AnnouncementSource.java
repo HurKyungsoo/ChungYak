@@ -1,5 +1,7 @@
 package com.portfolio.chungyak.external;
 
+import com.portfolio.chungyak.domain.Announcement;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -33,5 +35,18 @@ public interface AnnouncementSource {
      */
     default Optional<String> fetchNoticeContent(ExternalAnnouncement announcement) {
         return Optional.empty();
+    }
+
+    /**
+     * 목록 응답에 없는 기본정보(접수 시작일·당첨자 발표일·주소·공고문 PDF 링크)를 상세 조회로 채운 사본.
+     * 목록이 이미 다 주는 소스(청약홈)는 그대로 돌려준다. 실패하면 원본을 돌려준다.
+     */
+    default ExternalAnnouncement enrichWithDetail(ExternalAnnouncement announcement) {
+        return announcement;
+    }
+
+    /** 이미 저장된 공고인데 상세 정보를 아직 못 채웠으면 true — 다음 수집에서 한 번 더 조회한다. */
+    default boolean needsDetailBackfill(Announcement existing) {
+        return false;
     }
 }

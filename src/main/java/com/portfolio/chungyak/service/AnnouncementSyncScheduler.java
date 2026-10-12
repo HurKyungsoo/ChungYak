@@ -120,16 +120,20 @@ public class AnnouncementSyncScheduler {
             }
             pagesFetched++;
 
-            // 신규 공고에만 주택형 조회를 붙인다 (공고당 1회 추가 호출)
+            // 신규 공고에만 주택형·상세 조회를 붙인다 (공고당 추가 호출).
+            // 기존 공고는 상세를 아직 못 채운 것만 한 번 더 조회한다(백필) — 매일 전부 부르면 트래픽 낭비.
             List<ExternalAnnouncement> enriched = new ArrayList<>(announcements.size());
             for (ExternalAnnouncement announcement : announcements) {
-                boolean isNew = announcementRepository
-                        .findByExternalId(announcement.getExternalId()).isEmpty();
+                Announcement existing = announcementRepository
+                        .findByExternalId(announcement.getExternalId()).orElse(null);
 
-                if (isNew) {
-                    List<ExternalUnitType> unitTypes = source.fetchUnitTypes(announcement);
-                    String noticeContent = fetchNoticeContentSafely(source, announcement);
-                    enriched.add(withUnitTypes(announcement, unitTypes, noticeContent));
+                if (existing == null) {
+                    ExternalAnnouncement detailed = enrichSafely(source, announcement);
+                    List<ExternalUnitType> unitTypes = source.fetchUnitTypes(detailed);
+                    String noticeContent = fetchNoticeContentSafely(source, detailed);
+                    enriched.add(withUnitTypes(detailed, unitTypes, noticeContent));
+                } else if (source.needsDetailBackfill(existing)) {
+                    enriched.add(enrichSafely(source, announcement));
                 } else {
                     enriched.add(announcement);
                 }
@@ -153,6 +157,17 @@ public class AnnouncementSyncScheduler {
         } catch (RuntimeException e) {
             log.warn("{} 공고문 원문 조회 실패 — {}", source.sourceName(), e.toString());
             return null;
+        }
+    }
+
+    /** 상세 조회 실패가 수집 전체를 막지 않도록 감싼다 — 실패하면 목록 값만으로 저장한다. */
+    private ExternalAnnouncement enrichSafely(AnnouncementSource source, ExternalAnnouncement announcement) {
+        try {
+            ExternalAnnouncement result = source.enrichWithDetail(announcement);
+            return result != null ? result : announcement;
+        } catch (RuntimeException e) {
+            log.warn("{} 상세 조회 실패 — {}", source.sourceName(), e.toString());
+            return announcement;
         }
     }
 

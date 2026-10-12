@@ -2,6 +2,7 @@ package com.portfolio.chungyak.external;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.HouseType;
 import com.portfolio.chungyak.domain.RegulationFlags;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * 한국토지주택공사(LH) 분양·임대 공고 클라이언트 — data.go.kr B552555 게이트웨이.
@@ -205,6 +207,139 @@ public class LhClient implements AnnouncementSource {
             log.warn("LH PAN_DTL_CTS 파싱 실패. panId={}, msg={}", announcement.getPblancNo(), e.getMessage());
             return Optional.empty();
         }
+    }
+
+    // === 상세 기본정보 (접수 시작일·당첨자 발표일·주소·공고문 PDF) ===
+
+    @Override
+    public ExternalAnnouncement enrichWithDetail(ExternalAnnouncement announcement) {
+        if (!properties.getLh().isEnabled()) return announcement;
+        Map<String, String> p = announcement.getProviderParams();
+        if (p == null || p.get("SPL_INF_TP_CD") == null) return announcement;
+
+        URI uri = detailUri(properties.getLh().getDetailUrl(), announcement.getPblancNo(), p);
+        try {
+            byte[] body = publicDataRestClient.get().uri(uri).retrieve().body(byte[].class);
+            return parseDetail(body).applyTo(announcement);
+        } catch (Exception e) {
+            log.warn("LH 상세(기본정보) 조회 실패. panId={}, msg={}", announcement.getPblancNo(), e.getMessage());
+            return announcement;
+        }
+    }
+
+    /** PDF 링크가 없는 LH 공고 = 상세를 아직 못 읽은 공고 (공고문 PDF 는 표본 40건 전부에 있었다). */
+    @Override
+    public boolean needsDetailBackfill(Announcement existing) {
+        return existing.getExternalId().startsWith(SOURCE_PREFIX) && existing.getNoticePdfUrl() == null;
+    }
+
+    /** 상세 응답에서 읽은 기본정보. 못 읽은 값은 null — 목록 값을 덮지 않는다. */
+    record LhDetail(LocalDate receptBeginDate, LocalDate receptEndDate, LocalDate winnerAnnounceDate,
+                    String address, String noticePdfUrl) {
+
+        ExternalAnnouncement applyTo(ExternalAnnouncement a) {
+            LocalDate end = a.getReceptEndDate() != null ? a.getReceptEndDate() : receptEndDate;
+            // 시작일이 (목록이 준) 마감일보다 늦으면 서로 다른 일정을 섞은 것 — 쓰지 않는다.
+            LocalDate begin = receptBeginDate != null && end != null && receptBeginDate.isAfter(end)
+                    ? null : receptBeginDate;
+            return a.toBuilder()
+                    .receptBeginDate(a.getReceptBeginDate() != null ? a.getReceptBeginDate() : begin)
+                    .receptEndDate(end)
+                    .winnerAnnounceDate(a.getWinnerAnnounceDate() != null ? a.getWinnerAnnounceDate() : winnerAnnounceDate)
+                    .address(a.getAddress() != null ? a.getAddress() : address)
+                    .noticePdfUrl(a.getNoticePdfUrl() != null ? a.getNoticePdfUrl() : noticePdfUrl)
+                    .build();
+        }
+    }
+
+    /**
+     * 상세 응답의 dsSplScdl(일정)·dsSbd(단지)·dsAhflInfo(첨부)를 읽는다. package-private — 오프라인 테스트.
+     *
+     * 응답 스키마가 공급유형 그룹마다 둘로 갈린다 (2026-10-12 라이브, 표본 40건):
+     *  A형 — 임대(06x)·매입임대(13x)·051: SBSC_ACP_ST_DT / SBSC_ACP_CLSG_DT / PZWR_ANC_DT("yyyy.MM.dd"),
+     *        주소 LGDN_ADR
+     *  B형 — 공공분양(050)·리츠 공공임대(060)·신혼희망 분양(390): 일정이 구분(특공/1순위…)별 행이고
+     *        접수기간은 ACP_DTTM "2026.10.06 10:00 ~ 2026.10.07 17:00", PZWR_ANC_DT 는 "yyyyMMdd",
+     *        주소 LCT_ARA_ADR
+     *  공통 함정 — "9999.01.01"·"9999.12.31" 은 미정, ACP_DTTM "~" 은 빈 값.
+     *
+     * ★ dsSbd 의 HSH_CNT/SUM_TOT_HSH_CNT 는 <b>단지 전체</b> 세대수다. 예비입주자 공고에선
+     * 이미 입주한 기존 단지 규모라 모집 세대수가 아니다 — 총 공급세대로 쓰지 않는다.
+     */
+    LhDetail parseDetail(byte[] body) throws Exception {
+        if (body == null || body.length == 0) return new LhDetail(null, null, null, null, null);
+        JsonNode root = objectMapper.readTree(body);
+
+        LocalDate begin = null, end = null;
+        Set<LocalDate> winners = new TreeSet<>();
+        JsonNode scdl = findFieldArray(root, "dssplscdl");
+        if (scdl != null) {
+            for (JsonNode row : scdl) {
+                LocalDate[] range = acceptRange(row);
+                begin = earlier(begin, range[0]);
+                end = later(end, range[1]);
+                LocalDate win = realDate(parser.date(row, "PZWR_ANC_DT"));
+                if (win != null) winners.add(win);
+            }
+        }
+        // 단지·구분마다 발표일이 다르면 어느 하나를 보여도 틀릴 수 있다 — 비워 두고 공고문으로 안내한다.
+        LocalDate winner = winners.size() == 1 ? winners.iterator().next() : null;
+
+        List<String> addresses = new ArrayList<>();
+        JsonNode sbd = findFieldArray(root, "dssbd");
+        if (sbd != null) {
+            for (JsonNode row : sbd) {
+                String adr = firstText(row, "LGDN_ADR", "LCT_ARA_ADR");
+                if (adr != null && !addresses.contains(adr)) addresses.add(adr);
+            }
+        }
+        String address = addresses.isEmpty() ? null
+                : truncate(addresses.size() == 1 ? addresses.get(0)
+                        : addresses.get(0) + " 외 " + (addresses.size() - 1) + "곳", 500);
+
+        String pdfUrl = parseNoticePdfUrl(body).map(u -> truncate(u, 500)).orElse(null);
+        return new LhDetail(begin, end, winner, address, pdfUrl);
+    }
+
+    /** 한 일정 행의 접수기간 [시작, 마감]. A형 필드가 없으면 B형 ACP_DTTM 문자열에서 읽는다. */
+    private LocalDate[] acceptRange(JsonNode row) {
+        LocalDate st = realDate(parser.date(row, "SBSC_ACP_ST_DT"));
+        LocalDate ed = realDate(parser.date(row, "SBSC_ACP_CLSG_DT"));
+        String dttm = parser.text(row, "ACP_DTTM");
+        if ((st == null || ed == null) && dttm != null && dttm.contains("~")) {
+            String[] parts = dttm.split("~", 2);
+            if (st == null) st = leadingDate(parts[0]);
+            if (ed == null) ed = leadingDate(parts[1]);
+        }
+        return new LocalDate[]{st, ed};
+    }
+
+    /** "2026.10.06 10:00" → 2026-10-06. 날짜가 없으면 null. */
+    private LocalDate leadingDate(String s) {
+        String t = s.strip();
+        if (t.length() < 10) return null;
+        try {
+            return realDate(LocalDate.parse(t.substring(0, 10), LH_DATE));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** LH 는 미정 일정을 9999년으로 채운다 — 실제 날짜가 아니다. */
+    private static LocalDate realDate(LocalDate d) {
+        return d == null || d.getYear() >= 9999 ? null : d;
+    }
+
+    private static LocalDate earlier(LocalDate a, LocalDate b) {
+        if (a == null) return b;
+        if (b == null) return a;
+        return b.isBefore(a) ? b : a;
+    }
+
+    private static LocalDate later(LocalDate a, LocalDate b) {
+        if (a == null) return b;
+        if (b == null) return a;
+        return b.isAfter(a) ? b : a;
     }
 
     /** 상세 응답 dsAhflInfo 에서 "공고문" PDF 첨부 URL 을 찾는다. package-private — 오프라인 테스트. */

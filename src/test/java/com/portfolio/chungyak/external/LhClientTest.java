@@ -1,5 +1,6 @@
 package com.portfolio.chungyak.external;
 
+import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.HouseType;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
@@ -316,6 +317,125 @@ class LhClientTest {
             String json = "[{\"dsSplScdl\":[{\"RNK\":\"1\"}]}]";
             assertThat(c.parseNoticeContent(json.getBytes(StandardCharsets.UTF_8))).isEmpty();
             assertThat(c.parseNoticeContent(new byte[0])).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("parseDetail — 상세 기본정보 (2026-10-12 라이브 응답에서 뽑은 픽스처)")
+    class DetailInfoParsing {
+
+        private final LhClient c = client(props(true));
+
+        /** A형 — 하남 신혼희망타운 행복주택 예비입주자 (SPL_INF_TP_CD=063). 단지 둘, 일정 같음. */
+        private static final String HANAM = """
+            [{"dsSch":[{"PAN_ID":"2015122300020859","SPL_INF_TP_CD":"063"}]},
+             {"dsSplScdl":[
+                {"SBD_LGO_NM":"하남감일 A7BL 행복주택","SBSC_ACP_ST_DT":"2026.10.12","SBSC_ACP_CLSG_DT":"2026.10.14",
+                 "ACP_DTTM":"2026.10.12 10:00 ~ 2026.10.14 16:10","PZWR_ANC_DT":"2027.01.28","CTRT_ST_DT":""},
+                {"SBD_LGO_NM":"위례A3-3bBL 행복주택","SBSC_ACP_ST_DT":"2026.10.12","SBSC_ACP_CLSG_DT":"2026.10.14",
+                 "ACP_DTTM":"2026.10.12 10:00 ~ 2026.10.14 16:10","PZWR_ANC_DT":"2027.01.28","CTRT_ST_DT":""}],
+              "dsSbd":[
+                {"LGDN_ADR":"경기도 하남시 감일순환로 40(감이동,감일 한라비발디 2차)","HSH_CNT":"510","LCC_NT_NM":"하남감일 A7BL 행복주택"},
+                {"LGDN_ADR":"경기도 하남시 위례학암로 30(학암동,위례로제비앙)","HSH_CNT":"168","LCC_NT_NM":"위례A3-3bBL 행복주택"}],
+              "dsAhflInfo":[
+                {"AHFL_URL":"https://apply.lh.or.kr/lhapply/lhFile.do?fileid=68802328","SL_PAN_AHFL_DS_CD_NM":"공고문(hwp)","CMN_AHFL_NM":"공고문.hwpx"},
+                {"AHFL_URL":"https://apply.lh.or.kr/lhapply/lhFile.do?fileid=68802346","SL_PAN_AHFL_DS_CD_NM":"공고문(PDF)","CMN_AHFL_NM":"공고문.pdf"}]}]
+            """;
+
+        @Test
+        @DisplayName("A형: 접수기간·당첨자 발표일·주소(외 N곳)·PDF — 단지 세대수(HSH_CNT)는 쓰지 않는다")
+        void parsesTypeA() throws Exception {
+            LhClient.LhDetail d = c.parseDetail(HANAM.getBytes(StandardCharsets.UTF_8));
+
+            assertThat(d.receptBeginDate()).isEqualTo(LocalDate.of(2026, 10, 12));
+            assertThat(d.receptEndDate()).isEqualTo(LocalDate.of(2026, 10, 14));
+            assertThat(d.winnerAnnounceDate()).isEqualTo(LocalDate.of(2027, 1, 28));
+            assertThat(d.address()).isEqualTo("경기도 하남시 감일순환로 40(감이동,감일 한라비발디 2차) 외 1곳");
+            assertThat(d.noticePdfUrl()).endsWith("fileid=68802346");
+        }
+
+        @Test
+        @DisplayName("B형: 구분별 일정 행의 ACP_DTTM 문자열 + yyyyMMdd 발표일 + LCT_ARA_ADR (신혼희망 분양 390)")
+        void parsesTypeB() throws Exception {
+            String json = """
+                [{"dsSplScdl":[
+                    {"HS_SBSC_ACP_TRG_CD_NM":"사전청약당첨자","ACP_DTTM":"2026.10.19 10:00 ~ 2026.10.20 17:00","PZWR_ANC_DT":"20261105"},
+                    {"HS_SBSC_ACP_TRG_CD_NM":"우선공급","ACP_DTTM":"2026.10.21 10:00 ~ 2026.10.22 17:00","PZWR_ANC_DT":"20261105"}],
+                  "dsSbd":[{"LCT_ARA_ADR":"인천광역시 계양구 박촌동","SUM_TOT_HSH_CNT":"463"}]}]
+                """;
+            LhClient.LhDetail d = c.parseDetail(json.getBytes(StandardCharsets.UTF_8));
+
+            assertThat(d.receptBeginDate()).isEqualTo(LocalDate.of(2026, 10, 19));   // 가장 이른 접수
+            assertThat(d.receptEndDate()).isEqualTo(LocalDate.of(2026, 10, 22));     // 가장 늦은 마감
+            assertThat(d.winnerAnnounceDate()).isEqualTo(LocalDate.of(2026, 11, 5));
+            assertThat(d.address()).isEqualTo("인천광역시 계양구 박촌동");
+            assertThat(d.noticePdfUrl()).isNull();
+        }
+
+        @Test
+        @DisplayName("9999년(미정)·'~'(빈 접수기간)은 날짜가 아니다")
+        void ignoresPlaceholders() throws Exception {
+            String json = """
+                [{"dsSplScdl":[{"SBSC_ACP_ST_DT":"2026.10.13","SBSC_ACP_CLSG_DT":"2026.10.15",
+                                "ACP_DTTM":"~","PZWR_ANC_DT":"9999.01.01","CTRT_ED_DT":"9999.12.31"}]}]
+                """;
+            LhClient.LhDetail d = c.parseDetail(json.getBytes(StandardCharsets.UTF_8));
+
+            assertThat(d.receptBeginDate()).isEqualTo(LocalDate.of(2026, 10, 13));
+            assertThat(d.winnerAnnounceDate()).isNull();
+        }
+
+        @Test
+        @DisplayName("단지마다 발표일이 다르면 하나를 고르지 않고 비워 둔다 (군산금암·군산내흥7 실례)")
+        void leavesWinnerEmptyWhenRowsDisagree() throws Exception {
+            String json = """
+                [{"dsSplScdl":[{"PZWR_ANC_DT":"2026.11.05"},{"PZWR_ANC_DT":"2026.11.26"}]}]
+                """;
+            assertThat(c.parseDetail(json.getBytes(StandardCharsets.UTF_8)).winnerAnnounceDate()).isNull();
+        }
+
+        @Test
+        @DisplayName("applyTo: 목록이 준 값은 덮지 않고 빈 칸만 채운다")
+        void applyToFillsOnlyBlanks() throws Exception {
+            LhClient.LhDetail d = c.parseDetail(HANAM.getBytes(StandardCharsets.UTF_8));
+            ExternalAnnouncement listed = ExternalAnnouncement.builder()
+                    .externalId("LH-2015122300020859").houseName("하남").pblancNo("2015122300020859")
+                    .receptEndDate(LocalDate.of(2026, 10, 14))
+                    .build();
+
+            ExternalAnnouncement merged = d.applyTo(listed);
+
+            assertThat(merged.getReceptBeginDate()).isEqualTo(LocalDate.of(2026, 10, 12));
+            assertThat(merged.getReceptEndDate()).isEqualTo(LocalDate.of(2026, 10, 14));
+            assertThat(merged.getWinnerAnnounceDate()).isEqualTo(LocalDate.of(2027, 1, 28));
+            assertThat(merged.getNoticePdfUrl()).endsWith("68802346");
+            assertThat(merged.getTotalSupplyCount()).isNull();   // 단지 세대수 510+168 을 공급세대로 쓰지 않는다
+        }
+
+        @Test
+        @DisplayName("applyTo: 상세 시작일이 목록 마감일보다 늦으면 섞인 일정이라 버린다")
+        void dropsBeginAfterListedEnd() {
+            LhClient.LhDetail d = new LhClient.LhDetail(LocalDate.of(2026, 11, 1), null, null, null, null);
+            ExternalAnnouncement listed = ExternalAnnouncement.builder()
+                    .externalId("LH-1").houseName("x").pblancNo("1").receptEndDate(LocalDate.of(2026, 10, 14)).build();
+
+            assertThat(d.applyTo(listed).getReceptBeginDate()).isNull();
+        }
+
+        @Test
+        @DisplayName("빈 본문은 전부 null")
+        void emptyBody() throws Exception {
+            LhClient.LhDetail d = c.parseDetail(new byte[0]);
+            assertThat(d.receptBeginDate()).isNull();
+            assertThat(d.address()).isNull();
+        }
+
+        @Test
+        @DisplayName("needsDetailBackfill: PDF 링크가 없는 LH 공고만")
+        void backfillOnlyLhWithoutPdf() {
+            assertThat(c.needsDetailBackfill(Announcement.builder().externalId("LH-1").build())).isTrue();
+            assertThat(c.needsDetailBackfill(Announcement.builder().externalId("LH-1").noticePdfUrl("u").build())).isFalse();
+            assertThat(c.needsDetailBackfill(Announcement.builder().externalId("APT-1-1").build())).isFalse();
         }
     }
 

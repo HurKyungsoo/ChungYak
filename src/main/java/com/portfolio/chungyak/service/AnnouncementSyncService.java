@@ -56,7 +56,8 @@ public class AnnouncementSyncService {
                         external.getTotalSupplyCount(), external.getReceptBeginDate(),
                         external.getReceptEndDate(), external.getWinnerAnnounceDate(),
                         external.getRegulationFlags(),
-                        external.getSupplyCategory(), external.getSupplyTypeName());
+                        external.getSupplyCategory(), external.getSupplyTypeName(),
+                        external.getNoticePdfUrl());
                 updated++;
             }
         }

@@ -1,7 +1,10 @@
 package com.portfolio.chungyak.service;
 
 import com.portfolio.chungyak.alert.NewAnnouncementAlertService;
+import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.external.ApplyhomeClient;
+import com.portfolio.chungyak.external.ExternalAnnouncement;
+import com.portfolio.chungyak.external.LhClient;
 import com.portfolio.chungyak.external.PublicDataProperties;
 import com.portfolio.chungyak.repository.AnnouncementRepository;
 import com.portfolio.chungyak.service.AnnouncementSyncScheduler.SyncReport;
@@ -14,10 +17,14 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -81,5 +88,45 @@ class AnnouncementSyncSchedulerTest {
         scheduler.syncDaily();   // 예외를 던지지 않아야 한다
 
         assertThat(syncStatus.getOutcome()).isEqualTo(SyncStatus.Outcome.FAILED);
+    }
+
+    @Test
+    @DisplayName("기존 공고: 상세를 못 채운 것만 상세 재조회(백필), 주택형은 다시 받지 않는다 / 신규: 상세+주택형")
+    void detailBackfillOnlyForExistingWithoutDetail() {
+        LhClient lh = Mockito.mock(LhClient.class);
+        when(lh.isEnabled()).thenReturn(true);
+        when(lh.sourceName()).thenReturn("LH");
+        when(lh.maxPages()).thenReturn(1);
+        ExternalAnnouncement needsBackfill = listed("LH-1");
+        ExternalAnnouncement alreadyDetailed = listed("LH-2");
+        ExternalAnnouncement brandNew = listed("LH-3");
+        when(lh.fetchAnnouncements(1)).thenReturn(List.of(needsBackfill, alreadyDetailed, brandNew));
+        when(lh.enrichWithDetail(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(lh.fetchUnitTypes(any())).thenReturn(List.of());
+
+        Announcement withoutPdf = Announcement.builder().externalId("LH-1").build();
+        Announcement withPdf = Announcement.builder().externalId("LH-2").noticePdfUrl("u").build();
+        AnnouncementRepository repo = Mockito.mock(AnnouncementRepository.class);
+        when(repo.findByExternalId("LH-1")).thenReturn(Optional.of(withoutPdf));
+        when(repo.findByExternalId("LH-2")).thenReturn(Optional.of(withPdf));
+        when(repo.findByExternalId("LH-3")).thenReturn(Optional.empty());
+        when(lh.needsDetailBackfill(withoutPdf)).thenReturn(true);
+        when(lh.needsDetailBackfill(withPdf)).thenReturn(false);
+        when(syncService.sync(any())).thenReturn(new AnnouncementSyncService.SyncStat(3, 1, 2, List.of()));
+
+        PublicDataProperties props = new PublicDataProperties();
+        new AnnouncementSyncScheduler(List.of(lh), syncService, repo, props, syncStatus,
+                Clock.fixed(Instant.parse("2026-10-12T04:00:00Z"), ZoneOffset.UTC),
+                Mockito.mock(NewAnnouncementAlertService.class)).runSync();
+
+        verify(lh).enrichWithDetail(needsBackfill);
+        verify(lh, never()).enrichWithDetail(alreadyDetailed);
+        verify(lh).enrichWithDetail(brandNew);
+        verify(lh, never()).fetchUnitTypes(needsBackfill);
+        verify(lh).fetchUnitTypes(brandNew);
+    }
+
+    private static ExternalAnnouncement listed(String externalId) {
+        return ExternalAnnouncement.builder().externalId(externalId).houseName("x").pblancNo(externalId).build();
     }
 }

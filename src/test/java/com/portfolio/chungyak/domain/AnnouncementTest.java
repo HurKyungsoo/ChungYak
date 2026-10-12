@@ -3,6 +3,8 @@ package com.portfolio.chungyak.domain;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -115,8 +117,30 @@ class AnnouncementTest {
         Announcement a = Announcement.builder().houseName("하남").build();
         a.addUnitType(counted(40, 0));
 
-        a.updateFromExternal("하남", "경기도", null, null, null, null, null, null, null, null);
+        a.updateFromExternal("하남", "경기도", null, null, null, null, null, null, null, null, null);
 
         assertThat(a.getTotalSupplyCount()).isEqualTo(40);
+    }
+
+    @Test
+    @DisplayName("재수집(목록만)이 null 로 보낸 상세 값은 지우지 않는다 — 마감일은 목록 값으로 갱신")
+    void updateFromExternalKeepsDetailValuesWhenNull() {
+        LocalDate begin = LocalDate.of(2026, 10, 12);
+        LocalDate winner = LocalDate.of(2027, 1, 28);
+        Announcement a = Announcement.builder().houseName("하남")
+                .address("경기도 하남시 감일순환로 40").receptBeginDate(begin)
+                .receptEndDate(LocalDate.of(2026, 10, 14)).winnerAnnounceDate(winner)
+                .noticePdfUrl("https://apply.lh.or.kr/lhapply/lhFile.do?fileid=68802346").build();
+
+        LocalDate newEnd = LocalDate.of(2026, 10, 15);   // 정정공고로 마감 연장
+        a.updateFromExternal("하남", "경기도", null, null, null, newEnd, null, null,
+                SupplyCategory.HOPE_TOWN, "행복주택(신혼희망)", null);
+
+        assertThat(a.getAddress()).isEqualTo("경기도 하남시 감일순환로 40");
+        assertThat(a.getReceptBeginDate()).isEqualTo(begin);
+        assertThat(a.getWinnerAnnounceDate()).isEqualTo(winner);
+        assertThat(a.getNoticePdfUrl()).endsWith("68802346");
+        assertThat(a.getReceptEndDate()).isEqualTo(newEnd);
+        assertThat(a.getSupplyCategory()).isEqualTo(SupplyCategory.HOPE_TOWN);
     }
 }
