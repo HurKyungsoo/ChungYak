@@ -80,7 +80,7 @@ llm:
   # explain-enabled 기본 false: 판정 요약 입력에는 소득·자산이 들어가 무료 등급으로 내보내지 않는다(결정론적 요약 사용).
   groq:
     api-key: ${GROQ_API_KEY:REPLACE_ME}
-    model: ${GROQ_MODEL:llama-3.3-70b-versatile}
+    model: ${GROQ_MODEL:openai/gpt-oss-120b}
     explain-enabled: ${GROQ_EXPLAIN_ENABLED:false}
 
 # 새 공고 알림(C2). 확인·해지 메일의 링크에 쓸 절대 URL 베이스.

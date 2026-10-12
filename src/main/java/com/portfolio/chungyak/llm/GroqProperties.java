@@ -13,8 +13,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record GroqProperties(String apiKey, String model, String baseUrl, boolean explainEnabled) {
 
     public GroqProperties {
-        // 무료 등급에서 제공되는 모델은 바뀔 수 있다 — 안 되면 GROQ_MODEL 로 바꾼다.
-        if (model == null || model.isBlank()) model = "llama-3.3-70b-versatile";
+        // 무료 등급 모델 목록은 바뀐다 — llama-3.3-70b-versatile 은 404(model_not_found) 였다. 안 되면 GET /openai/v1/models 로 확인해 GROQ_MODEL 을 바꾼다.
+        if (model == null || model.isBlank()) model = "openai/gpt-oss-120b";
         if (baseUrl == null || baseUrl.isBlank()) baseUrl = "https://api.groq.com/openai/v1";
     }
 

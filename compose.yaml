@@ -49,7 +49,7 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-REPLACE_ME}
       LLM_MODEL: ${LLM_MODEL:-claude-sonnet-5}
       GROQ_API_KEY: ${GROQ_API_KEY:-REPLACE_ME}
-      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
       GROQ_EXPLAIN_ENABLED: ${GROQ_EXPLAIN_ENABLED:-false}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
