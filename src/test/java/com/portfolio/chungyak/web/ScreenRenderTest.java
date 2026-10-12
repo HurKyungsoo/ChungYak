@@ -95,6 +95,12 @@ class ScreenRenderTest {
         render("/announcements?category=RENTAL");
         render("/announcements?q=존재하지않는검색어&region=서울&category=SALE");   // 빈 상태 + 필터 해제 링크
         render("/announcements/calendar");
+        // 필터 + 날짜 펼치기 — 오늘(시드 공고의 접수 시작일) 패널에 공고가 나오고, 링크가 필터를 이어 간다
+        String cal = render("/announcements/calendar?day=" + LocalDate.now() + "&region=서울&detailType=PRIVATE");
+        assertThat(cal).contains("id=\"dayPanel\"").contains("렌더링 테스트 아파트")
+                .contains("&amp;region=%EC%84%9C%EC%9A%B8&amp;detailType=PRIVATE")
+                .doesNotContain("렌더링 행복주택");   // 경기도 LH 는 지역 필터로 빠진다
+        render("/announcements/calendar?day=잘못된날짜&category=없는값");          // 400 대신 그냥 무시
         render("/announcements/compare?ids=" + aptId + "," + lhId);
         render("/match");
         render("/general-supply");
@@ -109,10 +115,28 @@ class ScreenRenderTest {
         assertThat(apt).contains("특별공급 유형별 배정").contains("bento-card").contains("청약 일정");
         assertThat(apt).contains("data-type=\"NEWLYWED\"")                        // 자격 표시를 칠할 타일
                 .contains("이 공고에 없는 유형").contains("다자녀가구, 노부모부양, 청년");
+        assertThat(apt).contains("/announcements/" + aptId + "/calendar.ics");   // 내 캘린더에 추가
+        // 비규제 민영은 가점제 비율을 몰라 전 행이 "-" — 빈 열은 그리지 않는다(안내 문단은 남는다)
+        assertThat(apt).doesNotContain(">가점제</th>").contains("비규제지역이라 정확한 비율은");
 
         String lh = render("/announcements/" + lhId);
         assertThat(lh).contains("공고문에서 확인하세요").contains("공고문 PDF").contains("LH 공고 페이지");
         assertThat(lh).doesNotContain("청약통장 6개월");   // LH 는 규제·통장 줄이 없다
+    }
+
+    @Test
+    @DisplayName("내 캘린더에 추가 — text/calendar 첨부로 내려가고, 공고에 있는 날짜만 담긴다")
+    void calendarIcs() throws Exception {
+        MvcResult r = mvc.perform(get("/announcements/" + aptId + "/calendar.ics"))
+                .andExpect(status().isOk()).andReturn();
+        assertThat(r.getResponse().getContentType()).startsWith("text/calendar");
+        assertThat(r.getResponse().getHeader("Content-Disposition")).contains("chungyak-" + aptId + ".ics");
+        String ics = new String(r.getResponse().getContentAsByteArray(), java.nio.charset.StandardCharsets.UTF_8)
+                .replace("\r\n ", "");
+        assertThat(ics).contains("[특별공급 접수] 렌더링 테스트 아파트", "[청약 접수] 렌더링 테스트 아파트",
+                "[당첨자 발표] 렌더링 테스트 아파트", "/announcements/" + aptId);
+
+        mvc.perform(get("/announcements/999999/calendar.ics")).andExpect(status().isNotFound());
     }
 
     @Test

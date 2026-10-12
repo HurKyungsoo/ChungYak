@@ -69,7 +69,8 @@
 
     <!-- 일정은 표의 날짜 줄 대신 타임라인으로 — 모르는 단계도 빠짐없이 흐리게 보여 준다 (#19-2) -->
     <div th:replace="~{fragments/common :: timeline(${timeline},
-            ${announcement.noticePdfUrl} ?: ${announcement.noticeUrl})}"></div>
+            ${announcement.noticePdfUrl} ?: ${announcement.noticeUrl},
+            ${hasCalendarEvents} ? @{/announcements/{id}/calendar.ics(id=${announcement.id})} : null)}"></div>
 
     <!-- LH 공고는 규제·특공 세대수 정보가 원천에 없어 기본정보·주택형 표를 따로 그린다 (announcements/lh.html) -->
     <th:block th:if="${announcement.lh}">
@@ -171,8 +172,8 @@
             <tr>
                 <th>주택형</th><th class="num">공급면적 <button type="button" class="area-toggle" data-area-toggle aria-label="면적 단위 바꾸기 (㎡/평)">㎡</button></th><th class="num">분양가(최고)</th>
                 <th class="num">특별공급</th><th class="num">일반</th>
-                <th class="num" th:if="${lotteryByUnitType != null}">가점제</th>
-                <th class="num" th:if="${lotteryByUnitType != null}">추첨제</th>
+                <th class="num" th:if="${showLotteryCols == true}">가점제</th>
+                <th class="num" th:if="${showLotteryCols == true}">추첨제</th>
                 <th class="num" th:each="t : ${visibleTypes}"
                     th:attr="data-supply-type=${t.name()}" th:text="${t.label}">다자녀</th>
             </tr>
@@ -190,12 +191,12 @@
                 </td>
                 <td class="num"><strong th:text="${u.specialSupplyCount}">172</strong></td>
                 <td class="num" th:text="${u.generalSupplyCount}">141</td>
-                <td class="num" th:if="${lotteryByUnitType != null}" th:with="lot=${lotteryByUnitType.get(u.id)}">
+                <td class="num" th:if="${showLotteryCols == true}" th:with="lot=${lotteryByUnitType.get(u.id)}">
                     <span th:if="${lot != null and lot.known()}"
                           th:text="${lot.pointUnits} + '세대(' + ${lot.pointRatioPercent} + '%)'">99세대(70%)</span>
                     <span th:unless="${lot != null and lot.known()}" class="subtle">-</span>
                 </td>
-                <td class="num" th:if="${lotteryByUnitType != null}" th:with="lot=${lotteryByUnitType.get(u.id)}">
+                <td class="num" th:if="${showLotteryCols == true}" th:with="lot=${lotteryByUnitType.get(u.id)}">
                     <span th:if="${lot != null and lot.known()}"
                           th:text="${lot.lotteryUnits} + '세대(' + ${lot.lotteryRatioPercent} + '%)'">42세대(30%)</span>
                     <span th:unless="${lot != null and lot.known()}" class="subtle">-</span>
@@ -204,7 +205,7 @@
                     th:text="${u.supplyBreakdown != null} ? ${u.supplyBreakdown.countOf(t)} : 0">31</td>
             </tr>
             <tr th:if="${announcement.unitTypes.isEmpty()}">
-                <td th:attr="colspan=${(lotteryByUnitType != null ? 7 : 5) + visibleTypes.size()}"
+                <td th:attr="colspan=${(showLotteryCols == true ? 7 : 5) + visibleTypes.size()}"
                     class="muted">주택형 정보가 없습니다.</td>
             </tr>
             </tbody>

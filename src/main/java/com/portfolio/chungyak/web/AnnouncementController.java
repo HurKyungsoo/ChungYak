@@ -16,14 +16,20 @@ import com.portfolio.chungyak.web.form.EligibilityForm;
 import com.portfolio.chungyak.web.view.AnnouncementCompareRow;
 import com.portfolio.chungyak.web.view.AnnouncementListRow;
 import com.portfolio.chungyak.web.view.AnnouncementListSort;
+import com.portfolio.chungyak.web.view.CalendarFilter;
 import com.portfolio.chungyak.web.view.CalendarView;
 import com.portfolio.chungyak.web.view.Dday;
 import com.portfolio.chungyak.web.view.DetailHighlights;
 import com.portfolio.chungyak.web.view.PhoneNumbers;
 import com.portfolio.chungyak.web.view.Prices;
 import com.portfolio.chungyak.web.view.ScheduleTimeline;
+import com.portfolio.chungyak.web.view.AnnouncementIcs;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,6 +43,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
@@ -113,14 +121,40 @@ public class AnnouncementController {
         }
     }
 
-    /** 접수 시작·마감일을 월 캘린더로. 지난 공고는 조회 단계에서 이미 빠지므로 과거 달은 비어 보인다. */
+    /**
+     * 접수 시작·마감일을 월 캘린더로. 지난 공고는 조회 단계에서 이미 빠지므로 과거 달은 비어 보인다.
+     * 필터는 공고 목록과 같은 조건(지역·주택유형·분양/임대). {@code day} 는 그날 일정을 격자 아래에 다 펼친다.
+     */
     @GetMapping("/announcements/calendar")
-    public String calendar(@RequestParam(required = false) String month, Model model) {
+    public String calendar(@RequestParam(required = false) String month,
+                           @RequestParam(required = false) String day,
+                           @RequestParam(required = false) String region,
+                           @RequestParam(required = false) String detailType,
+                           @RequestParam(required = false) String category,
+                           Model model) {
         LocalDate today = queryService.today();
         YearMonth ym = parseMonth(month, today);
-        List<Announcement> announcements = queryService.findOpenOrUpcoming(null, null, null);
-        model.addAttribute("calendar", CalendarView.of(announcements, ym, today));
+        CalendarFilter filter = new CalendarFilter(region, parseDetailType(detailType), parseCategory(category));
+        List<Announcement> announcements = queryService.findOpenOrUpcoming(
+                filter.region(), filter.detailType(), null, filter.category());
+        CalendarView calendar = CalendarView.of(announcements, ym, today);
+        model.addAttribute("calendar", calendar);
+        model.addAttribute("selectedDay", calendar.dayOf(parseDay(day)));
+        model.addAttribute("filter", filter);
+        model.addAttribute("regions", queryService.availableRegions());
+        model.addAttribute("detailTypes", HouseDetailType.values());
+        model.addAttribute("categories", SupplyCategory.values());
         return "announcements/calendar";
+    }
+
+    /** 잘못된 형식이면 펼치지 않는다 — 400 을 내지 않는다. */
+    private LocalDate parseDay(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return LocalDate.parse(raw);
+        } catch (DateTimeParseException e) {
+            return null;
+        }
     }
 
     /** 잘못된 형식이면 이번 달로 — 400 을 내지 않는다. */
@@ -139,7 +173,27 @@ public class AnnouncementController {
     }
 
     /**
-     * 찜한 공고 비교 — 스크랩은 이 브라우저의 localStorage 에만 있어 서버는 무엇이 찜됐는지
+     * "내 캘린더에 추가" — 공고 일정을 .ics 로. 날짜가 하나도 없는 공고는 404 (화면도 버튼을 숨긴다).
+     * 파일 내용은 {@link AnnouncementIcs} 가 만든다.
+     */
+    @GetMapping("/announcements/{id}/calendar.ics")
+    public ResponseEntity<byte[]> calendarIcs(@PathVariable Long id) {
+        Announcement announcement = queryService.findDetail(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "공고를 찾을 수 없습니다."));
+        if (AnnouncementIcs.events(announcement).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "공고에 일정이 없습니다.");
+        }
+        String detailUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/announcements/{id}").buildAndExpand(id).toUriString();
+        byte[] body = AnnouncementIcs.render(announcement, detailUrl, ZonedDateTime.now(ZoneOffset.UTC));
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/calendar; charset=utf-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"chungyak-" + id + ".ics\"")
+                .body(body);
+    }
+
+    /**
+     * 찜한 공고 비교 —스크랩은 이 브라우저의 localStorage 에만 있어 서버는 무엇이 찜됐는지
      * 모른다. 화면이 JS 로 찜한 id 를 모아 이 쿼리스트링으로 요청하면, 그 id들만 조회해서
      * 나란히 보여줄 뿐이다. 너무 많이 넘어와도 카드가 난립하지 않게 최대 6개로 자른다.
      */
@@ -248,6 +302,7 @@ public class AnnouncementController {
                 announcement.getReceptEndDate(), queryService.today()));
         model.addAttribute("timeline", ScheduleTimeline.of(announcement, queryService.today()));
         model.addAttribute("highlights", DetailHighlights.of(announcement));
+        model.addAttribute("hasCalendarEvents", !AnnouncementIcs.events(announcement).isEmpty());
         model.addAttribute("qaEnabled", qaService.isEnabled());
         model.addAttribute("qaIndexed", qaService.hasIndex(id));
         // 문의처는 하이픈 없는 숫자로 들어온다 — 읽을 수 있게 끊어서 보여주고,
@@ -277,6 +332,10 @@ public class AnnouncementController {
                     .collect(Collectors.toMap(UnitType::getId,
                             u -> lotteryCalculator.calculate(u.getTypeName(), u.getGeneralSupplyCount(), regulated)));
             model.addAttribute("lotteryByUnitType", lottery);
+            // 비규제 공고는 비율이 지자체 공고로 정해져 전 행이 "-" 다 — 빈 열 두 개는 표만 넓힌다.
+            // 안내 문단(공고문 확인)은 그대로 두고 열만 뺀다.
+            model.addAttribute("showLotteryCols",
+                    lottery.values().stream().anyMatch(GeneralSupplyLotteryCalculator.Result::known));
         }
         return "announcements/detail";
     }

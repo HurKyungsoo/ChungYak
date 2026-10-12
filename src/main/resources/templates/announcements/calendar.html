@@ -8,18 +8,45 @@
 <main>
     <a th:href="@{/announcements}" class="backlink">← 공고 목록</a>
 
+    <!-- 달 이동·날짜 펼치기 링크는 고른 필터를 그대로 이어 간다(filter.suffix()) -->
     <div class="cal-nav">
         <h2 th:text="${calendar.label}">2026년 9월</h2>
         <div class="nav-btns">
-            <a class="btn btn-ghost" th:href="@{/announcements/calendar(month=${calendar.prevMonth})}">‹ 이전달</a>
-            <a class="btn btn-ghost" th:if="${!calendar.currentMonth}" th:href="@{/announcements/calendar}">이번달</a>
-            <a class="btn btn-ghost" th:href="@{/announcements/calendar(month=${calendar.nextMonth})}">다음달 ›</a>
+            <a class="btn btn-ghost" th:href="@{/announcements/calendar} + '?month=' + ${calendar.prevMonth} + ${filter.suffix()}">‹ 이전달</a>
+            <a class="btn btn-ghost" th:if="${!calendar.currentMonth}"
+               th:href="@{/announcements/calendar} + (${filter.active()} ? '?' + ${filter.suffix().substring(1)} : '')">이번달</a>
+            <a class="btn btn-ghost" th:href="@{/announcements/calendar} + '?month=' + ${calendar.nextMonth} + ${filter.suffix()}">다음달 ›</a>
         </div>
     </div>
+
+    <!-- 공고 목록과 같은 필터 — 하루 20건씩 몰리는 날이 있어 관심 지역·유형만 남겨 본다.
+         고르는 즉시 반영(filterAutoApplyScript), 보고 있던 달은 유지한다. -->
+    <form class="filter-bar cal-filter" method="get" th:action="@{/announcements/calendar}" data-auto-apply="">
+        <input type="hidden" name="month" th:value="${calendar.month}">
+        <select name="region" aria-label="지역">
+            <option value="">지역 전체</option>
+            <option th:each="r : ${regions}" th:value="${r}" th:text="${r}"
+                    th:selected="${r == filter.region()}">서울</option>
+        </select>
+        <select name="detailType" aria-label="주택유형">
+            <option value="">주택유형 전체</option>
+            <option th:each="d : ${detailTypes}" th:if="${d.name() != 'UNKNOWN'}"
+                    th:value="${d.name()}" th:text="${d.label}"
+                    th:selected="${d == filter.detailType()}">민영</option>
+        </select>
+        <select name="category" aria-label="분양·임대">
+            <option value="">분양·임대 전체</option>
+            <option th:each="c : ${categories}" th:value="${c.name()}" th:text="${c.label}"
+                    th:selected="${c == filter.category()}">분양</option>
+        </select>
+        <a th:if="${filter.active()}" th:href="@{/announcements/calendar(month=${calendar.month})}" class="btn btn-ghost">초기화</a>
+        <noscript><button type="submit" class="btn btn-ghost">적용</button></noscript>
+    </form>
 
     <div class="cal-legend">
         <span><i class="start"></i> 접수 시작</span>
         <span><i class="end"></i> 접수 마감</span>
+        <span class="cal-legend-tip">날짜를 누르면 그날 일정을 모두 볼 수 있어요</span>
     </div>
 
     <div class="cal-grid">
@@ -33,25 +60,48 @@
 
         <th:block th:each="week : ${calendar.weeks}">
             <div class="cal-day" th:each="day : ${week}"
-                 th:classappend="${!day.inMonth} ? 'out' : (${day.today} ? 'today' : '')">
-                <span class="num" th:text="${day.date.dayOfMonth}">1</span>
-                <!-- 하루 20건씩 몰리는 날이 있어 3건까지만 펼치고 나머지는 접는다(마감 먼저) -->
+                 th:with="dayHref=@{/announcements/calendar} + '?month=' + ${calendar.month} + '&day=' + ${day.date} + ${filter.suffix()} + '#dayPanel'"
+                 th:classappend="(${!day.inMonth} ? 'out' : (${day.today} ? 'today' : ''))
+                                 + (${selectedDay != null and selectedDay.date == day.date} ? ' selected' : '')">
+                <!-- 일정이 있는 날만 숫자가 링크 — 그날 일정을 격자 아래 패널에 다 펼친다 -->
+                <a class="num" th:if="${day.inMonth and !day.events.isEmpty()}" th:href="${dayHref}"
+                   th:text="${day.date.dayOfMonth}"
+                   th:attr="aria-label=${day.agendaLabel()} + ' 일정 ' + ${day.events.size()} + '건 모두 보기'">1</a>
+                <span class="num" th:unless="${day.inMonth and !day.events.isEmpty()}" th:text="${day.date.dayOfMonth}">1</span>
+                <!-- 하루 20건씩 몰리는 날이 있어 3건까지만 칸에 두고 나머지는 패널로 넘긴다(마감 먼저).
+                     예전에는 칸 안에서 펼쳤는데, 좁은 칸에서 20건이 펼쳐지면 공고명이 잘리고 격자가 늘어진다. -->
                 <a th:each="ev : ${day.visibleEvents()}" class="cal-event"
                    th:classappend="${ev.kind.name() == 'START'} ? 'start' : 'end'"
                    th:href="@{/announcements/{id}(id=${ev.announcementId})}"
                    th:text="${ev.houseName}"
                    th:title="${(ev.kind.name() == 'START' ? '접수 시작: ' : '접수 마감: ') + ev.houseName}">공고명</a>
-                <details class="cal-more" th:if="${!day.hiddenEvents().isEmpty()}">
-                    <summary th:text="|+${day.hiddenEvents().size()}개 더|">+5개 더</summary>
-                    <a th:each="ev : ${day.hiddenEvents()}" class="cal-event"
-                       th:classappend="${ev.kind.name() == 'START'} ? 'start' : 'end'"
-                       th:href="@{/announcements/{id}(id=${ev.announcementId})}"
-                       th:text="${ev.houseName}"
-                       th:title="${(ev.kind.name() == 'START' ? '접수 시작: ' : '접수 마감: ') + ev.houseName}">공고명</a>
-                </details>
+                <a class="cal-more" th:if="${!day.hiddenEvents().isEmpty()}" th:href="${dayHref}"
+                   th:text="|+${day.hiddenEvents().size()}개 더|">+5개 더</a>
             </div>
         </th:block>
     </div>
+
+    <!-- 고른 날의 일정 전부 — 공고명을 자르지 않고 마감 → 시작 순 (모바일 일정 목록과 같은 모양) -->
+    <section class="card cal-day-panel" id="dayPanel" th:if="${selectedDay != null}" aria-label="고른 날의 일정">
+        <div class="sec-head" style="margin:0 0 10px">
+            <h2 style="margin:0" th:text="${selectedDay.agendaLabel()}">10.12 (월)</h2>
+            <span class="count" th:text="|${selectedDay.events.size()}건|">22건</span>
+            <a class="cal-panel-close" th:href="@{/announcements/calendar} + '?month=' + ${calendar.month} + ${filter.suffix()}"
+               aria-label="닫기">닫기 ✕</a>
+        </div>
+        <ul class="agenda-list">
+            <li th:each="ev : ${selectedDay.endEvents()}">
+                <a class="agenda-item end" th:href="@{/announcements/{id}(id=${ev.announcementId})}">
+                    <span class="agenda-kind">마감</span><span class="agenda-name" th:text="${ev.houseName}">공고명</span>
+                </a>
+            </li>
+            <li th:each="ev : ${selectedDay.startEvents()}">
+                <a class="agenda-item start" th:href="@{/announcements/{id}(id=${ev.announcementId})}">
+                    <span class="agenda-kind">시작</span><span class="agenda-name" th:text="${ev.houseName}">공고명</span>
+                </a>
+            </li>
+        </ul>
+    </section>
 
     <!-- 좁은 화면 전용 일정 목록 — 7칸 격자는 공고명이 3~4글자로 잘려 못 읽는다.
          날짜별로 마감 → 시작 순, 공고명을 다 보여 주고 줄 전체를 누를 수 있게 한다. -->
@@ -81,5 +131,6 @@
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>
+<script th:replace="~{fragments/common :: filterAutoApplyScript}"></script>
 </body>
 </html>

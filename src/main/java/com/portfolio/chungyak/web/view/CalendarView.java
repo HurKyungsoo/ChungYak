@@ -61,6 +61,17 @@ public record CalendarView(YearMonth month, String label, List<List<CalendarDay>
                 .toList();
     }
 
+    /**
+     * 펼쳐 볼 날짜 하나 — 칸에는 3건만 보이고 공고명도 잘리므로, 고른 날의 일정을 격자 아래에 다 펼친다.
+     * 이 달이 아닌 날이나 일정 없는 날은 null (패널을 그리지 않는다).
+     */
+    public CalendarDay dayOf(LocalDate date) {
+        if (date == null) return null;
+        return weeks.stream().flatMap(List::stream)
+                .filter(d -> d.inMonth() && d.date().equals(date) && !d.events().isEmpty())
+                .findFirst().orElse(null);
+    }
+
     private static void addEvent(Map<LocalDate, List<CalendarEvent>> byDate, LocalDate date,
                                   Announcement a, CalendarEvent.Kind kind) {
         if (date == null) return;
