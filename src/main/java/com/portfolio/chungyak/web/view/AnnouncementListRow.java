@@ -9,6 +9,9 @@ import java.time.LocalDate;
  *
  * 엔티티를 그대로 넘기면 화면에서 상태 계산·집계를 하게 되는데,
  * 그런 계산은 서버에서 끝내고 화면은 값만 그린다.
+ *
+ * LH 공고는 특별공급 유형별 세대수를 원천이 주지 않는다(countsKnown=false) — 합계 0 을
+ * "특공 물량 없음"으로 그리면 거짓이 되므로 {@code lh} 로 갈라 특공 대신 금회 공급 세대수를 보여 준다.
  */
 public record AnnouncementListRow(
         Long id,
@@ -21,7 +24,12 @@ public record AnnouncementListRow(
         int unitTypeCount,
         int totalSpecialSupply,
         String ddayLabel,
-        boolean ddayUrgent) {
+        boolean ddayUrgent,
+        String categoryLabel,
+        String supplyTypeName,
+        boolean lh,
+        boolean waitlist,
+        Integer totalSupplyCount) {
 
     public static AnnouncementListRow of(Announcement a, String status, LocalDate today) {
         int specialSum = a.getUnitTypes().stream()
@@ -39,6 +47,11 @@ public record AnnouncementListRow(
                 a.getUnitTypes().size(),
                 specialSum,
                 dday.label(),
-                dday.urgent());
+                dday.urgent(),
+                a.getSupplyCategory() == null ? null : a.getSupplyCategory().getLabel(),
+                a.getSupplyTypeName(),
+                a.isLh(),
+                a.isWaitlist(),
+                a.getTotalSupplyCount());
     }
 }

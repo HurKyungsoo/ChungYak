@@ -4,6 +4,7 @@ import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.HouseType;
 import com.portfolio.chungyak.domain.SupplyBreakdown;
+import com.portfolio.chungyak.domain.SupplyCategory;
 import com.portfolio.chungyak.domain.UnitType;
 import com.portfolio.chungyak.rag.DocumentQaService;
 import com.portfolio.chungyak.rule.EligibilityEngine;
@@ -63,6 +64,21 @@ class AnnouncementControllerTest {
                 .houseName("공고 " + id)
                 .houseType(HouseType.APT).houseDetailType(HouseDetailType.PRIVATE)
                 .build();
+    }
+
+    @Test
+    @DisplayName("목록 구분 필터: 알맞은 값은 그대로, 모르는 값은 400 없이 '구분 없음'")
+    void listCategoryParam() throws Exception {
+        when(queryService.findOpenOrUpcoming(any(), any(), any(), any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/announcements").param("category", "RENTAL"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("selectedCategory", SupplyCategory.RENTAL));
+        verify(queryService).findOpenOrUpcoming(null, null, null, SupplyCategory.RENTAL);
+
+        mockMvc.perform(get("/announcements").param("category", "LAND"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("selectedCategory", (Object) null));
     }
 
     @Test

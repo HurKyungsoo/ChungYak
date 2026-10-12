@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+  LH 공고 상세 조각 (#18). detail.html 이 announcement.lh 일 때 기본정보 표·주택형 표 대신 이걸 쓴다.
+
+  청약홈과 다른 점:
+   - 규제지역 정보를 원천이 주지 않는다 → "비규제(통장 6개월)" 줄을 그리면 사실과 다르다
+     (임대·예비입주자는 청약통장 요건 자체가 없는 경우가 많다). 규제 줄은 없앤다.
+   - 특별공급 유형별 세대수가 없다 → 특공 열 대신 주택형·면적·모집 세대수만.
+   - 상세 API 로도 못 채운 값(매입임대의 주소 등)은 "공고문에서 확인"으로 넘긴다 — 추측해 채우지 않는다.
+-->
+<body>
+
+<th:block th:fragment="noticeButtons(announcement)">
+    <a th:if="${announcement.noticePdfUrl != null}" th:href="${announcement.noticePdfUrl}"
+       target="_blank" rel="noopener" class="btn btn-ghost btn-lg">공고문 PDF</a>
+    <a th:if="${announcement.noticeUrl != null}" th:href="${announcement.noticeUrl}"
+       target="_blank" rel="noopener" class="btn btn-ghost btn-lg">LH 공고 페이지</a>
+</th:block>
+
+<div th:fragment="info(announcement, moveInDisplay)" class="card">
+    <div class="card tint" th:if="${announcement.waitlist}" style="margin-bottom:12px">
+        <strong>예비입주자(대기자) 모집입니다.</strong>
+        <span class="muted">지금 입주할 세대를 뽑는 게 아니라, 빈 집이 생기면 순번대로 입주할 대기자를 모읍니다.
+            특별공급 몇 세대가 배정되는 공고가 아닙니다 — 순번 산정 기준은 공고문을 확인하세요.</span>
+    </div>
+    <table class="kv">
+        <tr th:if="${announcement.supplyTypeName != null}">
+            <th>공급유형</th>
+            <td th:text="'LH ' + ${announcement.supplyTypeName}">LH 행복주택(신혼희망)</td>
+        </tr>
+        <tr><th>지역</th><td th:text="${announcement.regionName} ?: '-'">경기도</td></tr>
+        <tr><th>주소</th>
+            <td>
+                <span th:if="${announcement.address != null}" th:text="${announcement.address}">주소</span>
+                <span th:unless="${announcement.address != null}" class="subtle">공고문에서 확인하세요</span>
+            </td>
+        </tr>
+        <!-- LH 공급 API 의 NOW_HSH_CNT 라벨("금회공급 세대수") 그대로 — 예비입주자 공고에서 이 수가
+             입주 확정 세대인지 대기 정원인지 API 만으로는 알 수 없어 해석해 부르지 않는다. -->
+        <tr><th>금회 공급</th>
+            <td>
+                <span th:if="${announcement.totalSupplyCount != null}"
+                      th:text="${#numbers.formatInteger(announcement.totalSupplyCount, 1, 'COMMA')} + '세대'">40세대</span>
+                <span th:unless="${announcement.totalSupplyCount != null}" class="subtle">공고문에서 확인하세요</span>
+            </td>
+        </tr>
+        <tr><th>모집공고일</th><td th:text="${announcement.noticeDate} ?: '-'">2026-10-01</td></tr>
+        <tr><th>청약접수</th>
+            <td>
+                <span th:if="${announcement.receptBeginDate != null}"
+                      th:text="${announcement.receptBeginDate} + ' ~ ' + (${announcement.receptEndDate} ?: '?')">2026-10-12 ~ 2026-10-14</span>
+                <span th:if="${announcement.receptBeginDate == null and announcement.receptEndDate != null}">
+                    <span th:text="'마감 ' + ${announcement.receptEndDate}">마감 2026-10-14</span>
+                    <span class="subtle">— 시작일은 공고문에서 확인하세요</span>
+                </span>
+                <span th:if="${announcement.receptBeginDate == null and announcement.receptEndDate == null}"
+                      class="subtle">공고문에서 확인하세요</span>
+            </td>
+        </tr>
+        <tr><th>당첨자발표</th>
+            <td>
+                <span th:if="${announcement.winnerAnnounceDate != null}" th:text="${announcement.winnerAnnounceDate}">2027-01-28</span>
+                <span th:unless="${announcement.winnerAnnounceDate != null}" class="subtle">공고문에서 확인하세요</span>
+            </td>
+        </tr>
+        <tr th:if="${moveInDisplay != null and !moveInDisplay.isBlank()}">
+            <th>입주예정</th><td th:text="${moveInDisplay}">2029-10</td>
+        </tr>
+    </table>
+</div>
+
+<th:block th:fragment="units(announcement, priceByUnitType)">
+    <h2>주택형</h2>
+    <p class="muted">LH 는 특별공급 유형별 배정 세대수를 공개 데이터로 주지 않습니다. 유형별 물량·자격 세부는
+        <a th:if="${announcement.noticePdfUrl != null}" th:href="${announcement.noticePdfUrl}" target="_blank" rel="noopener">공고문</a><span
+            th:unless="${announcement.noticePdfUrl != null}">공고문</span>에서 확인하세요.</p>
+
+    <!-- 분양가는 분양 공고에만 의미가 있다 — 임대 공고의 금액 필드를 분양가로 그리지 않는다. -->
+    <div class="table-scroll" data-scroll-hint
+         th:with="showPrice=${announcement.supplyCategory != null and announcement.supplyCategory.name() == 'SALE'
+                              and !priceByUnitType.isEmpty()}">
+        <table>
+            <thead>
+            <tr>
+                <th>주택형</th><th class="num">공급면적(㎡)</th>
+                <th class="num" th:if="${showPrice}">분양가(최고)</th>
+                <th class="num">금회 공급</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="u : ${announcement.unitTypes}">
+                <td th:text="${u.typeName}">26A</td>
+                <td class="num" th:text="${u.supplyArea} ?: '-'">38.50</td>
+                <td class="num" th:if="${showPrice}">
+                    <span th:if="${priceByUnitType.get(u.id) != null}" th:text="${priceByUnitType.get(u.id)}">3억 5,369만원</span>
+                    <span th:unless="${priceByUnitType.get(u.id) != null}" class="subtle">-</span>
+                </td>
+                <td class="num">
+                    <span th:if="${u.generalSupplyCount > 0}" th:text="${u.generalSupplyCount}">48</span>
+                    <span th:unless="${u.generalSupplyCount > 0}" class="subtle">-</span>
+                </td>
+            </tr>
+            <tr th:if="${announcement.unitTypes.isEmpty()}">
+                <td th:attr="colspan=${showPrice ? 4 : 3}" class="muted">
+                    주택형 정보가 없습니다 — 공고문에서 확인하세요.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</th:block>
+
+</body>
+</html>

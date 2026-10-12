@@ -187,6 +187,20 @@ public class Announcement {
         if (sum > 0) this.totalSupplyCount = sum;
     }
 
+    /** LH 공고인지 — 청약홈과 화면 구성이 다르다(규제·특공 세대수 정보가 원천에 없다). */
+    public boolean isLh() {
+        return externalId != null && externalId.startsWith("LH-");
+    }
+
+    /**
+     * 예비입주자(대기자) 모집인지. 당장 입주할 세대를 뽑는 게 아니라 빈 집이 날 때 순번대로
+     * 입주할 대기자를 모은다. LH 는 이 구분을 코드로 주지 않지만 제목에 일관되게 들어간다
+     * (2026-10-12 라이브: 주택 공고 313건 중 239건).
+     */
+    public boolean isWaitlist() {
+        return houseName != null && houseName.contains("예비입주자");
+    }
+
     /** 접수 진행 중인지 */
     public boolean isOpen(LocalDate today) {
         return receptBeginDate != null && receptEndDate != null

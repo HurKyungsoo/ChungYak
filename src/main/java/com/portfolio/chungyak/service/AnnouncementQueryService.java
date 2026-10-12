@@ -2,6 +2,7 @@ package com.portfolio.chungyak.service;
 
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.HouseDetailType;
+import com.portfolio.chungyak.domain.SupplyCategory;
 import com.portfolio.chungyak.repository.AnnouncementRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,12 +34,20 @@ public class AnnouncementQueryService {
      */
     @Transactional(readOnly = true)
     public List<Announcement> findOpenOrUpcoming(String region, HouseDetailType detailType, String keyword) {
+        return findOpenOrUpcoming(region, detailType, keyword, null);
+    }
+
+    /** 위 조건 + 공고 구분(분양/임대/신혼희망타운). category 가 null 이면 구분하지 않는다. */
+    @Transactional(readOnly = true)
+    public List<Announcement> findOpenOrUpcoming(String region, HouseDetailType detailType, String keyword,
+                                                 SupplyCategory category) {
         LocalDate today = LocalDate.now(clock);
         String normalizedKeyword = keyword == null ? null : keyword.trim().toLowerCase();
         return announcementRepository.findOpenWithUnitTypes(today).stream()
                 .filter(a -> region == null || region.isBlank()
                         || region.equals(a.getRegionName()))
                 .filter(a -> detailType == null || detailType == a.getHouseDetailType())
+                .filter(a -> category == null || category == a.getSupplyCategory())
                 .filter(a -> normalizedKeyword == null || normalizedKeyword.isBlank()
                         || (a.getHouseName() != null && a.getHouseName().toLowerCase().contains(normalizedKeyword)))
                 .sorted(Comparator.comparing(Announcement::getReceptBeginDate,

@@ -3,6 +3,7 @@ package com.portfolio.chungyak.web;
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
+import com.portfolio.chungyak.domain.SupplyCategory;
 import com.portfolio.chungyak.domain.UnitType;
 import com.portfolio.chungyak.rag.DocumentQaService;
 import com.portfolio.chungyak.rule.ApplicantProfile;
@@ -64,9 +65,12 @@ public class AnnouncementController {
                        @RequestParam(required = false) String detailType,
                        @RequestParam(required = false) String q,
                        @RequestParam(required = false) String sort,
+                       @RequestParam(required = false) String category,
                        Model model) {
         HouseDetailType parsedDetailType = parseDetailType(detailType);
-        List<Announcement> announcements = queryService.findOpenOrUpcoming(region, parsedDetailType, q);
+        SupplyCategory parsedCategory = parseCategory(category);
+        List<Announcement> announcements =
+                queryService.findOpenOrUpcoming(region, parsedDetailType, q, parsedCategory);
 
         LocalDate today = queryService.today();
         AnnouncementListSort parsedSort = AnnouncementListSort.from(sort);
@@ -83,7 +87,19 @@ public class AnnouncementController {
         model.addAttribute("selectedRegion", region);
         model.addAttribute("selectedDetailType", parsedDetailType);
         model.addAttribute("selectedKeyword", q);
+        model.addAttribute("categories", SupplyCategory.values());
+        model.addAttribute("selectedCategory", parsedCategory);
         return "announcements/list";
+    }
+
+    /** 빈 값이나 알 수 없는 값은 "구분 없음"으로 본다 — 400 을 내지 않는다. */
+    private SupplyCategory parseCategory(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return SupplyCategory.valueOf(raw);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     /** 빈 값이나 알 수 없는 값은 "필터 없음"으로 본다 — 400 을 내지 않는다. */

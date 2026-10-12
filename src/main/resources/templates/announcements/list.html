@@ -59,6 +59,11 @@
                     th:value="${d.name()}" th:text="${d.label}"
                     th:selected="${d == selectedDetailType}">민영</option>
         </select>
+        <select name="category">
+            <option value="">분양·임대 전체</option>
+            <option th:each="c : ${categories}" th:value="${c.name()}" th:text="${c.label}"
+                    th:selected="${c == selectedCategory}">분양</option>
+        </select>
         <select name="sort">
             <option th:each="s : ${sorts}" th:value="${s.name()}" th:text="${s.label}"
                     th:selected="${s == selectedSort}">마감 임박순</option>
@@ -66,7 +71,8 @@
         <!-- 링크여야 한다 — 폼 안에 submit 버튼을 두면 검색어 입력 후 엔터가 이 버튼으로 걸려
              검색 대신 초기화가 된다. 거를 게 없을 때는 눌러도 달라지는 게 없어 숨긴다. -->
         <a th:if="${!#strings.isEmpty(selectedKeyword) or !#strings.isEmpty(selectedRegion)
-                   or selectedDetailType != null or selectedSort.name() != 'DEADLINE'}"
+                   or selectedDetailType != null or selectedCategory != null
+                   or selectedSort.name() != 'DEADLINE'}"
            th:href="@{/announcements}" class="btn btn-ghost">초기화</a>
         <label class="scrap-filter">
             <input type="checkbox" id="scrapFilterToggle">
@@ -83,22 +89,38 @@
                 <span class="status-text"
                       th:classappend="${row.status == '접수중'} ? 'open' : (${row.status == '접수예정'} ? 'soon' : '')"
                       th:text="${row.status}">접수중</span>
-                <span class="meta" th:text="|${row.regionName ?: '-'} · ${row.houseDetailTypeLabel}|">서울 · 민영</span>
+                <span class="meta" th:unless="${row.lh}"
+                      th:text="|${row.regionName ?: '-'} · ${row.houseDetailTypeLabel}|">서울 · 민영</span>
+                <span class="meta" th:if="${row.lh}"
+                      th:text="|${row.regionName ?: '-'} · LH ${row.supplyTypeName ?: row.houseDetailTypeLabel}|">경기도 · LH 국민임대</span>
                 <button type="button" class="scrap-btn" th:attr="data-ann-id=${row.id}" aria-label="찜하기"></button>
                 <span class="dday" th:if="${row.ddayLabel != null}"
                       th:classappend="${row.ddayUrgent} ? 'soon' : ''"
                       th:text="${row.ddayLabel}">D-2</span>
             </div>
             <div class="title" th:text="${row.houseName}">공고명</div>
+            <!-- 시작일을 모르면 "? ~"가 오류처럼 보인다 — 마감일만 적는다.
+                 LH 는 특공 유형별 세대수를 원천이 주지 않아 합계 0 이 "물량 없음"이 아니다 —
+                 특공 대신 구분·대기자 모집 여부·모집 세대수를 보여 준다. -->
             <div class="facts">
-                <span class="fact">접수
-                    <span th:text="${row.receptBeginDate} ?: '?'">2026-01-01</span> ~
+                <span class="fact" th:if="${row.receptBeginDate != null}">접수
+                    <span th:text="${row.receptBeginDate}">2026-01-01</span> ~
                     <span th:text="${row.receptEndDate} ?: '?'">2026-01-05</span>
                 </span>
-                <span class="fact hl" th:if="${row.totalSpecialSupply > 0}"
-                      th:text="|특공 ${#numbers.formatInteger(row.totalSpecialSupply, 1, 'COMMA')}세대|">특공 35세대</span>
-                <span class="fact zero" th:if="${row.totalSpecialSupply == 0}">특공 물량 없음</span>
-                <span class="fact" th:text="|주택형 ${row.unitTypeCount}개|">주택형 4개</span>
+                <span class="fact" th:if="${row.receptBeginDate == null and row.receptEndDate != null}"
+                      th:text="|접수 마감 ${row.receptEndDate}|">접수 마감 2026-01-05</span>
+                <th:block th:unless="${row.lh}">
+                    <span class="fact hl" th:if="${row.totalSpecialSupply > 0}"
+                          th:text="|특공 ${#numbers.formatInteger(row.totalSpecialSupply, 1, 'COMMA')}세대|">특공 35세대</span>
+                    <span class="fact zero" th:if="${row.totalSpecialSupply == 0}">특공 물량 없음</span>
+                    <span class="fact" th:text="|주택형 ${row.unitTypeCount}개|">주택형 4개</span>
+                </th:block>
+                <th:block th:if="${row.lh}">
+                    <span class="fact" th:if="${row.categoryLabel != null}" th:text="${row.categoryLabel}">임대</span>
+                    <span class="fact hl" th:if="${row.waitlist}">대기자 모집</span>
+                    <span class="fact" th:if="${row.totalSupplyCount != null}"
+                          th:text="|금회 공급 ${#numbers.formatInteger(row.totalSupplyCount, 1, 'COMMA')}세대|">금회 공급 40세대</span>
+                </th:block>
             </div>
         </a>
     </div>

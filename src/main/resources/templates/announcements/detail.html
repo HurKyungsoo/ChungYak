@@ -2,7 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/common :: head('청약나침반 · ' + ${announcement.houseName},
     ${announcement.houseName} + ' — ' + (${announcement.regionName} ?: '') + ' ' + ${announcement.houseDetailType.label}
-    + ' · 청약접수 ' + (${announcement.receptBeginDate} ?: '?') + '~' + (${announcement.receptEndDate} ?: '?')
+    + (${announcement.receptBeginDate} != null
+        ? ' · 청약접수 ' + ${announcement.receptBeginDate} + '~' + (${announcement.receptEndDate} ?: '?')
+        : (${announcement.receptEndDate} != null ? ' · 접수 마감 ' + ${announcement.receptEndDate} : ''))
     + '. 내 조건으로 특별공급 자격을 바로 확인하세요.')}"></head>
 <body>
 <header th:replace="~{fragments/common :: header}"></header>
@@ -23,19 +25,33 @@
         </span>
         <span class="chip dday" th:if="${dday != null and dday.present()}"
               th:classappend="${dday.urgent()} ? 'soon' : ''" th:text="${dday.label()}">D-2</span>
-        <span class="chip" th:text="${announcement.houseDetailType.label} + ' · ' + ${announcement.houseType.label}">민영 · APT</span>
+        <span class="chip" th:unless="${announcement.lh}"
+              th:text="${announcement.houseDetailType.label} + ' · ' + ${announcement.houseType.label}">민영 · APT</span>
+        <span class="chip" th:if="${announcement.lh}"
+              th:text="'LH · ' + (${announcement.supplyTypeName} ?: ${announcement.houseDetailType.label})">LH · 국민임대</span>
+        <span class="chip hl" th:if="${announcement.waitlist}">대기자 모집</span>
         <span class="chip" style="color:var(--no)"
               th:if="${announcement.regulationFlags != null and announcement.regulationFlags.regulatedArea}">규제지역</span>
     </div>
 
     <div class="btn-row" style="margin:16px 0 4px">
         <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="btn btn-primary btn-lg">내 조건으로 자격 판정 →</a>
-        <a th:if="${announcement.noticeUrl != null}" th:href="${announcement.noticeUrl}"
+        <a th:if="${announcement.noticeUrl != null and !announcement.lh}" th:href="${announcement.noticeUrl}"
            target="_blank" rel="noopener" class="btn btn-ghost btn-lg">청약홈 공고문</a>
+        <th:block th:if="${announcement.lh}">
+            <th:block th:replace="~{announcements/lh :: noticeButtons(${announcement})}"></th:block>
+        </th:block>
         <button type="button" class="btn btn-ghost btn-lg scrap-btn scrap-btn-lg" th:attr="data-ann-id=${announcement.id}"
                 aria-label="찜하기"></button>
     </div>
 
+    <!-- LH 공고는 규제·특공 세대수 정보가 원천에 없어 기본정보·주택형 표를 따로 그린다 (announcements/lh.html) -->
+    <th:block th:if="${announcement.lh}">
+        <div th:replace="~{announcements/lh :: info(${announcement}, ${moveInDisplay})}"></div>
+        <th:block th:replace="~{announcements/lh :: units(${announcement}, ${priceByUnitType})}"></th:block>
+    </th:block>
+
+    <th:block th:unless="${announcement.lh}">
     <div class="card">
         <table class="kv">
             <tr><th>지역</th><td th:text="${announcement.regionName} ?: '-'">서울</td></tr>
@@ -159,6 +175,7 @@
     </div>
 
     </th:block>
+    </th:block><!-- /청약홈 공고 -->
 
     <!-- ── 공고문 Q&A (RAG) ── 판정이 아니라 공고문 내용 검색이다. 답은 발췌 근거와 함께 표시된다. -->
     <section th:if="${qaEnabled and qaIndexed}" style="margin-top:24px">

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('청약나침반 · 페이지를 찾을 수 없습니다', '요청한 페이지를 찾을 수 없습니다.')}"></head>
+<body>
+<header th:replace="~{fragments/common :: header}"></header>
+
+<main>
+    <h1>페이지를 찾을 수 없습니다</h1>
+    <p class="muted">공고가 삭제됐거나 주소가 바뀌었습니다. 수집 대상에서 빠진 공고(토지·상가 등)는 더 이상 보여 드리지 않습니다.</p>
+    <div class="btn-row" style="margin-top:16px">
+        <a th:href="@{/announcements}" class="btn btn-primary btn-lg">공고 목록으로</a>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
+<!-- 없는 공고를 "오늘 본 공고"·찜에서 지운다 — 둘 다 이 브라우저(localStorage)에만 있어 서버는
+     어떤 id 가 남아 있는지 모른다. 끊긴 링크를 한 번 밟으면 그 자리에서 정리된다. -->
+<script>
+    (function () {
+        var m = location.pathname.match(/^\/announcements\/(\d+)\/?$/);
+        if (!m) return;
+        var id = m[1];
+        try {
+            var recent = JSON.parse(localStorage.getItem('chungyak:recentViews') || '[]');
+            localStorage.setItem('chungyak:recentViews', JSON.stringify(
+                recent.filter(function (v) { return !v || String(v.id) !== id; })));
+            var scraps = JSON.parse(localStorage.getItem('chungyak:scraps') || '[]');
+            localStorage.setItem('chungyak:scraps', JSON.stringify(
+                scraps.filter(function (s) { return String(s) !== id; })));
+        } catch (e) { /* 저장소를 못 쓰면 정리만 건너뛴다 */ }
+    })();
+</script>
+</body>
+</html>
