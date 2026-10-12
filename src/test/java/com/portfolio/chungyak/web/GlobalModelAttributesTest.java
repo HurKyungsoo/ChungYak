@@ -18,7 +18,7 @@ class GlobalModelAttributesTest {
     private static GlobalModelAttributes withLastSuccess(Instant at) {
         SyncStatus status = mock(SyncStatus.class);
         when(status.getLastSuccessAt()).thenReturn(at);
-        return new GlobalModelAttributes(status);
+        return new GlobalModelAttributes(status, mock(com.portfolio.chungyak.alert.AlertMailer.class));
     }
 
     @Test

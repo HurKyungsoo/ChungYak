@@ -51,12 +51,27 @@ public class AlertSubscriptionController {
                             @ModelAttribute("form") EligibilityForm form,
                             @RequestParam("email") String email,
                             @RequestParam(name = "resultToken", required = false) String resultToken,
+                            @RequestParam(name = "consent", defaultValue = "false") boolean consent,
                             RedirectAttributes redirectAttributes) {
         Announcement announcement = queryService.findDetail(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "공고를 찾을 수 없습니다."));
         String backTo = resultToken != null && !resultToken.isBlank()
                 ? "redirect:/announcements/" + id + "/eligibility/result/" + resultToken
                 : "redirect:/announcements/" + id + "/eligibility";
+
+        // 메일을 보낼 수 없으면 받지 않는다 — 확인 메일도 못 가는데 이메일·소득·자산만 쌓이게 된다.
+        // (화면도 이때는 신청 입구를 숨긴다: GlobalModelAttributes.alertMailEnabled)
+        if (!mailer.isEnabled()) {
+            redirectAttributes.addFlashAttribute("alertMessage", "지금은 알림 메일을 보낼 수 없어 신청을 받지 않습니다.");
+            redirectAttributes.addFlashAttribute("alertMessageBad", true);
+            return backTo;
+        }
+        // 이메일과 소득·자산이 담긴 조건을 저장하므로 수집·이용 동의를 받는다 (개인정보 처리방침 2절)
+        if (!consent) {
+            redirectAttributes.addFlashAttribute("alertMessage", "개인정보 수집·이용에 동의해야 알림을 신청할 수 있습니다.");
+            redirectAttributes.addFlashAttribute("alertMessageBad", true);
+            return backTo;
+        }
 
         String trimmedEmail = email == null ? "" : email.strip();
         if (!EMAIL_PATTERN.matcher(trimmedEmail).matches()) {

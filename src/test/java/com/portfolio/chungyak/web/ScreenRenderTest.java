@@ -104,6 +104,9 @@ class ScreenRenderTest {
         render("/announcements/compare?ids=" + aptId + "," + lhId);
         render("/match");
         render("/general-supply");
+        // 처리방침 — 위탁 절은 켜진 기능만 그린다(개발 PC 는 AI 키가 있을 수 있어 내용은 단정하지 않는다)
+        assertThat(render("/my-profile")).contains("내 조건").contains("profileDraft");
+        assertThat(render("/privacy")).contains("개인정보 처리방침").contains("제3자 제공과 처리 위탁");
         render("/quick?married=true&monthsSinceMarriage=40&childCount=1&houseless=true");
         render("/announcements/" + aptId + "/eligibility");
     }

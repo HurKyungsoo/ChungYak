@@ -80,6 +80,7 @@ llm:
 # 새 공고 알림(C2). 확인·해지 메일의 링크에 쓸 절대 URL 베이스.
 app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
+  privacy-contact: ${PRIVACY_CONTACT:}   # 개인정보 보호책임자 연락처 — /privacy 에 표시
 
 # 새 공고 알림(C2) 메일 발송. host 가 비어 있으면 JavaMailSender 빈을 안 만들고
 # 구독 저장까지만 동작한다(발송은 로그로 대체) — Anthropic/Voyage 키 없을 때와 같은 패턴.

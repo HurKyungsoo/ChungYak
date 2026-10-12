@@ -1,5 +1,6 @@
 package com.portfolio.chungyak.web;
 
+import com.portfolio.chungyak.alert.AlertMailer;
 import com.portfolio.chungyak.service.SyncStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -24,6 +25,16 @@ public class GlobalModelAttributes {
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.of("Asia/Seoul"));
 
     private final SyncStatus syncStatus;
+    private final AlertMailer alertMailer;
+
+    /**
+     * 메일 발송이 켜져 있는지 — 꺼져 있으면 "새 공고 알림" 신청 입구를 숨긴다.
+     * 발송이 안 되는데 받기만 하면 이메일·소득·자산을 쓸모없이 저장하게 되고, 확인 메일도 오지 않는다.
+     */
+    @ModelAttribute("alertMailEnabled")
+    public boolean alertMailEnabled() {
+        return alertMailer.isEnabled();
+    }
 
     /** 마지막으로 <b>성공한</b> 수집 시각. 한 번도 안 돌았으면 빈 문자열 — 화면에서 줄 자체를 감춘다. */
     @ModelAttribute("lastSyncAt")

@@ -37,7 +37,8 @@ class VerdictSummaryControllerTest {
     void setUp() {
         queryService = mock(AnnouncementQueryService.class);
         mockMvc = MockMvcBuilders.standaloneSetup(new VerdictSummaryController(queryService,
-                new EligibilityEngine(RuleTestSupport.allRules()), new EligibilityResultAssembler())).build();
+                new EligibilityEngine(RuleTestSupport.allRules()), new EligibilityResultAssembler(),
+                mock(com.portfolio.chungyak.service.AnnouncementMatchService.class))).build();
     }
 
     @Test

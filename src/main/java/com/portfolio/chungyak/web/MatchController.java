@@ -106,6 +106,7 @@ public class MatchController {
 
         model.addAttribute("rows", rows);
         model.addAttribute("matchedCount", matched.size());
+        model.addAttribute("fixableGroups", matchService.fixableGroups(profile));
         model.addAttribute("regions", MatchRowFilter.regionsOf(matched));
         model.addAttribute("detailTypes", MatchRowFilter.typesOf(matched));
         model.addAttribute("sorts", MatchRowFilter.Sort.values());

@@ -32,7 +32,8 @@ public class AlertMailer {
 
     public void send(String to, String subject, String body) {
         if (mailSender.isEmpty()) {
-            log.info("메일 발송 비활성(alert.mail.host 미설정) — to={}, subject={}\n{}", to, subject, body);
+            // 받는 사람 전체 주소·본문(확인·해지 토큰)은 로그에 남기지 않는다 — 로그도 개인정보 보관이 된다
+            log.info("메일 발송 비활성(alert.mail.host 미설정) — to=*@{}, subject={}", domainOf(to), subject);
             return;
         }
         SimpleMailMessage message = new SimpleMailMessage();
@@ -41,5 +42,10 @@ public class AlertMailer {
         message.setSubject(subject);
         message.setText(body);
         mailSender.get().send(message);
+    }
+
+    private static String domainOf(String email) {
+        int at = email == null ? -1 : email.lastIndexOf('@');
+        return at < 0 ? "?" : email.substring(at + 1);
     }
 }

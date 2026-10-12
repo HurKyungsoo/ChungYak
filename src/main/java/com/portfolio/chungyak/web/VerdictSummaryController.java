@@ -2,9 +2,14 @@ package com.portfolio.chungyak.web;
 
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.rule.EligibilityEngine;
+import com.portfolio.chungyak.service.AnnouncementMatchService;
 import com.portfolio.chungyak.service.AnnouncementQueryService;
 import com.portfolio.chungyak.web.form.EligibilityForm;
 import com.portfolio.chungyak.web.view.EligibilityResultAssembler;
+import com.portfolio.chungyak.web.view.ListBadge;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -28,6 +33,7 @@ public class VerdictSummaryController {
     private final AnnouncementQueryService queryService;
     private final EligibilityEngine eligibilityEngine;
     private final EligibilityResultAssembler resultAssembler;
+    private final AnnouncementMatchService matchService;
 
     @PostMapping("/announcements/{id}/verdict-summary")
     public String summary(@PathVariable Long id, @ModelAttribute("form") EligibilityForm form, Model model) {
@@ -36,5 +42,15 @@ public class VerdictSummaryController {
         model.addAttribute("announcement", announcement);
         model.addAttribute("result", resultAssembler.assemble(eligibilityEngine.evaluate(form.toProfile(), announcement)));
         return "announcements/verdict-summary :: card";
+    }
+
+    /**
+     * 공고 목록 카드의 "내 자격" 배지 — 저장된 조건을 POST 로 받아(URL 에 소득·자산을 남기지 않게)
+     * 공고 id → 배지 JSON 을 돌려준다. 판정은 엔진이, 배지 고르기는 {@link ListBadge} 가 한다. 저장하지 않는다.
+     */
+    @PostMapping("/announcements/list-badges")
+    @ResponseBody
+    public Map<Long, ListBadge> listBadges(@ModelAttribute("form") EligibilityForm form) {
+        return matchService.badges(form.toProfile());
     }
 }

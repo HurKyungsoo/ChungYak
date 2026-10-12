@@ -70,6 +70,62 @@ class AnnouncementMatchServiceTest {
         assertThat(rows).extracting(MatchRow::houseName).containsExactly("빨리 마감", "늦게 마감");
     }
 
+    @Test
+    @DisplayName("목록 배지: 가능 / 기간만 채우면 가능(엔진 힌트 포함) / 정보 부족 / 물량 모름 — 엔진 결과만 옮긴다")
+    void listBadges() {
+        Announcement newlywed = announcement("신혼부부 공고", LocalDate.now(CLOCK).plusDays(10));
+        newlywed.addUnitType(unitType("084A", SupplyBreakdown.builder().newlywed(30).build()));
+        Announcement hopeTownTotalOnly = announcement("유형별 물량 모름", LocalDate.now(CLOCK).plusDays(10));
+        hopeTownTotalOnly.addUnitType(unitType("055A", SupplyBreakdown.builder().build()));
+        setId(newlywed, 1L);
+        setId(hopeTownTotalOnly, 2L);
+        matchService = serviceWith(newlywed, hopeTownTotalOnly);
+
+        var ok = matchService.badges(newlywedProfile());
+        assertThat(ok.get(1L).state()).isEqualTo(com.portfolio.chungyak.web.view.ListBadge.State.ELIGIBLE);
+        assertThat(ok.get(1L).types()).containsExactly("신혼부부");
+        assertThat(ok.get(2L).state()).isEqualTo(com.portfolio.chungyak.web.view.ListBadge.State.UNKNOWN);
+
+        // 통장 3개월(비규제 6개월 요건) — 기간만 채우면 되는 미충족이라 FIXABLE, 엔진이 남긴 힌트가 따라온다
+        var shortAccount = matchService.badges(RuleTestSupport.passingIncomeAndAssets()
+                .married(true).monthsSinceMarriage(24).houseless(true).accountMonths(3).build());
+        assertThat(shortAccount.get(1L).state()).isEqualTo(com.portfolio.chungyak.web.view.ListBadge.State.FIXABLE);
+        assertThat(shortAccount.get(1L).hints()).isNotEmpty();
+
+        // 빠른 진단처럼 소득·통장을 안 넣은 조건 — "해당 없음"이 아니라 "정보 더 필요"
+        var partial = matchService.badges(ApplicantProfile.builder().married(true).monthsSinceMarriage(24).houseless(true).build());
+        assertThat(partial.get(1L).state()).isEqualTo(com.portfolio.chungyak.web.view.ListBadge.State.NEEDS_INFO);
+    }
+
+    @Test
+    @DisplayName("이것만 바뀌면 가능: 메울 수 있는 미충족만 남은 공고를 엔진 힌트 문장별로 묶는다 (이미 가능한 공고·되돌릴 수 없는 미충족은 제외)")
+    void fixableGroups() {
+        Announcement a = announcement("A 공고", LocalDate.now(CLOCK).plusDays(10));
+        a.addUnitType(unitType("084A", SupplyBreakdown.builder().newlywed(30).build()));
+        Announcement b = announcement("B 공고", LocalDate.now(CLOCK).plusDays(12));
+        b.addUnitType(unitType("084A", SupplyBreakdown.builder().newlywed(10).build()));
+        setId(a, 1L);
+        setId(b, 2L);
+        matchService = serviceWith(a, b);
+
+        // 통장 3개월 — 두 공고 모두 같은 요건(비규제 6개월)이라 한 묶음, 2곳
+        var groups = matchService.fixableGroups(RuleTestSupport.passingIncomeAndAssets()
+                .married(true).monthsSinceMarriage(24).houseless(true).accountMonths(3).build());
+        assertThat(groups).hasSize(1);
+        assertThat(groups.get(0).count()).isEqualTo(2);
+        assertThat(groups.get(0).hints()).isNotEmpty();
+
+        // 이미 신청 가능하면 묶음에 오지 않는다
+        assertThat(matchService.fixableGroups(newlywedProfile())).isEmpty();
+        // 혼인 기간 초과(되돌릴 수 없음)는 "이것만 바뀌면"이 아니다
+        assertThat(matchService.fixableGroups(RuleTestSupport.passingIncomeAndAssets()
+                .married(true).monthsSinceMarriage(120).houseless(true).accountMonths(3).build())).isEmpty();
+    }
+
+    private static void setId(Announcement a, Long id) {
+        org.springframework.test.util.ReflectionTestUtils.setField(a, "id", id);
+    }
+
     private AnnouncementMatchService serviceWith(Announcement... announcements) {
         AnnouncementRepository repo = mock(AnnouncementRepository.class);
         when(repo.findOpenWithUnitTypes(any())).thenReturn(List.of(announcements));

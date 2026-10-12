@@ -428,7 +428,30 @@
         .recent-chip:hover a { color: var(--brand); text-decoration: none; }
         .tl-ics { margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
                   font-size: .82rem; font-weight: 600; white-space: nowrap; }
-        .recent-chip[hidden] { display: none; }   /* .chip 의 inline-flex 가 [hidden] 을 이긴다 */
+        .recent-chip[hidden] { display: none; }
+        /* 목록 카드 "내 자격" 배지 (listBadgesScript · ListBadge.State) */
+        .my-badge { margin-top: 10px; padding: 6px 10px; border-radius: 8px; font-size: .8rem; font-weight: 650;
+                    line-height: 1.4; }
+        .my-badge.eligible { background: var(--ok-weak); color: var(--ok); }
+        .my-badge.fixable { background: var(--warn-weak); color: var(--warn); }
+        .my-badge.needs_info { background: var(--surface-2); color: var(--text-muted); font-weight: 600; }
+        .my-badge.none { background: transparent; color: var(--text-subtle); font-weight: 500; padding: 0; }
+        .my-badge-note { margin-left: auto; font-size: .82rem; font-weight: 600; }
+        .my-badge-note[hidden] { display: none; }
+        .fixable-groups { margin-top: 20px; }
+        .fg-item { padding: 12px 0; border-top: 1px solid var(--border); }
+        .fg-hints { margin: 0; padding-left: 1.1em; font-weight: 600; font-size: .92rem; display: grid; gap: 2px; }
+        .fg-item summary { cursor: pointer; margin-top: 6px; font-size: .86rem; font-weight: 700; color: var(--warn); }
+        .fg-anns { margin: 8px 0 0; padding-left: 1.1em; font-size: .86rem; display: grid; gap: 3px; }
+        .danger-ghost { color: var(--no); }
+        .danger-ghost:disabled { opacity: .5; cursor: default; }
+        .foot-privacy { margin-left: 8px; font-weight: 700; color: inherit; }
+        .consent { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; font-size: .82rem;
+                   color: var(--text-muted); line-height: 1.5; }
+        .consent input { margin-top: 3px; flex: none; }
+        main.legal h2 { font-size: 1.02rem; margin: 0 0 8px; }
+        main.legal ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+        main.legal td, main.legal th { vertical-align: top; font-size: .88rem; }   /* .chip 의 inline-flex 가 [hidden] 을 이긴다 */
         .recent-more { cursor: pointer; font-family: inherit; color: var(--brand); background: var(--surface);
                        border: 1px dashed var(--border-strong); }
         .recent-more:hover { background: var(--brand-weak); }
@@ -1064,7 +1087,21 @@
                      찜을 다시 건드리기 전까지 돌아오지 않아, 닫는 순간 비교 화면이 사라졌다.
                      좁은 화면의 탭바와 같은 조건·같은 목록으로 여기에도 상설 진입점을 둔다. -->
                 <a id="navCompare" th:href="@{/announcements/compare}" hidden>비교<span class="nav-count">2</span></a>
+                <!-- 조건이 저장돼 있을 때만 — 무엇이 기억돼 있고 어떻게 지우는지 늘 한 번에 갈 수 있게 -->
+                <a id="navMyProfile" th:href="@{/my-profile}" hidden>내 조건 ✓</a>
             </nav>
+            <script>
+                (function () {
+                    var a = document.getElementById('navMyProfile');
+                    var sync = function () {
+                        var has = false;
+                        try { has = !!localStorage.getItem('chungyak:profileDraft'); } catch (e) {}
+                        a.hidden = !has;
+                    };
+                    sync();
+                    document.addEventListener('profile:changed', sync);
+                })();
+            </script>
         </div>
     </header>
 
@@ -1367,6 +1404,67 @@
     })();
 </script>
 
+<!-- ── 공고 목록 "내 자격" 배지 — 저장된 조건(chungyak:profileDraft)이 있으면 한 번 POST 해
+     공고 id → 배지(ListBadge) 를 받아 카드 아래에 붙인다. 판정은 서버의 규칙 엔진이 했고 여기서는 옮겨 적을 뿐이다.
+     조건은 본문으로만 보낸다(URL·로그에 소득·자산이 남지 않게). 실패하면 배지 없이 그대로 둔다.
+     배지 문구는 ListBadge.State 와 1:1 — 정보가 부족한 판정을 "해당 없음"으로 보이지 않게 따로 둔다. ── -->
+<script th:fragment="listBadgesScript">
+    (function () {
+        var cards = document.querySelectorAll('.notice-card[data-ann-id]');
+        if (!cards.length || !window.fetch) return;
+        var draft;
+        try { draft = JSON.parse(localStorage.getItem('chungyak:profileDraft') || 'null'); } catch (e) { return; }
+        if (!draft) return;
+
+        var MONEY = ['monthlyHouseholdIncome', 'totalAssets', 'carValue', 'accountDeposit'];
+        var body = new URLSearchParams();
+        Object.keys(draft).forEach(function (name) {
+            var v = draft[name];
+            if (v === '' || v === null || v === false || name === 'naturalText') return;
+            if (MONEY.indexOf(name) >= 0) v = String(v).replace(/[^0-9]/g, '');
+            if (v === '') return;
+            body.append(name, v === true ? 'true' : v);
+        });
+
+        var TEXT = {
+            ELIGIBLE: function (b) { return '✓ 내 조건으로 신청 가능 · ' + b.types.join(', '); },
+            FIXABLE: function (b) { return '조건을 채우면 가능 · ' + b.types.join(', '); },
+            NEEDS_INFO: function () { return '판정에 정보가 더 필요해요'; },
+            NONE: function () { return '내 조건 해당 유형 없음'; }
+        };
+
+        fetch('/announcements/list-badges', { method: 'POST', body: body, headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (badges) {
+                if (!badges) return;
+                var shown = 0, eligible = 0, needsInfo = 0;
+                cards.forEach(function (card) {
+                    var b = badges[card.getAttribute('data-ann-id')];
+                    if (!b || !TEXT[b.state]) return;
+                    var el = document.createElement('div');
+                    el.className = 'my-badge ' + b.state.toLowerCase();
+                    el.textContent = TEXT[b.state](b);   // 서버 값이라도 textContent 로만
+                    if (b.hints && b.hints.length) el.title = b.hints.join('\n');
+                    card.appendChild(el);
+                    shown++;
+                    if (b.state === 'ELIGIBLE') eligible++;
+                    if (b.state === 'NEEDS_INFO') needsInfo++;
+                });
+                var note = document.getElementById('myBadgeNote');
+                if (note && shown) {
+                    // 가능 0곳인데 정보 부족이 섞여 있으면 "0곳"은 틀린 결론처럼 읽힌다 — 채울 것을 먼저 말한다
+                    if (eligible === 0 && needsInfo > 0) {
+                        note.textContent = '조건을 더 채우면 ' + needsInfo + '곳을 판정할 수 있어요 · 내 조건 보기';
+                    } else {
+                        note.querySelector('b').textContent = eligible;
+                    }
+                    note.hidden = false;
+                }
+            })
+            .catch(function () { /* 배지 없이 그대로 */ });
+    })();
+</script>
+
 <!-- ── 공고 상세 "내 판정 요약" — 저장된 조건(chungyak:profileDraft)이 있을 때만 서버에 POST 해
      판정 요약 조각(announcements/verdict-summary :: card)을 받아 #verdictSummarySlot 에 끼운다.
      조건은 본문으로만 보낸다(URL 에 소득·자산이 남지 않게). 서버는 저장하지 않는다.
@@ -1516,6 +1614,7 @@
 
         <div class="foot-bottom">
             판정 결과는 참고용이며 법적 책임을 지지 않습니다 — 최종 신청 전 반드시 청약홈 공고문을 확인하세요.
+            <a th:href="@{/privacy}" class="foot-privacy">개인정보 처리방침</a>
         </div>
     </div>
 </footer>

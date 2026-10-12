@@ -88,6 +88,32 @@
         </div>
     </div>
 
+    <!-- "이것만 바뀌면 가능" — 지금은 안 되지만 기간·선택으로 메울 수 있는 미충족만 남은 공고(엔진 isFixable).
+         문장은 규칙이 남긴 힌트 그대로이고 묶음 하나는 "이걸 모두 하면" 이다(AnnouncementMatchService.fixableGroups).
+         소득·자산 초과나 혼인 기간 초과처럼 되돌릴 수 없는 미충족은 여기 오지 않는다. -->
+    <section class="card fixable-groups" th:if="${!fixableGroups.isEmpty()}" aria-label="이것만 바뀌면 신청 가능">
+        <div class="sec-head" style="margin:0 0 4px">
+            <h2 style="margin:0">이것만 바뀌면 신청 가능</h2>
+            <span class="count" th:text="|${fixableGroups.size()}가지|">3가지</span>
+        </div>
+        <p class="muted" style="margin:0 0 12px">지금은 신청할 수 없지만, 아래 조건을 채우면 열리는 공고입니다.
+            접수 마감 전에 채울 수 있는지는 공고 일정과 함께 확인하세요.</p>
+        <div class="fg-item" th:each="g, it : ${fixableGroups}" th:if="${it.index < 5}">
+            <ul class="fg-hints">
+                <li th:each="h : ${g.hints()}" th:text="${h}">청약통장을 3개월 더 유지하면 요건(6개월)을 충족합니다.</li>
+            </ul>
+            <details>
+                <summary th:text="|→ ${g.count()}곳 신청 가능해짐|">→ 4곳 신청 가능해짐</summary>
+                <ul class="fg-anns">
+                    <li th:each="a : ${g.announcements()}">
+                        <a th:href="@{/announcements/{id}(id=${a.id()})}" th:text="${a.houseName()}">공고명</a>
+                        <span class="muted" th:text="'· ' + ${a.typeLabel()}">· 신혼부부</span>
+                    </li>
+                </ul>
+            </details>
+        </div>
+    </section>
+
     <div th:replace="~{fragments/common :: disclaimer}"></div>
 </main>
 

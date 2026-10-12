@@ -6,8 +6,16 @@
 # Caddy 가 ${DOMAIN} 에 대해 Let's Encrypt 인증서를 자동 발급한다.
 # 서버 80/443 포트가 열려 있고 DNS 가 이 서버를 가리켜야 한다.
 
+# 컨테이너 로그(접속 IP 포함)를 무한정 쌓지 않는다 — 개인정보 처리방침의 "로그 보관" 항목과 맞춘다.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
+    logging: *default-logging
     image: mariadb:11
     restart: unless-stopped
     environment:
@@ -26,6 +34,7 @@ services:
   app:
     build: .
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       db:
         condition: service_healthy
@@ -41,6 +50,14 @@ services:
       LLM_MODEL: ${LLM_MODEL:-claude-sonnet-5}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      # 새 공고 알림 메일 — MAIL_HOST 가 비면 발송을 끄고 화면의 구독 입구도 숨긴다
+      APP_BASE_URL: ${APP_BASE_URL:-https://${DOMAIN}}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      ALERT_FROM_ADDRESS: ${ALERT_FROM_ADDRESS:-no-reply@chungyak-compass.local}
+      PRIVACY_CONTACT: ${PRIVACY_CONTACT:-}
     expose:
       - "8080"
     healthcheck:
@@ -53,6 +70,7 @@ services:
   caddy:
     image: caddy:2
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       - app
     ports:

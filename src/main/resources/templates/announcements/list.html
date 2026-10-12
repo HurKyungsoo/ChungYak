@@ -37,6 +37,9 @@
     <div class="sec-head" id="list">
         <h2>접수중 · 접수예정</h2>
         <span class="count" id="listCount" th:text="|${rows.size()}건|">9건</span>
+        <!-- 저장된 조건으로 카드에 배지를 붙였을 때만 보인다(listBadgesScript) -->
+        <a id="myBadgeNote" class="my-badge-note" th:href="@{/my-profile}" hidden>
+            내 조건으로 <b>0</b>곳 신청 가능 · 내 조건 보기</a>
     </div>
 
     <!-- 고르는 항목(지역·주택유형·정렬)은 바꾸는 즉시 반영한다 — 같은 바의 "찜한 공고만 보기"가
@@ -202,6 +205,7 @@
 <script th:replace="~{fragments/common :: scrapScript}"></script>
 <script th:replace="~{fragments/common :: filterAutoApplyScript}"></script>
 <script th:replace="~{fragments/common :: profileDraftScript}"></script>
+<script th:replace="~{fragments/common :: listBadgesScript}"></script>
 <script>
     // 혼인 경과 개월은 "혼인 중"일 때만 의미가 있다 — 판정 폼과 같은 토글.
     (function () {

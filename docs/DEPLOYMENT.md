@@ -123,11 +123,20 @@ Flyway 마이그레이션은 되돌릴 수 없어, 코드만 이전 커밋으로
 
 ## 백업
 
+매일 03:30 KST 에 `scripts/backup-db.sh` 가 `~/backups/chungyak-YYYYMMDD-HHMM.sql.gz` 를 만들고
+14일 지난 것은 지운다(개인정보 처리방침 5절과 같은 기간 — 바꾸면 `/privacy` 도 고칠 것).
+크론 등록은 `scripts/deploy.sh` 가 배포 때마다 확인한다(없으면 등록, 백업이 하나도 없으면 바로 한 번 실행).
+로그는 `~/backups/backup.log`.
+
 ```bash
-docker compose exec db sh -c 'mariadb-dump -u root -p"$MARIADB_ROOT_PASSWORD" chungyak' > backup-$(date +%F).sql
+bash ~/ChungYak/scripts/backup-db.sh          # 수동 백업
+gunzip -c ~/backups/chungyak-20261013-0330.sql.gz \
+  | sudo docker compose exec -T db sh -c 'mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" "$MARIADB_DATABASE"'   # 복원
 ```
 
-공고 데이터는 공공 API 에서 다시 수집 가능하므로 치명적이지 않지만, 회원 기능 추가 후에는 정기 백업 필수.
+공고 데이터는 공공 API 에서 다시 수집할 수 있지만 **알림 구독(이메일·조건)은 DB 에만 있다.**
+같은 서버 디스크의 백업은 디스크·인스턴스가 통째로 사라지면 같이 사라지므로, Lightsail 콘솔에서
+인스턴스 **자동 스냅샷**도 켜 둔다(서버 밖 사본).
 
 ## 모니터링
 

@@ -25,6 +25,21 @@ log() { echo "[deploy $(TZ=Asia/Seoul date +%H:%M:%S)] $*"; }
 
 log "커밋 ${OLD:0:7} -> ${NEW:0:7}"
 
+# 0) DB 일일 백업 크론 — 서버 설정을 손으로 하지 않고 이 저장소가 갖는다(멱등: 이미 있으면 그대로).
+#    03:30 KST = 18:30 UTC (서버 시계는 UTC). 04:00 공고 수집 전에 끝난다. 재빌드 생략 배포에서도 돈다.
+BACKUP_CRON="30 18 * * * $PWD/scripts/backup-db.sh >> $HOME/backups/backup.log 2>&1"
+if ! crontab -l 2>/dev/null | grep -qF 'scripts/backup-db.sh'; then
+    mkdir -p "$HOME/backups" && chmod 700 "$HOME/backups"
+    (crontab -l 2>/dev/null || true; echo "$BACKUP_CRON") | crontab -
+    log "DB 백업 크론 등록 (매일 03:30 KST)"
+fi
+chmod +x scripts/backup-db.sh 2>/dev/null || true
+# 백업이 하나도 없으면(처음 등록) 바로 한 번 떠 둔다 — 이번 배포 로그에서 동작을 확인할 수 있게
+if ! ls "$HOME"/backups/chungyak-*.sql.gz > /dev/null 2>&1; then
+    log "첫 DB 백업 실행"
+    scripts/backup-db.sh || log "첫 백업 실패 — 배포는 계속합니다(로그 확인 필요)"
+fi
+
 # 1) 앱에 영향 없는 변경만인가
 if [ "$FORCE" != "1" ] && [ -n "$OLD" ] && [ "$OLD" != "$NEW" ]; then
     APP_CHANGES="$(git diff --name-only "$OLD" "$NEW" | grep -Ev '(^docs/|^\.github/|^scripts/|\.md$)' || true)"

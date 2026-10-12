@@ -42,6 +42,7 @@ class AlertSubscriptionControllerTest {
         repository = mock(AlertSubscriptionRepository.class);
         AnnouncementQueryService queryService = mock(AnnouncementQueryService.class);
         mailer = mock(AlertMailer.class);
+        when(mailer.isEnabled()).thenReturn(true);
         AppProperties appProperties = new AppProperties("http://localhost:8080");
         Clock clock = Clock.fixed(Instant.parse("2026-09-05T00:00:00Z"), ZoneOffset.UTC);
 
@@ -63,6 +64,7 @@ class AlertSubscriptionControllerTest {
         mockMvc.perform(post("/announcements/1/eligibility/alerts/subscribe")
                         .param("email", "user@example.com")
                         .param("resultToken", "tok-123")
+                        .param("consent", "true")
                         .param("married", "true"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/announcements/1/eligibility/result/tok-123"));
@@ -80,8 +82,30 @@ class AlertSubscriptionControllerTest {
     @DisplayName("resultToken 이 없으면 폼 화면으로 돌아간다")
     void subscribeWithoutResultTokenRedirectsToForm() throws Exception {
         mockMvc.perform(post("/announcements/1/eligibility/alerts/subscribe")
-                        .param("email", "user@example.com"))
+                        .param("email", "user@example.com").param("consent", "true"))
                 .andExpect(redirectedUrl("/announcements/1/eligibility"));
+    }
+
+    @Test
+    @DisplayName("동의하지 않으면 저장하지 않는다 — 이메일과 소득·자산 조건을 담는 신청이다")
+    void consentRequired() throws Exception {
+        mockMvc.perform(post("/announcements/1/eligibility/alerts/subscribe")
+                        .param("email", "user@example.com"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("alertMessageBad", true));
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("메일 발송이 꺼져 있으면 신청을 받지 않는다 — 확인 메일도 못 가는데 개인정보만 쌓인다")
+    void refusedWhenMailDisabled() throws Exception {
+        when(mailer.isEnabled()).thenReturn(false);
+        mockMvc.perform(post("/announcements/1/eligibility/alerts/subscribe")
+                        .param("email", "user@example.com").param("consent", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("alertMessageBad", true));
+        verify(repository, never()).save(any());
+        verify(mailer, never()).send(any(), any(), any());
     }
 
     @Test

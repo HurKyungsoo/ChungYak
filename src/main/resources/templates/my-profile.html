@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('청약나침반 · 내 조건',
+    '이 브라우저에 저장된 청약 판정 조건을 확인하고 지울 수 있습니다.')}"></head>
+<body>
+<header th:replace="~{fragments/common :: header}"></header>
+
+<!--/* 내 조건 — 판정·찾기 폼이 저장해 둔 chungyak:profileDraft(profileDraftScript)를 그대로 읽어 보여 준다.
+       서버는 이 값을 모른다(개인정보 처리방침 3절). 고치기는 이미 이전 값을 채워 주는 찾기 폼으로 보낸다 —
+       폼을 하나 더 만들면 필드·검증이 두 벌이 된다. 값은 textContent 로만 넣는다(localStorage 값도 신뢰하지 않는다). */-->
+<main>
+    <a th:href="@{/announcements}" class="backlink">← 공고 목록</a>
+    <h1>내 조건</h1>
+    <p class="muted">판정할 때 입력한 조건은 <strong>이 브라우저에만</strong> 저장돼 다음 판정과 공고 목록의 "내 자격" 표시에 다시 쓰입니다.
+        서버에는 저장되지 않습니다. <a th:href="@{/privacy}">개인정보 처리방침</a></p>
+
+    <section class="card" id="profileEmpty" hidden>
+        <h2 style="margin:0 0 6px">저장된 조건이 없어요</h2>
+        <p class="muted" style="margin:0 0 12px">조건을 한 번 입력해 두면 공고 목록에서 신청 가능한 공고를 바로 표시해 드려요.</p>
+        <div class="btn-row">
+            <a th:href="@{/match}" class="btn btn-primary">내 조건 입력하기</a>
+            <a th:href="@{/announcements}" class="btn btn-ghost">30초 빠른 진단</a>
+        </div>
+    </section>
+
+    <section class="card" id="profileFilled" hidden>
+        <div class="sec-head" style="margin:0 0 10px">
+            <h2 style="margin:0">저장된 조건</h2>
+            <span class="count" id="profileCount"></span>
+        </div>
+        <table class="kv" id="profileTable"></table>
+        <p class="muted" id="profilePartial" hidden style="margin:10px 0 0">
+            빠진 항목이 있어 일부 공고는 "판정에 정보가 더 필요해요"로 표시됩니다. 소득·통장 등을 채우면 더 정확해집니다.</p>
+        <div class="btn-row" style="margin-top:14px">
+            <a th:href="@{/match}" class="btn btn-primary">조건 고치기 · 공고 찾기</a>
+            <a th:href="@{/announcements}" class="btn btn-ghost">공고 목록에서 내 자격 보기</a>
+            <button type="button" class="btn btn-ghost danger-ghost" id="profileClear">조건 지우기</button>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2 style="margin:0 0 6px">찜 · 오늘 본 공고</h2>
+        <p class="muted" style="margin:0 0 10px" id="listsSummary">이 브라우저에 저장된 목록입니다.</p>
+        <button type="button" class="btn btn-ghost danger-ghost" id="listsClear">찜·오늘 본 공고 지우기</button>
+    </section>
+
+    <section class="card" th:if="${alertMailEnabled}">
+        <h2 style="margin:0 0 6px">새 공고 알림</h2>
+        <p class="muted" style="margin:0">알림을 신청했다면 그 조건은 서버에 저장돼 있습니다(이 화면의 조건과 별개).
+            받은 알림 메일 하단의 <strong>해지 링크</strong>를 누르면 저장된 조건까지 즉시 삭제됩니다.</p>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
+<script>
+    (function () {
+        var KEY = 'chungyak:profileDraft';
+        // 판정 폼(EligibilityForm) 필드 → 화면 이름. 순서가 곧 표시 순서다.
+        var FIELDS = [
+            ['married', '혼인 중', 'bool'],
+            ['monthsSinceMarriage', '혼인 경과', '개월'],
+            ['childCount', '미성년 자녀', '명'],
+            ['hasNewborn', '2세 이하(신생아) 자녀', 'bool'],
+            ['hasChildUnderSix', '6세 이하 자녀', 'bool'],
+            ['houseless', '무주택', 'bool'],
+            ['everOwnedHouse', '과거 주택 소유', 'bool'],
+            ['householdHead', '세대주', 'bool'],
+            ['supportingOldParents', '노부모 3년 이상 부양', 'bool'],
+            ['householdSize', '가구원 수', '명'],
+            ['residenceMonthsInRegion', '공급지역 거주', '개월'],
+            ['accountMonths', '청약통장 가입', '개월'],
+            ['accountPaymentCount', '통장 납입', '회'],
+            ['accountDeposit', '통장 예치금', '원'],
+            ['monthlyHouseholdIncome', '가구 월평균소득', '원'],
+            ['dualIncome', '맞벌이', 'bool'],
+            ['totalAssets', '총자산', '원'],
+            ['carValue', '자동차가액', '원'],
+            ['everWonSpecialSupply', '특별공급 당첨 이력', 'bool'],
+            ['pastWinInSpeculationArea', '투기과열지구 당첨', 'bool'],
+            ['monthsSinceLastWin', '마지막 당첨 후', '개월']
+        ];
+        // 이게 비면 대부분 유형이 "정보 필요"로 남는다 — 빠른 진단만 한 경우
+        var KEY_FIELDS = ['accountMonths', 'monthlyHouseholdIncome', 'householdSize'];
+
+        function load() {
+            try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; }
+        }
+
+        function render() {
+            var draft = load();
+            var rows = [];
+            if (draft) {
+                FIELDS.forEach(function (f) {
+                    var v = draft[f[0]];
+                    if (f[2] === 'bool') { if (v === true || v === 'true') rows.push([f[1], '예']); return; }
+                    if (v === undefined || v === null || String(v).trim() === '') return;
+                    var n = String(v).replace(/[^0-9]/g, '');
+                    if (n === '') return;
+                    rows.push([f[1], Number(n).toLocaleString('ko-KR') + f[2]]);
+                });
+            }
+            var filled = rows.length > 0;
+            document.getElementById('profileEmpty').hidden = filled;
+            document.getElementById('profileFilled').hidden = !filled;
+            if (!filled) return;
+
+            var table = document.getElementById('profileTable');
+            table.textContent = '';
+            rows.forEach(function (r) {
+                var tr = document.createElement('tr');
+                var th = document.createElement('th'); th.textContent = r[0];
+                var td = document.createElement('td'); td.textContent = r[1];
+                tr.appendChild(th); tr.appendChild(td); table.appendChild(tr);
+            });
+            document.getElementById('profileCount').textContent = rows.length + '개 항목';
+            document.getElementById('profilePartial').hidden = KEY_FIELDS.every(function (k) {
+                return draft[k] !== undefined && draft[k] !== null && String(draft[k]).trim() !== '';
+            });
+        }
+
+        function listsSummary() {
+            var read = function (k) { try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch (e) { return []; } };
+            var s = read('chungyak:scraps').length, r = read('chungyak:recentViews').length;
+            document.getElementById('listsSummary').textContent =
+                '찜 ' + s + '건 · 본 공고 기록 ' + r + '건이 이 브라우저에 저장돼 있습니다.';
+            document.getElementById('listsClear').disabled = (s + r) === 0;
+        }
+
+        /* 지우기는 두 번 눌러 확정 — confirm() 대화상자 대신(모바일에서 거슬리고 막히는 환경이 있다) */
+        function twoStep(btn, label, action) {
+            var armed = false, timer;
+            btn.addEventListener('click', function () {
+                if (!armed) {
+                    armed = true;
+                    btn.textContent = '한 번 더 누르면 지워집니다';
+                    timer = setTimeout(function () { armed = false; btn.textContent = label; }, 4000);
+                    return;
+                }
+                clearTimeout(timer);
+                armed = false;
+                btn.textContent = label;
+                action();
+            });
+        }
+
+        twoStep(document.getElementById('profileClear'), '조건 지우기', function () {
+            try { localStorage.removeItem(KEY); } catch (e) {}
+            render();
+            document.dispatchEvent(new CustomEvent('profile:changed'));
+        });
+        twoStep(document.getElementById('listsClear'), '찜·오늘 본 공고 지우기', function () {
+            try { localStorage.removeItem('chungyak:scraps'); localStorage.removeItem('chungyak:recentViews'); } catch (e) {}
+            listsSummary();
+            document.dispatchEvent(new CustomEvent('recent:changed'));
+        });
+
+        render();
+        listsSummary();
+    })();
+</script>
+</body>
+</html>
