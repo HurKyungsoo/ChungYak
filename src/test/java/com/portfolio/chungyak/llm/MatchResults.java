@@ -80,6 +80,22 @@ final class MatchResults {
         return ENGINE.evaluate(p, a);
     }
 
+    /**
+     * 민영(서울) 예치금 부족 — 예치금 123만원 / 기준 300만원 → 모든 유형이 "예치금을 177만원 더" 힌트로 fixable.
+     * 소득·자산은 눈에 띄는 값으로 넣는다 — 최소화된 입력(#20)에 이 값들이 새지 않는지 보려고.
+     */
+    static MatchResult depositShortfall() {
+        Announcement a = announcement(SupplyBreakdown.builder()
+                .newlywed(47).firstTime(22).build());
+        ApplicantProfile p = ApplicantProfile.builder()
+                .monthlyHouseholdIncome(4_321_000).householdSize(3)
+                .totalAssets(123_450_000L).carValue(12_340_000)
+                .accountDeposit(1_230_000).residenceMonthsInRegion(36)
+                .married(true).monthsSinceMarriage(36).houseless(true)
+                .accountMonths(12).everOwnedHouse(false).build();
+        return ENGINE.evaluate(p, a);
+    }
+
     private static Announcement announcement(SupplyBreakdown breakdown) {
         return announcement(breakdown, false);
     }

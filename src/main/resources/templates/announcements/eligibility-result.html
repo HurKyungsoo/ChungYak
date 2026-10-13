@@ -80,6 +80,54 @@
         </div>
     </section>
 
+    <div class="ai-summary-slot" th:if="${explanation != null or explanationAvailable}" style="margin:0 0 20px">
+    <!-- AI "다음에 할 일" (#20) — 요약 카드 바로 아래. 결론은 위 카드(코드)가 말하고, AI 는 엔진이 계산한
+         보완 힌트·필요한 입력을 한두 문장으로 잇기만 한다. 입력에 소득·자산·예치금 금액은 넘기지 않는다. -->
+    <!-- FALLBACK(AI 실패·모순)은 문단을 다시 그리지 않는다 — 같은 내용이 맨 위 요약 카드에 이미 있다 (#21) -->
+    <p th:if="${explanation != null and explanation.shown and !explanation.aiGenerated}" class="muted">
+        AI 안내를 만들지 못했거나 판정과 어긋나 표시하지 않았습니다 — 위 요약을 확인하세요.</p>
+    <div th:if="${explanation != null and explanation.aiGenerated}" class="card tint">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+            <strong>다음에 할 일</strong>
+            <span class="ai-chip">AI</span>
+            <span class="muted">판정은 규칙 엔진이 했고, AI 는 엔진이 계산한 보완 방법을 문장으로 이었습니다</span>
+        </div>
+        <p style="margin:0" th:text="${explanation.text}">요약 문장</p>
+    </div>
+
+    <!-- AI 요약 온디맨드 — 결과 화면 로드 시가 아니라 버튼을 눌렀을 때만 LLM 을 호출한다.
+         같은 폼 값을 그대로 재제출하고, 판정은 다시 결정론적으로 이뤄진 뒤 이번엔 요약까지 한다. -->
+    <form th:if="${explanation == null and explanationAvailable}" method="post" data-pending="AI 가 안내를 쓰는 중…"
+          th:action="@{/announcements/{id}/eligibility(id=${announcement.id})}"
+          th:object="${form}" class="card tint" style="margin:0">
+        <input type="hidden" name="explain" value="true"/>
+        <input type="hidden" th:field="*{married}"/>
+        <input type="hidden" th:field="*{monthsSinceMarriage}"/>
+        <input type="hidden" th:field="*{childCount}"/>
+        <input type="hidden" th:field="*{hasNewborn}"/>
+        <input type="hidden" th:field="*{houseless}"/>
+        <input type="hidden" th:field="*{accountMonths}"/>
+        <input type="hidden" th:field="*{accountPaymentCount}"/>
+        <input type="hidden" th:field="*{accountDeposit}"/>
+        <input type="hidden" th:field="*{everOwnedHouse}"/>
+        <input type="hidden" th:field="*{supportingOldParents}"/>
+        <input type="hidden" th:field="*{householdHead}"/>
+        <input type="hidden" th:field="*{residenceMonthsInRegion}"/>
+        <input type="hidden" th:field="*{monthlyHouseholdIncome}"/>
+        <input type="hidden" th:field="*{householdSize}"/>
+        <input type="hidden" th:field="*{dualIncome}"/>
+        <input type="hidden" th:field="*{totalAssets}"/>
+        <input type="hidden" th:field="*{carValue}"/>
+        <input type="hidden" th:field="*{everWonSpecialSupply}"/>
+        <input type="hidden" th:field="*{monthsSinceLastWin}"/>
+        <input type="hidden" th:field="*{pastWinInSpeculationArea}"/>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <button type="submit" class="btn btn-ghost">✨ 다음에 할 일 (AI)</button>
+            <span class="muted">위 요약의 보완 방법을 AI 가 한두 문장으로 안내합니다 (판정은 이미 끝났고, 소득·자산 금액은 보내지 않습니다).</span>
+        </div>
+    </form>
+    </div>
+
     <!-- (판정 요약 칩은 #21 요약 카드가 같은 분류·링크를 맡아 뺐다) -->
 
     <!-- 공통요건 요약 레일 — 재당첨·소득·자산·통장·거주는 여러 특별공급 유형이 함께 확인하는
@@ -261,55 +309,6 @@
     </div>
     </div>
 
-    <div class="ai-summary-slot">
-    <!-- LLM 요약 — 규칙 근거(위 카드)를 대체하지 않고 덧붙이는 읽기용 문단 — 목업처럼 카드 아래에 둔다.
-         판정은 규칙 엔진이 했고 이 문장은 그 근거를 재구성만 한 것이다. -->
-    <!-- FALLBACK(AI 실패·모순)은 문단을 다시 그리지 않는다 — 같은 내용이 맨 위 요약 카드에 이미 있다 (#21) -->
-    <p th:if="${explanation != null and explanation.shown and !explanation.aiGenerated}" class="muted">
-        AI 요약을 만들지 못했거나 판정과 어긋나 표시하지 않았습니다 — 맨 위 요약을 확인하세요.</p>
-    <div th:if="${explanation != null and explanation.aiGenerated}" class="card tint">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-            <strong>요약</strong>
-            <span th:if="${explanation.aiGenerated}" class="ai-chip">AI</span>
-            <span class="muted" th:text="${explanation.aiGenerated}
-                  ? '판정은 규칙 엔진이 했고 AI 는 근거를 문장으로 정리만 했습니다'
-                  : '규칙 데이터로 자동 생성'">설명</span>
-        </div>
-        <p style="margin:0" th:text="${explanation.text}">요약 문장</p>
-    </div>
-
-    <!-- AI 요약 온디맨드 — 결과 화면 로드 시가 아니라 버튼을 눌렀을 때만 LLM 을 호출한다.
-         같은 폼 값을 그대로 재제출하고, 판정은 다시 결정론적으로 이뤄진 뒤 이번엔 요약까지 한다. -->
-    <form th:if="${explanation == null and explanationAvailable}" method="post" data-pending="AI 가 정리하는 중…"
-          th:action="@{/announcements/{id}/eligibility(id=${announcement.id})}"
-          th:object="${form}" class="card tint" style="margin:0">
-        <input type="hidden" name="explain" value="true"/>
-        <input type="hidden" th:field="*{married}"/>
-        <input type="hidden" th:field="*{monthsSinceMarriage}"/>
-        <input type="hidden" th:field="*{childCount}"/>
-        <input type="hidden" th:field="*{hasNewborn}"/>
-        <input type="hidden" th:field="*{houseless}"/>
-        <input type="hidden" th:field="*{accountMonths}"/>
-        <input type="hidden" th:field="*{accountPaymentCount}"/>
-        <input type="hidden" th:field="*{accountDeposit}"/>
-        <input type="hidden" th:field="*{everOwnedHouse}"/>
-        <input type="hidden" th:field="*{supportingOldParents}"/>
-        <input type="hidden" th:field="*{householdHead}"/>
-        <input type="hidden" th:field="*{residenceMonthsInRegion}"/>
-        <input type="hidden" th:field="*{monthlyHouseholdIncome}"/>
-        <input type="hidden" th:field="*{householdSize}"/>
-        <input type="hidden" th:field="*{dualIncome}"/>
-        <input type="hidden" th:field="*{totalAssets}"/>
-        <input type="hidden" th:field="*{carValue}"/>
-        <input type="hidden" th:field="*{everWonSpecialSupply}"/>
-        <input type="hidden" th:field="*{monthsSinceLastWin}"/>
-        <input type="hidden" th:field="*{pastWinInSpeculationArea}"/>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <button type="submit" class="btn btn-ghost">✨ AI 요약 보기</button>
-            <span class="muted">아래 판정 근거를 AI 가 한 문단으로 정리합니다 (판정은 이미 끝났습니다).</span>
-        </div>
-    </form>
-    </div>
 
     <!-- ── 다음 단계 추천 (Next Steps CTA) ── -->
     <div class="next-steps-card">

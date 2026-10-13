@@ -120,7 +120,7 @@ class ExplanationServiceTest {
         ExplanationService service = withExplainer(facts -> {
             // 판정과 모순되지 않도록, 근거 텍스트를 그대로 짧게 되돌려준다
             calls.incrementAndGet();
-            return facts.contains("신청 가능한 특별공급: 없음")
+            return facts.contains("- 신청 가능: 없음")
                     ? "신청 가능한 특별공급이 없습니다."
                     : "신청 가능한 특별공급이 있습니다.";
         });

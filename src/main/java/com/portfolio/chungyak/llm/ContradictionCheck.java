@@ -83,7 +83,25 @@ final class ContradictionCheck {
         }
         Optional<String> invented = inventedNumber(result, explanation);
         if (invented.isPresent()) return invented;
+        Optional<String> misattributed = misattributedNumber(result, explanation);
+        if (misattributed.isPresent()) return misattributed;
         return claimConflict(result, explanation);
+    }
+
+    private static final Pattern MARKDOWN = Pattern.compile("\\*\\*|__|`|(?m)^\\s*(?:#+|[-*•]|\\d+[.)])\\s");
+    static final int MAX_SENTENCES = 3;
+
+    /**
+     * 형식 검사 — "다음에 할 일" 한두 문장(#20)이어야 한다. 마크다운이 섞이거나 {@value #MAX_SENTENCES}문장을 넘으면
+     * 판정과 모순은 아니어도 화면에 쓸 수 없으므로 재생성 대상이다. AI 출력에만 쓴다(규칙 문장은 형식이 고정).
+     */
+    static Optional<String> formatProblem(String explanation) {
+        if (explanation == null || explanation.isBlank()) return Optional.of("요약이 비어 있음");
+        if (MARKDOWN.matcher(explanation).find()) return Optional.of("마크다운이 섞임");
+        if (explanation.contains(ExplanationFacts.MONEY_MASK)) return Optional.of("가린 금액 표시(" + ExplanationFacts.MONEY_MASK + ")를 그대로 옮김");
+        long sentences = SENTENCE_SPLIT.splitAsStream(explanation.strip()).filter(x -> !x.isBlank()).count();
+        if (sentences > MAX_SENTENCES) return Optional.of("문장이 " + sentences + "개 — 최대 " + MAX_SENTENCES + "개");
+        return Optional.empty();
     }
 
     // ── 판정 주장 ─────────────────────────────────────────────────────────────────
@@ -201,20 +219,71 @@ final class ContradictionCheck {
         return Optional.empty();
     }
 
+    /**
+     * 보완 힌트의 숫자를 다른 유형에 붙였는가 — "청약통장을 3개월 더"가 생애최초의 힌트인데 요약이
+     * "신혼부부는 3개월 더"라고 쓰면, 숫자는 근거에 있어도 엉뚱한 유형에 대한 조언이 된다.
+     * 근거의 "- [유형] …" 줄에서 나온 숫자만 본다. 같은 숫자가 유형 없는 줄(세대수 등)에도 있으면 판단을 보류한다.
+     */
+    private static Optional<String> misattributedNumber(MatchResult result, String explanation) {
+        Map<SpecialSupplyType, Set<Integer>> byType = new java.util.EnumMap<>(SpecialSupplyType.class);
+        Set<Integer> general = new LinkedHashSet<>();
+        for (String line : ExplanationFacts.format(result).replace(",", "").split("\\n")) {
+            Matcher tag = TYPE_TAG.matcher(line);
+            SpecialSupplyType owner = tag.find() ? typeOfLabel(tag.group(1)) : null;
+            Set<Integer> nums = lineNumbers(line);
+            if (owner == null) general.addAll(nums);
+            else byType.computeIfAbsent(owner, k -> new LinkedHashSet<>()).addAll(nums);
+        }
+        Set<Integer> attributed = new LinkedHashSet<>();
+        byType.values().forEach(attributed::addAll);
+        attributed.removeAll(general);
+        if (attributed.isEmpty()) return Optional.empty();
+
+        for (String sentence : SENTENCE_SPLIT.split(explanation.replace(",", ""))) {
+            Set<SpecialSupplyType> types = mentionedTypes(sentence.replaceAll("\\s+", ""));
+            if (types.isEmpty()) continue;
+            Matcher m = NUMBER.matcher(sentence);
+            while (m.find()) {
+                if (m.group().length() > 9) continue;
+                int n = Integer.parseInt(m.group());
+                if (!attributed.contains(n)) continue;
+                boolean owned = types.stream().anyMatch(t -> byType.getOrDefault(t, Set.of()).contains(n));
+                if (!owned) {
+                    return Optional.of("숫자 " + n + " 은(는) "
+                            + types.stream().map(SpecialSupplyType::getLabel).toList() + " 의 근거가 아님 — 다른 유형의 보완 수치");
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static final Pattern TYPE_TAG = Pattern.compile("^- \\[([^\\]]+)]");
+
+    private static SpecialSupplyType typeOfLabel(String label) {
+        for (SpecialSupplyType t : SpecialSupplyType.values()) if (t.getLabel().equals(label)) return t;
+        return null;
+    }
+
+    /** 한 줄의 숫자 + 그 줄에서 계산되는 값(36개월 → 3년, 같은 줄 숫자끼리의 차이 — "12개월 모자람") */
+    private static Set<Integer> lineNumbers(String line) {
+        List<Integer> nums = new ArrayList<>();
+        Matcher m = NUMBER.matcher(line);
+        while (m.find()) {
+            if (m.group().length() > 9) continue;
+            nums.add(Integer.parseInt(m.group()));
+        }
+        Set<Integer> out = new LinkedHashSet<>(nums);
+        for (int a : nums) {
+            if (a >= 12 && a % 12 == 0) out.add(a / 12);
+            for (int b : nums) if (a > b) out.add(a - b);
+        }
+        return out;
+    }
+
     private static Set<Integer> allowedNumbers(MatchResult result) {
         Set<Integer> allowed = new LinkedHashSet<>();
         for (String line : ExplanationFacts.format(result).replace(",", "").split("\\n")) {
-            List<Integer> nums = new ArrayList<>();
-            Matcher m = NUMBER.matcher(line);
-            while (m.find()) {
-                if (m.group().length() > 9) continue;
-                nums.add(Integer.parseInt(m.group()));
-            }
-            allowed.addAll(nums);
-            for (int a : nums) {
-                if (a >= 12 && a % 12 == 0) allowed.add(a / 12);   // 36개월 → 3년
-                for (int b : nums) if (a > b) allowed.add(a - b);   // 같은 줄 숫자의 차이 — "12개월 모자람"
-            }
+            allowed.addAll(lineNumbers(line));
         }
         // 세대 합계 — 유형별(주택형 여러 개 합산)과 전체
         Map<SpecialSupplyType, Integer> perType = new java.util.EnumMap<>(SpecialSupplyType.class);

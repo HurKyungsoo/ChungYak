@@ -14,7 +14,10 @@ import java.util.Optional;
  * {@link MatchResult} -> 자연어 요약.
  *
  * ★ CLAUDE.md 절대 규칙의 "뒤" 쪽이다.
- *   - 판정은 이미 규칙 엔진이 끝냈다. 여기서 LLM 은 그 근거를 문장으로 재구성만 한다.
+ *   - 판정은 이미 규칙 엔진이 끝냈고, 결론은 화면의 요약 카드(코드)가 말한다. 여기서 LLM 은
+ *     엔진이 계산한 보완 힌트·필요한 입력을 "다음에 할 일" 한두 문장으로 잇기만 한다 (#20).
+ *     입력({@link ExplanationFacts})에는 소득·자산·예치금 금액이 없다.
+ *   - 형식({@link ContradictionCheck#formatProblem}: 마크다운·3문장 초과)도 어기면 재생성 대상이다.
  *   - {@link ContradictionCheck} 가 요약이 확정 판정과 어긋나는지 사후 검사한다.
  *     어긋나면 한 번 재생성하고, 그래도 어긋나면 {@link FallbackSummary}(결정론적)로 대체.
  *   - ANTHROPIC_API_KEY 가 없으면 DISABLED — 화면은 규칙 기반 이유만 보여준다.
@@ -81,7 +84,8 @@ public class ExplanationService {
                 return ExplanationResult.fallback(FallbackSummary.of(result));
             }
 
-            Optional<String> contradiction = ContradictionCheck.check(result, text);
+            Optional<String> contradiction = ContradictionCheck.check(result, text)
+                    .or(() -> ContradictionCheck.formatProblem(text));
             if (contradiction.isEmpty()) {
                 return ExplanationResult.ai(text);
             }

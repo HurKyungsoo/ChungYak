@@ -110,7 +110,7 @@ class ContradictionCheckTest {
         assertThat(ContradictionCheck.check(result, "신혼부부 99세대를 신청할 수 있습니다.")).get().asString().contains("99");
         assertThat(ContradictionCheck.check(result, "신혼부부 47세대, 생애최초 22세대를 신청할 수 있습니다.")).isEmpty();
         assertThat(ContradictionCheck.check(result, "두 유형을 합쳐 69세대입니다.")).isEmpty();   // 47+22 합계
-        assertThat(ContradictionCheck.check(result, "1. 신혼부부 2. 생애최초 모두 신청 가능합니다.")).isEmpty();   // 목록 번호
+        assertThat(ContradictionCheck.check(result, "1. 신혼부부\n2. 생애최초 모두 신청 가능합니다.")).isEmpty();   // 줄 머리 목록 번호
     }
 
     @Test
@@ -120,8 +120,8 @@ class ContradictionCheckTest {
 
         // 앞 절의 유형(다자녀가구)이 다음 절(노부모부양)의 "신청할 수 있다는 제한" 에 따라붙어 오탐하던 문장
         assertThat(ContradictionCheck.check(result,
-                "다자녀가구는 미성년 자녀가 0명이라 2명 이상 요구되는 기준에 2명이 부족하고, 노부모부양은 만 65세 이상 직계존속을 "
-                        + "3년 이상 부양하지 않아 요건을 충족하지 못하며 세대주만 신청할 수 있다는 추가 제한도 있습니다.")).isEmpty();
+                "다자녀가구는 미성년 자녀가 기준보다 부족하고, 노부모부양은 고령의 직계존속을 "
+                        + "부양하지 않아 요건을 충족하지 못하며 세대주만 신청할 수 있다는 추가 제한도 있습니다.")).isEmpty();
         assertThat(ContradictionCheck.check(result,
                 "**노부모부양** – 신청이 불가능합니다. 직계존속을 부양하지 않았으며, 세대주만 신청할 수 있는 제한도 만족하지 못합니다.")).isEmpty();
         assertThat(ContradictionCheck.check(result,
@@ -154,6 +154,32 @@ class ContradictionCheckTest {
                 "다자녀가구는 신청 가능합니다. 신혼부부는 통장이 12개월이라 요건 24개월(2년)에 12개월(1년) 모자랍니다.")).isEmpty();
         assertThat(ContradictionCheck.check(result,
                 "신혼부부는 통장이 5년 더 필요합니다.")).isPresent();
+    }
+
+    @Test
+    @DisplayName("보완 수치를 다른 유형에 붙이면 모순 — 숫자가 근거에 있어도 엉뚱한 유형에 대한 조언이다 (#20)")
+    void hintNumberOnWrongType() {
+        MatchResult result = MatchResults.shortfall();   // 신혼부부: 통장 12개월 더 (24개월). 다자녀는 신청 가능
+
+        assertThat(ContradictionCheck.check(result,
+                "청약통장을 12개월 더 유지하면 신혼부부 가입기간 요건을 채울 수 있어요.")).isEmpty();
+        assertThat(ContradictionCheck.check(result,
+                "청약통장을 12개월 더 유지하면 다자녀가구 요건을 채울 수 있어요.")).get().asString().contains("12");
+        // 유형을 말하지 않은 문장은 보류
+        assertThat(ContradictionCheck.check(result, "청약통장을 12개월 더 유지해 보세요.")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("형식 — 마크다운·3문장 초과는 재생성 대상, 평범한 1~2문장은 통과 (#20)")
+    void formatProblem() {
+        assertThat(ContradictionCheck.formatProblem(
+                "청약통장을 3개월 더 유지하면 생애최초 요건을 채울 수 있어요. 그때 다시 판정해 보세요.")).isEmpty();
+        assertThat(ContradictionCheck.formatProblem("**생애최초** 통장을 유지하세요.")).isPresent();
+        assertThat(ContradictionCheck.formatProblem("- 통장을 유지하세요.\n- 다시 판정하세요.")).isPresent();
+        assertThat(ContradictionCheck.formatProblem("하나. 둘. 셋. 넷.")).get().asString().contains("4");
+        assertThat(ContradictionCheck.formatProblem(" ")).isPresent();
+        // 가린 금액 표시를 그대로 옮기면 화면에 "[금액]"이 나온다 (Groq eval 2/2 회)
+        assertThat(ContradictionCheck.formatProblem("청약통장 예치금을 [금액] 더 채우면 요건을 충족해요.")).isPresent();
     }
 
     @Test
