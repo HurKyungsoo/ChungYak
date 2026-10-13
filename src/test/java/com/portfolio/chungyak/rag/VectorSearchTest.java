@@ -141,4 +141,31 @@ class VectorSearchTest {
             assertThat(h.keywordScore()).isPositive();
         });
     }
+
+    private static DocumentChunkRepository.IndexVersion version(long count, long maxId) {
+        return new DocumentChunkRepository.IndexVersion() {
+            @Override public long getCount() { return count; }
+            @Override public long getMaxId() { return maxId; }
+        };
+    }
+
+    @Test
+    @DisplayName("코퍼스 캐시 — 청크 버전이 같으면 다시 읽지 않고, 바뀌면 다시 만든다 (#28)")
+    void cachesCorpusUntilVersionChanges() {
+        when(chunkRepo.findAll()).thenReturn(List.of(chunk(1, 0, new float[0], "발코니 확장 비용 안내")));
+        when(chunkRepo.indexVersion()).thenReturn(version(1, 10));
+        VectorSearch search = new VectorSearch(chunkRepo, Optional.empty(), props(0.6));
+
+        search.searchWithin(1L, "발코니 확장", 3);
+        search.searchWithin(1L, "확장 비용", 3);
+        org.mockito.Mockito.verify(chunkRepo, org.mockito.Mockito.times(1)).findAll();
+
+        // 재인덱싱 — 지우고 다시 넣어 최대 id 가 바뀐다
+        when(chunkRepo.findAll()).thenReturn(List.of(chunk(1, 0, new float[0], "계약금 정액제 안내")));
+        when(chunkRepo.indexVersion()).thenReturn(version(1, 11));
+        List<VectorSearch.Hit> hits = search.searchWithin(1L, "계약금", 3);
+
+        org.mockito.Mockito.verify(chunkRepo, org.mockito.Mockito.times(2)).findAll();
+        assertThat(hits).extracting(VectorSearch.Hit::content).containsExactly("계약금 정액제 안내");
+    }
 }

@@ -25,7 +25,9 @@ import java.util.function.Predicate;
  * 임베딩 클라이언트(Voyage)가 없으면 <b>BM25 모드</b>(#22) — 키워드 순위만 쓴다. 질의 임베딩을 만들 수 없고
  * 청크에도 벡터가 없기 때문이다(AnnouncementIndexer 가 빈 배열로 저장). 이때 {@link Hit#score} 는 0 이다.
  *
- * 공고 수백 건 규모라 매 질의마다 전체 청크를 메모리에 올려 코사인·BM25 를 계산한다.
+ * <b>캐시</b> (#28): 청크 목록과 BM25 인덱스를 메모리에 한 번 만들어 두고, 청크 집합이 바뀌었을 때만
+ * ({@link DocumentChunkRepository#indexVersion} — 개수·최대 id) 다시 만든다. 질의마다 전체 청크를 읽어
+ * 인덱스를 새로 만들던 때는 운영(5,802청크)에서 검색만 ~1.2초였다.
  * (수천 건을 넘어가면 역색인/캐시 또는 네이티브 벡터 인덱스로 교체.)
  */
 @Slf4j
@@ -39,6 +41,11 @@ public class VectorSearch {
     private final Optional<EmbeddingClient> embeddingClient;
     private final int defaultTopK;
     private final double hybridWeight;
+
+    /** 청크 목록 + 그 위의 BM25 — 함께 바뀌어야 하므로 한 덩어리로 교체한다 */
+    private record Corpus(long count, long maxId, List<DocumentChunk> chunks, Bm25Index bm25) {}
+
+    private volatile Corpus corpus;
 
     public VectorSearch(DocumentChunkRepository chunkRepository,
                         Optional<EmbeddingClient> embeddingClient,
@@ -80,14 +87,15 @@ public class VectorSearch {
         if (query == null || query.isBlank()) {
             return List.of();
         }
-        List<DocumentChunk> all = chunkRepository.findAll();
+        Corpus current = corpus();
+        List<DocumentChunk> all = current.chunks();
         if (all.isEmpty()) return List.of();
 
         String q = query.strip();
         float[] qVec = embeddingClient.map(e -> e.embed(List.of(q), InputType.QUERY).get(0)).orElse(null);
 
         // BM25 는 전체 코퍼스로 (IDF 가 코퍼스 통계라 공고 하나로 좁히면 의미 없다)
-        Bm25Index bm25 = Bm25Index.build(all.stream().map(DocumentChunk::getContent).toList());
+        Bm25Index bm25 = current.bm25();
         double[] bmScores = bm25.scores(q);
 
         // 후보(필터 통과분)에 코사인·BM25 붙이기
@@ -123,6 +131,28 @@ public class VectorSearch {
                 .map(x -> new Hit(x.c().getAnnouncementId(), x.c().getChunkIndex(),
                         x.c().getContent(), x.cos(), x.cover()))
                 .toList();
+    }
+
+    /**
+     * 캐시된 코퍼스 — 청크 집합의 버전(개수·최대 id)이 그대로면 재사용, 바뀌었으면 다시 읽어 BM25 를 만든다.
+     * 버전을 못 읽으면(테스트 목 등) 매번 새로 만든다.
+     */
+    private Corpus corpus() {
+        DocumentChunkRepository.IndexVersion v = chunkRepository.indexVersion();
+        Corpus c = corpus;
+        if (v != null && c != null && c.count() == v.getCount() && c.maxId() == v.getMaxId()) return c;
+        synchronized (this) {
+            c = corpus;
+            if (v != null && c != null && c.count() == v.getCount() && c.maxId() == v.getMaxId()) return c;
+            List<DocumentChunk> chunks = chunkRepository.findAll();
+            Corpus built = new Corpus(v == null ? -1 : v.getCount(), v == null ? -1 : v.getMaxId(),
+                    chunks, Bm25Index.build(chunks.stream().map(DocumentChunk::getContent).toList()));
+            if (v != null) {
+                corpus = built;
+                log.info("검색 코퍼스 다시 만듦 — 청크 {}개", chunks.size());
+            }
+            return built;
+        }
     }
 
     private double rrf(Integer cosRank, Integer bmRank) {

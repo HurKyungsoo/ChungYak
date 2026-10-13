@@ -83,4 +83,30 @@ class Bm25IndexTest {
         double[] s = Bm25Index.build(List.of("전혀 다른 내용")).scores("발코니");
         assertThat(s).containsExactly(0.0);
     }
+
+    @Test
+    @DisplayName("동의어로 의역을 찾는다 — #22 실사용에서 놓친 3문장 (#28)")
+    void synonymsCatchParaphrases() {
+        Bm25Index index = Bm25Index.build(List.of(
+                "주택형별 임대보증금 및 월임대료는 아래와 같으며 입주예정 시기는 2027년 3월입니다",
+                "소득 기준: 전년도 도시근로자 가구당 월평균소득의 100% 이하",
+                "당첨자 발표는 청약플러스에서 확인"));
+
+        assertThat(index.termCoverage("돈 얼마 내야 들어가?", 0)).isGreaterThanOrEqualTo(0.5);
+        assertThat(index.termCoverage("언제 이사 들어갈 수 있어?", 0)).isGreaterThanOrEqualTo(0.5);
+        assertThat(index.termCoverage("월급이 얼마 이하여야 돼?", 1)).isGreaterThanOrEqualTo(0.5);
+        // 순위도 맞는 청크가 위
+        double[] s = index.scores("돈 얼마 내야 들어가?");
+        assertThat(s[0]).isGreaterThan(s[2]);
+        // 무관한 청크는 여전히 못 넘는다
+        assertThat(index.termCoverage("돈 얼마 내야 들어가?", 2)).isLessThan(0.5);
+    }
+
+    @Test
+    @DisplayName("동의어는 단어 전체가 있어야 겹침 — '임대' 조각만으로는 '임대료' 동의어가 걸리지 않는다")
+    void synonymNeedsWholeWord() {
+        Bm25Index index = Bm25Index.build(List.of("행복주택 임대 공고 유의사항 안내"));
+
+        assertThat(index.termCoverage("돈", 0)).isZero();
+    }
 }

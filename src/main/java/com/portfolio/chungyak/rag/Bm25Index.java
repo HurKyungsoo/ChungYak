@@ -75,7 +75,12 @@ final class Bm25Index {
         double[] out = new double[n];
         if (n == 0 || avgLen == 0) return out;
 
-        for (String term : tokenize(String.join(" ", queryWords(query))).stream().distinct().toList()) {
+        List<String> expanded = new ArrayList<>();
+        for (String w : queryWords(query)) {
+            expanded.add(w);
+            expanded.addAll(QuerySynonyms.of(w));   // "돈" → 보증금·임대료… (#28)
+        }
+        for (String term : tokenize(String.join(" ", expanded)).stream().distinct().toList()) {
             int df = docFreq.getOrDefault(term, 0);
             if (df == 0) continue;
             double idf = Math.log(1 + (n - df + 0.5) / (df + 0.5));
@@ -97,8 +102,19 @@ final class Bm25Index {
     double termCoverage(String query, int docIndex) {
         List<String> words = queryWords(query);
         if (words.isEmpty() || docIndex < 0 || docIndex >= n) return 0;
-        long hit = words.stream().filter(w -> termFreq.get(docIndex).getOrDefault(stem(w), 0) > 0).count();
+        Map<String, Integer> doc = termFreq.get(docIndex);
+        long hit = words.stream().filter(w -> doc.getOrDefault(stem(w), 0) > 0
+                || QuerySynonyms.of(w).stream().anyMatch(syn -> containsWhole(doc, syn))).count();
         return (double) hit / words.size();
+    }
+
+    /**
+     * 동의어는 단어 전체(모든 bi-gram)가 문서에 있어야 겹친 것으로 본다 — 어간만 보면 "임대료"의 "임대"처럼
+     * 임대 공고 어디에나 있는 조각에 걸려, 무관한 청크도 "관련 있음"으로 통과한다.
+     */
+    private static boolean containsWhole(Map<String, Integer> doc, String word) {
+        List<String> grams = tokenize(word);
+        return !grams.isEmpty() && grams.stream().allMatch(g -> doc.getOrDefault(g, 0) > 0);
     }
 
     /** 질의 어절 — 소문자화, 의문사·어미 어절({@link #QUERY_STOPWORDS}, {@link #QUESTION_STEMS})을 뺀다. 중복 제거. */
