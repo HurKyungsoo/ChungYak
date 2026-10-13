@@ -92,6 +92,7 @@ class RagPipelineIntegrationTest {
 
         DocumentChunkRepository repo = mock(DocumentChunkRepository.class);
         when(repo.findAll()).thenReturn(chunks);
+        when(repo.findAllContents()).thenReturn(chunks.stream().map(DocumentChunk::getContent).toList());
         search = new VectorSearch(repo, Optional.of((EmbeddingClient) voyage),
                 new RagProperties(new RagProperties.Chunk(320, 60),
                         new RagProperties.Search(3, 0.6), new RagProperties.Qa(4, 0.25, 0.5)));

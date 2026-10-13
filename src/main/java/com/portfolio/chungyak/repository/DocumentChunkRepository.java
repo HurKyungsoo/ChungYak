@@ -25,6 +25,10 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, Lo
     @Query("select count(c) as count, coalesce(max(c.id), 0) as maxId from DocumentChunk c")
     IndexVersion indexVersion();
 
+    /** 전체 청크의 본문만 — 검색 코퍼스 통계(BM25 IDF)용. 엔티티·임베딩 컬럼을 올리지 않는다(#29 메모리). */
+    @Query("select c.content from DocumentChunk c")
+    List<String> findAllContents();
+
     interface IndexVersion {
         long getCount();
         long getMaxId();

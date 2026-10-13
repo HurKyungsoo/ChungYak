@@ -2,11 +2,13 @@ package com.portfolio.chungyak.service;
 
 import com.portfolio.chungyak.alert.NewAnnouncementAlertService;
 import com.portfolio.chungyak.domain.Announcement;
+import com.portfolio.chungyak.domain.AnnouncementDocument;
 import com.portfolio.chungyak.external.AnnouncementSource;
 import com.portfolio.chungyak.external.ExternalAnnouncement;
 import com.portfolio.chungyak.external.ExternalUnitType;
 import com.portfolio.chungyak.external.PublicDataProperties;
 import com.portfolio.chungyak.rag.AnnouncementIndexer;
+import com.portfolio.chungyak.repository.AnnouncementDocumentRepository;
 import com.portfolio.chungyak.repository.AnnouncementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +43,7 @@ public class AnnouncementSyncScheduler {
     private final Clock clock;
     private final NewAnnouncementAlertService alertService;
     private final AnnouncementIndexer indexer;
+    private final AnnouncementDocumentRepository documentRepository;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -142,10 +145,16 @@ public class AnnouncementSyncScheduler {
                     List<ExternalUnitType> unitTypes = source.fetchUnitTypes(detailed);
                     String noticeContent = fetchNoticeContentSafely(source, detailed);
                     enriched.add(withUnitTypes(detailed, unitTypes, noticeContent));
-                } else if (source.needsDetailBackfill(existing)) {
-                    enriched.add(enrichSafely(source, announcement));
                 } else {
-                    enriched.add(announcement);
+                    ExternalAnnouncement base = source.needsDetailBackfill(existing)
+                            ? enrichSafely(source, announcement) : announcement;
+                    // 공고문 원문 백필(#29) — 예전 수집에서 15,500자로 잘린 원문은 다시 받아 전문으로 바꾼다.
+                    // 한 번 바뀌면 잘린 상태가 아니므로 다음 배치부터는 다시 받지 않는다.
+                    if (hasLegacyTruncatedNotice(existing)) {
+                        String content = fetchNoticeContentSafely(source, base);
+                        if (content != null) base = base.toBuilder().noticeContent(content).build();
+                    }
+                    enriched.add(base);
                 }
             }
 
@@ -157,6 +166,12 @@ public class AnnouncementSyncScheduler {
         }
 
         return new SourceSyncResult(new SyncReport(pagesFetched, received, created, updated), createdAnnouncements);
+    }
+
+    private boolean hasLegacyTruncatedNotice(Announcement existing) {
+        return documentRepository.findByAnnouncementId(existing.getId())
+                .map(AnnouncementDocument::isLegacyTruncated)
+                .orElse(false);
     }
 
     /** 공고문 원문 조회 실패가 수집 전체를 막지 않도록 감싼다 (mock 이 null 을 줄 수도 있다). */

@@ -1,12 +1,14 @@
 package com.portfolio.chungyak.service;
 
 import com.portfolio.chungyak.alert.NewAnnouncementAlertService;
-import com.portfolio.chungyak.rag.AnnouncementIndexer;
 import com.portfolio.chungyak.domain.Announcement;
+import com.portfolio.chungyak.domain.AnnouncementDocument;
 import com.portfolio.chungyak.external.ApplyhomeClient;
 import com.portfolio.chungyak.external.ExternalAnnouncement;
 import com.portfolio.chungyak.external.LhClient;
 import com.portfolio.chungyak.external.PublicDataProperties;
+import com.portfolio.chungyak.rag.AnnouncementIndexer;
+import com.portfolio.chungyak.repository.AnnouncementDocumentRepository;
 import com.portfolio.chungyak.repository.AnnouncementRepository;
 import com.portfolio.chungyak.service.AnnouncementSyncScheduler.SyncReport;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,7 +55,7 @@ class AnnouncementSyncSchedulerTest {
         NewAnnouncementAlertService alertService = Mockito.mock(NewAnnouncementAlertService.class);
         scheduler = new AnnouncementSyncScheduler(List.of(applyhomeClient), syncService, repo, props,
                 syncStatus, Clock.fixed(Instant.parse("2026-09-03T04:00:00Z"), ZoneOffset.UTC), alertService,
-                Mockito.mock(AnnouncementIndexer.class));
+                Mockito.mock(AnnouncementIndexer.class), Mockito.mock(AnnouncementDocumentRepository.class));
     }
 
     @Test
@@ -119,13 +121,53 @@ class AnnouncementSyncSchedulerTest {
         PublicDataProperties props = new PublicDataProperties();
         new AnnouncementSyncScheduler(List.of(lh), syncService, repo, props, syncStatus,
                 Clock.fixed(Instant.parse("2026-10-12T04:00:00Z"), ZoneOffset.UTC),
-                Mockito.mock(NewAnnouncementAlertService.class), Mockito.mock(AnnouncementIndexer.class)).runSync();
+                Mockito.mock(NewAnnouncementAlertService.class), Mockito.mock(AnnouncementIndexer.class),
+                Mockito.mock(AnnouncementDocumentRepository.class)).runSync();
 
         verify(lh).enrichWithDetail(needsBackfill);
         verify(lh, never()).enrichWithDetail(alreadyDetailed);
         verify(lh).enrichWithDetail(brandNew);
         verify(lh, never()).fetchUnitTypes(needsBackfill);
         verify(lh).fetchUnitTypes(brandNew);
+    }
+
+    @Test
+    @DisplayName("기존 공고: 예전 수집에서 15,500자로 잘린 원문만 다시 받아 넘긴다 — 전문인 원문은 다시 받지 않는다 (#29)")
+    void refetchesLegacyTruncatedNoticeOnly() {
+        LhClient lh = Mockito.mock(LhClient.class);
+        when(lh.isEnabled()).thenReturn(true);
+        when(lh.sourceName()).thenReturn("LH");
+        when(lh.maxPages()).thenReturn(1);
+        ExternalAnnouncement truncated = listed("LH-10");
+        ExternalAnnouncement full = listed("LH-11");
+        when(lh.fetchAnnouncements(1)).thenReturn(List.of(truncated, full));
+        when(lh.fetchNoticeContent(truncated)).thenReturn(Optional.of("전문 공고문"));
+
+        Announcement a10 = Announcement.builder().externalId("LH-10").noticePdfUrl("u").build();
+        Announcement a11 = Announcement.builder().externalId("LH-11").noticePdfUrl("u").build();
+        org.springframework.test.util.ReflectionTestUtils.setField(a10, "id", 10L);
+        org.springframework.test.util.ReflectionTestUtils.setField(a11, "id", 11L);
+        AnnouncementRepository repo = Mockito.mock(AnnouncementRepository.class);
+        when(repo.findByExternalId("LH-10")).thenReturn(Optional.of(a10));
+        when(repo.findByExternalId("LH-11")).thenReturn(Optional.of(a11));
+
+        AnnouncementDocument legacy = new AnnouncementDocument(10L, "LH", "옛", Instant.now());
+        org.springframework.test.util.ReflectionTestUtils.setField(legacy, "firstPart", "가".repeat(AnnouncementDocument.LEGACY_CAP));
+        AnnouncementDocumentRepository docs = Mockito.mock(AnnouncementDocumentRepository.class);
+        when(docs.findByAnnouncementId(10L)).thenReturn(Optional.of(legacy));
+        when(docs.findByAnnouncementId(11L)).thenReturn(Optional.of(new AnnouncementDocument(11L, "LH", "전문", Instant.now())));
+        when(syncService.sync(any())).thenReturn(new AnnouncementSyncService.SyncStat(2, 0, 2, List.of()));
+
+        new AnnouncementSyncScheduler(List.of(lh), syncService, repo, new PublicDataProperties(), syncStatus,
+                Clock.fixed(Instant.parse("2026-10-13T04:00:00Z"), ZoneOffset.UTC),
+                Mockito.mock(NewAnnouncementAlertService.class), Mockito.mock(AnnouncementIndexer.class), docs).runSync();
+
+        verify(lh).fetchNoticeContent(truncated);
+        verify(lh, never()).fetchNoticeContent(full);
+        @SuppressWarnings("unchecked")
+        org.mockito.ArgumentCaptor<List<ExternalAnnouncement>> synced = org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(syncService).sync(synced.capture());
+        assertThat(synced.getValue()).extracting(ExternalAnnouncement::getNoticeContent).containsExactly("전문 공고문", null);
     }
 
     private static ExternalAnnouncement listed(String externalId) {
