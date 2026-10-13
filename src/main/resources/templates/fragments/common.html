@@ -537,6 +537,27 @@
         .result-hero.bad  .headline { color: color-mix(in srgb, var(--no) 85%, var(--text)); }
         .result-hero .sub { color: var(--text-muted); font-size: .9rem; }
         .result-hero .score-num { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+        /* 판정 결과 요약 카드 (#21) — result-hero 를 확장 */
+        .summary-card .headline .sc-type { color: inherit; }
+        .summary-card .sc-type { color: var(--text); font-weight: 650; text-decoration: none;
+            border-bottom: 1px dashed color-mix(in srgb, currentColor 45%, transparent); }
+        .summary-card .sc-type:hover { border-bottom-style: solid; }
+        .summary-card .sc-rows { list-style: none; margin: 10px 0 0; padding: 10px 0 0;
+            border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+            display: flex; flex-direction: column; gap: 8px; font-size: .92rem; line-height: 1.5; }
+        .summary-card .sc-rows li { display: flex; gap: 10px; align-items: baseline; }
+        .summary-card .sc-k { flex: 0 0 auto; font-size: .78rem; font-weight: 700; padding: 2px 8px;
+            border-radius: 999px; background: var(--surface); color: var(--text-muted); white-space: nowrap; }
+        .summary-card .sc-k.fix  { color: var(--brand); }
+        .summary-card .sc-k.no   { color: var(--no); }
+        .summary-card .sc-k.miss { color: var(--warn); }
+        .summary-card .sc-links { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: .88rem; }
+        .summary-card .sc-links a { font-weight: 600; }
+        @media (max-width: 560px) {
+            .result-hero.summary-card { padding: 16px; gap: 12px; }
+            .summary-card .result-icon { display: none; }
+            .summary-card .sc-rows li { flex-direction: column; gap: 3px; }
+        }
         /* ── next steps card (결과 하단 CTA) ─────────────────────── */
         .next-steps-card {
             background: var(--surface); border: 1px solid var(--border-strong);
@@ -865,9 +886,7 @@
                      background: var(--surface-2); }
         .score-bar span { display: block; height: 100%; background: var(--brand); border-radius: 999px; }
 
-        /* 판정 요약 칩 — 결과 배너 아래, 누르면 해당 근거 카드로 */
-        .verdict-summary { display: grid; gap: 8px; margin: 12px 0 4px; padding: 14px 16px;
-                           background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+        /* 판정 요약 칩 (공고 상세의 verdict-summary 조각) */
         .vs-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
         .vs-head { font-size: .8rem; font-weight: 700; padding: 3px 10px; border-radius: var(--r-pill);
                    margin-right: 4px; white-space: nowrap; }

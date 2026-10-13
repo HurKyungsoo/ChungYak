@@ -162,6 +162,8 @@ class ScreenRenderTest {
         assertThat(body).contains("decision-grid").contains("내 조건").contains("자격 충족");
         // 혼인기간 100개월은 내 값 → 굵게, 괄호 안 84개월은 기준 → 그대로
         assertThat(body).contains("<strong>100개월</strong>").contains("(84개월)");
+        // 맨 위 요약 카드(#21) — AI 없이 늘 그려지고, 유형 이름이 근거 카드로 이어진다
+        assertThat(body).contains("summary-card").contains("href=\"#decision-");
     }
 
     @Test

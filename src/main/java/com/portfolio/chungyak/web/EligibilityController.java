@@ -14,6 +14,7 @@ import com.portfolio.chungyak.web.view.CommonRequirementRail;
 import com.portfolio.chungyak.web.view.EligibilityResultAssembler;
 import com.portfolio.chungyak.web.view.EligibilityResultView;
 import com.portfolio.chungyak.web.view.ProfileChips;
+import com.portfolio.chungyak.web.view.ResultSummaryCard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -165,6 +166,7 @@ public class EligibilityController {
         model.addAttribute("status", queryService.statusOf(announcement));
         model.addAttribute("result", view);
         model.addAttribute("commonRail", CommonRequirementRail.of(view.allDecisions()));
+        model.addAttribute("summaryCard", ResultSummaryCard.of(view));   // 맨 위 결정론적 요약 (#21)
         model.addAttribute("form", form);   // "AI 요약 보기" 버튼이 폼을 그대로 재제출할 수 있도록
         model.addAttribute("profileChips", ProfileChips.of(form));   // 맨 위 "내 조건" 요약 (목업 Verdict)
         model.addAttribute("resultToken", token);   // 알림 구독 후 같은 결과 화면으로 되돌아오기 위해

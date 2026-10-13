@@ -24,40 +24,63 @@
         <a class="ps-edit" th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}">조건 수정</a>
     </div>
 
-    <div th:if="${result.hasAnyMatch}" class="result-hero good">
-        <div class="result-icon">✅</div>
+    <!-- 요약 카드 (#21) — AI 없이 늘 보이는 결정론적 요약. ResultSummaryCard 가 엔진 플래그
+         (eligible/undetermined/fixable) 그대로 줄을 나눈다. 사유 문장은 아래 근거 카드에 있고
+         여기서는 유형 이름을 그 카드로 잇기만 한다(힌트만 예외 — "가장 가까운 보완"이 이 카드의 핵심이다). -->
+    <section class="result-hero summary-card" th:classappend="${summaryCard.hasAnyMatch} ? 'good' : 'bad'"
+             th:with="sc=${summaryCard}" aria-label="판정 요약">
+        <div class="result-icon" th:text="${sc.hasAnyMatch} ? '✅' : '🧭'">✅</div>
         <div class="result-body">
-            <div class="headline">신청 가능한 주택형이 <span th:text="${result.matchedUnitTypes.size()}">1</span>개 있습니다</div>
-            <div class="sub">아래에서 주택형별 신청 가능 유형과 배정 세대를 확인하세요.</div>
-        </div>
-    </div>
-    <div th:unless="${result.hasAnyMatch}" class="result-hero bad">
-        <div class="result-icon">🧭</div>
-        <div class="result-body">
-            <div class="headline">현재 조건으로 신청 가능한 특별공급 유형이 없습니다</div>
-            <div class="sub">아래 판정 근거에서 어떤 요건이 막았는지 확인하세요.</div>
-        </div>
-    </div>
+            <th:block th:if="${sc.hasAnyMatch}">
+                <div class="headline">신청 가능:
+                    <th:block th:each="a, it : ${sc.applicable}"><a class="sc-type" th:href="'#decision-' + ${a.typeName}"
+                        th:text="${a.label} + (${a.count != null} ? ' ' + ${#numbers.formatInteger(a.count, 1, 'COMMA')} + '세대' : '')">신혼부부 47세대</a><span th:unless="${it.last}"> · </span></th:block>
+                </div>
+                <div class="sub">
+                    <span th:text="|신청 가능한 주택형 ${result.matchedUnitTypes.size()}개 — 주택형별 배정은 아래 표에서 확인하세요.|">신청 가능한 주택형 2개</span>
+                    <span th:if="${sc.applicable.?[count == null].size() > 0}">LH 공고는 유형별 세대수를 공개하지 않아 세대수를 적지 않았습니다.</span>
+                </div>
+            </th:block>
+            <th:block th:unless="${sc.hasAnyMatch}">
+                <div class="headline">현재 조건으로 신청 가능한 특별공급 유형이 없습니다</div>
+                <div class="sub" th:if="${sc.blocked.isEmpty() and sc.nearestFix == null and sc.needsInfo.isEmpty()}">아래 판정 근거에서 어떤 요건이 막았는지 확인하세요.</div>
+            </th:block>
 
-    <!-- 판정 요약 칩 — 근거 카드가 화면 아래쪽에 있어, 유형별 결과를 여기서 한눈에 보고 눌러서
-         해당 카드로 내려간다. 엔진 판정(eligible/undetermined) 그대로 셋으로만 나눈다. -->
-    <nav class="verdict-summary" aria-label="유형별 판정 요약"
-         th:with="ok=${result.allDecisions.?[eligible]},
-                  info=${result.allDecisions.?[!eligible and undetermined]},
-                  no=${result.allDecisions.?[!eligible and !undetermined]}">
-        <div class="vs-row" th:if="${!ok.isEmpty()}">
-            <span class="vs-head ok" th:text="|자격 충족 ${ok.size()}|">자격 충족 2</span>
-            <a class="vs-chip" th:each="d : ${ok}" th:href="'#decision-' + ${d.typeName}" th:text="${d.typeLabel}">신혼부부</a>
+            <ul class="sc-rows" th:if="${!sc.qualifiedButUnavailable.isEmpty() or sc.nearestFix != null
+                                         or !sc.blocked.isEmpty() or !sc.needsInfo.isEmpty()}">
+                <li th:if="${!sc.qualifiedButUnavailable.isEmpty()}">
+                    <span class="sc-k">물량 없음</span>
+                    <span><th:block th:each="t, it : ${sc.qualifiedButUnavailable}"><a class="sc-type" th:href="'#decision-' + ${t.typeName}" th:text="${t.label}">다자녀가구</a><span th:unless="${it.last}">, </span></th:block>
+                        — 자격은 되지만 이 공고엔 배정이 없어요. 다른 공고에서 신청할 수 있습니다.</span>
+                </li>
+                <li th:if="${sc.nearestFix != null}">
+                    <span class="sc-k fix">가장 가까운 보완</span>
+                    <span><a class="sc-type" th:href="'#decision-' + ${sc.nearestFix.typeName}" th:text="${sc.nearestFix.label}">노부모부양</a>
+                        — <th:block th:each="h, it : ${sc.nearestFix.hints}"><span th:utext="${@emphasis.html(h)}">청약통장을 3개월 더 유지하면…</span><span th:unless="${it.last}"> 그리고 </span></th:block>
+                        <span class="muted" th:if="${!sc.otherFixable.isEmpty()}">(그 밖에 <th:block th:each="t, it : ${sc.otherFixable}"><a class="sc-type" th:href="'#decision-' + ${t.typeName}" th:text="${t.label}">생애최초</a><span th:unless="${it.last}">, </span></th:block>도 기간이 지나면 가능)</span></span>
+                </li>
+                <li th:if="${!sc.blocked.isEmpty()}">
+                    <span class="sc-k no">지금 조건으론 어려움</span>
+                    <span><th:block th:each="t, it : ${sc.blocked}"><a class="sc-type" th:href="'#decision-' + ${t.typeName}" th:text="${t.label}">신생아</a><span th:unless="${it.last}">, </span></th:block>
+                        <span class="muted">— 막은 요건은 각 근거 카드에</span></span>
+                </li>
+                <li th:if="${!sc.needsInfo.isEmpty()}">
+                    <span class="sc-k miss">정보 필요</span>
+                    <span><th:block th:each="t, it : ${sc.needsInfo}"><a class="sc-type" th:href="'#decision-' + ${t.typeName}" th:text="${t.label}">다자녀가구</a><span th:unless="${it.last}">, </span></th:block>
+                        — <span th:text="${#strings.listJoin(sc.missingInputs, ', ')}">자녀 수</span>을(를)
+                        <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}">입력하면</a> 판정할 수 있어요.</span>
+                </li>
+            </ul>
+
+            <div class="sc-links">
+                <a th:href="@{/announcements/calendar}">청약 캘린더</a>
+                <a th:if="${sc.nearestFix != null or !sc.qualifiedButUnavailable.isEmpty()}" th:href="@{/match}">내 조건으로 다른 공고 찾기</a>
+                <a th:href="@{/general-supply}">일반공급 가점 계산</a>
+            </div>
         </div>
-        <div class="vs-row" th:if="${!info.isEmpty()}">
-            <span class="vs-head miss" th:text="|정보 필요 ${info.size()}|">정보 필요 1</span>
-            <a class="vs-chip" th:each="d : ${info}" th:href="'#decision-' + ${d.typeName}" th:text="${d.typeLabel}">다자녀</a>
-        </div>
-        <div class="vs-row" th:if="${!no.isEmpty()}">
-            <span class="vs-head no" th:text="|미충족 ${no.size()}|">미충족 3</span>
-            <a class="vs-chip" th:each="d : ${no}" th:href="'#decision-' + ${d.typeName}" th:text="${d.typeLabel}">생애최초</a>
-        </div>
-    </nav>
+    </section>
+
+    <!-- (판정 요약 칩은 #21 요약 카드가 같은 분류·링크를 맡아 뺐다) -->
 
     <!-- 공통요건 요약 레일 — 재당첨·소득·자산·통장·거주는 여러 특별공급 유형이 함께 확인하는
          요건이라 유형마다 반복해서 보여주지 않고 한 번만 그린다. 유형별로 결과가 갈리면
@@ -241,7 +264,10 @@
     <div class="ai-summary-slot">
     <!-- LLM 요약 — 규칙 근거(위 카드)를 대체하지 않고 덧붙이는 읽기용 문단 — 목업처럼 카드 아래에 둔다.
          판정은 규칙 엔진이 했고 이 문장은 그 근거를 재구성만 한 것이다. -->
-    <div th:if="${explanation != null and explanation.shown}" class="card tint">
+    <!-- FALLBACK(AI 실패·모순)은 문단을 다시 그리지 않는다 — 같은 내용이 맨 위 요약 카드에 이미 있다 (#21) -->
+    <p th:if="${explanation != null and explanation.shown and !explanation.aiGenerated}" class="muted">
+        AI 요약을 만들지 못했거나 판정과 어긋나 표시하지 않았습니다 — 맨 위 요약을 확인하세요.</p>
+    <div th:if="${explanation != null and explanation.aiGenerated}" class="card tint">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
             <strong>요약</strong>
             <span th:if="${explanation.aiGenerated}" class="ai-chip">AI</span>
