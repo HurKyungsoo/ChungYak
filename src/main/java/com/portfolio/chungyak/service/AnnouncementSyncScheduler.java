@@ -6,6 +6,7 @@ import com.portfolio.chungyak.external.AnnouncementSource;
 import com.portfolio.chungyak.external.ExternalAnnouncement;
 import com.portfolio.chungyak.external.ExternalUnitType;
 import com.portfolio.chungyak.external.PublicDataProperties;
+import com.portfolio.chungyak.rag.AnnouncementIndexer;
 import com.portfolio.chungyak.repository.AnnouncementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ public class AnnouncementSyncScheduler {
     private final SyncStatus syncStatus;
     private final Clock clock;
     private final NewAnnouncementAlertService alertService;
+    private final AnnouncementIndexer indexer;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -98,6 +100,14 @@ public class AnnouncementSyncScheduler {
             alertService.notifyMatchingSubscribers(newAnnouncements);
         } catch (RuntimeException e) {
             log.warn("새 공고 알림 발송 중 오류 — 다음 배치에서 다시 시도되지 않으니 원인 확인 필요. {}", e.toString());
+        }
+
+        // 공고문 Q&A 인덱스 — BM25 모드(무료)일 때만 자동. 실패해도 수집은 끝났으니 배치를 실패시키지 않는다.
+        // 다음 배치가 낡은 인덱스를 다시 잡는다(textHash 비교라 재실행해도 안전).
+        try {
+            indexer.indexAfterSync();
+        } catch (RuntimeException e) {
+            log.warn("수집 후 공고문 인덱싱 중 오류 — 다음 배치에서 다시 시도. {}", e.toString());
         }
 
         return total;

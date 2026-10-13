@@ -8,6 +8,7 @@ import com.portfolio.chungyak.repository.DocumentChunkRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -58,15 +59,49 @@ class AnnouncementIndexerTest {
     }
 
     @Test
-    @DisplayName("임베더 없음 → disabled, 아무것도 안 함")
-    void disabledWithoutEmbedder() {
+    @DisplayName("임베더 없음 → BM25 모드: 청크만 저장(임베딩 빈 배열, 모델 bm25) (#22)")
+    void bm25ModeWithoutEmbedder() {
         AnnouncementIndexer noEmbed = new AnnouncementIndexer(docRepo, chunkRepo,
                 new ChunkSplitter(120, 20), Optional.empty(), Clock.systemUTC());
+        when(docRepo.findAll()).thenReturn(List.of(doc(1L, "잔여세대 신청 조건 안내. ".repeat(40))));
+        when(chunkRepo.findByAnnouncementId(1L)).thenReturn(List.of());
 
         RagIndexReport report = noEmbed.indexPending();
 
-        assertThat(report.enabled()).isFalse();
+        assertThat(report.model()).isEqualTo(AnnouncementIndexer.BM25_MODEL);
+        assertThat(report.chunksCreated()).isGreaterThan(1);
+        ArgumentCaptor<DocumentChunk> saved = ArgumentCaptor.forClass(DocumentChunk.class);
+        verify(chunkRepo, times(report.chunksCreated())).save(saved.capture());
+        assertThat(saved.getAllValues()).allSatisfy(c -> {
+            assertThat(c.getEmbedding()).isEmpty();
+            assertThat(c.getEmbeddingModel()).isEqualTo("bm25");
+        });
+    }
+
+    @Test
+    @DisplayName("BM25 인덱스는 Voyage 키가 생기면 모델 불일치로 다시 인덱싱된다")
+    void bm25IndexIsUpgradedWhenEmbedderAppears() {
+        AnnouncementDocument d = doc(1L, "공고문 내용입니다.");
+        when(docRepo.findAll()).thenReturn(List.of(d));
+        when(chunkRepo.findByAnnouncementId(1L)).thenReturn(List.of(
+                new DocumentChunk(1L, 0, "공고문 내용입니다.", new float[0],
+                        AnnouncementIndexer.BM25_MODEL, d.getTextHash(), Instant.now())));
+
+        assertThat(indexer.indexPending().docsIndexed()).isEqualTo(1);
+        assertThat(embedCalls).hasValue(1);
+    }
+
+    @Test
+    @DisplayName("수집 후 자동 인덱싱은 BM25 모드에서만 — 임베딩 모드는 과금이라 하지 않는다")
+    void indexAfterSyncOnlyInBm25Mode() {
+        indexer.indexAfterSync();   // 임베딩 모드
         verifyNoInteractions(docRepo);
+
+        AnnouncementIndexer noEmbed = new AnnouncementIndexer(docRepo, chunkRepo,
+                new ChunkSplitter(120, 20), Optional.empty(), Clock.systemUTC());
+        when(docRepo.findAll()).thenReturn(List.of());
+        noEmbed.indexAfterSync();
+        verify(docRepo).findAll();
     }
 
     @Test

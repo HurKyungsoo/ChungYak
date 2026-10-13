@@ -63,6 +63,20 @@ class Bm25IndexTest {
     }
 
     @Test
+    @DisplayName("겹침은 어절 단위 — 의문사·어미는 빼고, 조사가 붙은 어절은 어간으로 본다 (#22 실사용에서 정답 질문이 43% 로 걸러졌다)")
+    void coverageIgnoresQuestionWordsAndParticles() {
+        Bm25Index index = Bm25Index.build(List.of(
+                "신청자격: 무주택세대구성원으로서 소득 및 자산 기준을 충족하는 자",
+                "당첨자 발표는 2026.10.26.(월) 청약플러스에서 확인"));
+
+        assertThat(Bm25Index.queryWords("신청 자격이 어떻게 되나요?")).containsExactly("신청", "자격이");
+        assertThat(index.termCoverage("신청 자격이 어떻게 되나요?", 0)).isEqualTo(1.0);
+        assertThat(index.termCoverage("당첨자 발표일은 언제인가요?", 1)).isEqualTo(1.0);
+        // 의문사만 있는 질의는 겹칠 어절이 없다
+        assertThat(index.termCoverage("언제 어떻게 되나요?", 0)).isZero();
+    }
+
+    @Test
     @DisplayName("빈 코퍼스·매칭 없음은 0")
     void degenerate() {
         assertThat(Bm25Index.build(List.of()).scores("질문")).isEmpty();

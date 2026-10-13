@@ -121,4 +121,24 @@ class VectorSearchTest {
         when(chunkRepo.findAll()).thenReturn(List.of());
         assertThat(withEmbed.search("q")).isEmpty();
     }
+
+    @Test
+    @DisplayName("임베더 없음 → BM25 모드: 키워드 순위만, 의미 점수 0, 키워드가 안 걸린 청크는 제외 (#22)")
+    void bm25OnlyWithoutEmbedder() {
+        when(chunkRepo.findAll()).thenReturn(List.of(
+                chunk(1, 0, new float[0], "일반적인 청약 안내문입니다"),
+                chunk(1, 1, new float[0], "발코니 확장 비용은 세대당 별도 부과됩니다"),
+                chunk(1, 2, new float[0], "당첨자 발표는 홈페이지에서 확인하세요")));
+
+        VectorSearch search = new VectorSearch(chunkRepo, Optional.empty(), props(0.6));
+        List<VectorSearch.Hit> hits = search.searchWithin(1L, "발코니 확장 비용", 3);
+
+        assertThat(search.isSemantic()).isFalse();
+        assertThat(hits).isNotEmpty();
+        assertThat(hits.get(0).chunkIndex()).isEqualTo(1);
+        assertThat(hits).allSatisfy(h -> {
+            assertThat(h.score()).isZero();
+            assertThat(h.keywordScore()).isPositive();
+        });
+    }
 }

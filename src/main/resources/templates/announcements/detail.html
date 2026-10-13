@@ -262,6 +262,9 @@
                 <span class="muted">아래 발췌만 근거로 정리했습니다</span>
             </div>
             <p style="margin:0;white-space:pre-wrap" th:text="${qa.answer}">답변</p>
+            <p class="muted" style="margin:8px 0 0;font-size:.85rem" th:if="${qa.mentionsAmount()}">
+                ⚠ 금액은 공고문 표에서 뽑은 것입니다. 표는 글자로 옮기면 칸이 섞여 잘못 읽힐 수 있으니
+                주택형별 정확한 금액은 공고문 원문의 표에서 확인하세요.</p>
         </div>
 
         <div th:if="${qa != null and qa.status.name() == 'NO_MATCH'}" class="card" style="margin-top:12px">
@@ -281,7 +284,7 @@
             <details th:each="c, it : ${qa.citations}" class="card" style="margin-bottom:6px">
                 <summary style="cursor:pointer">
                     발췌 <span th:text="${it.index + 1}">1</span>
-                    <span class="muted" th:text="'· 의미 ' + ${#numbers.formatDecimal(c.score, 1, 2)}">· 의미 0.82</span>
+                    <span class="muted" th:if="${qaSemantic}" th:text="'· 의미 ' + ${#numbers.formatDecimal(c.score, 1, 2)}">· 의미 0.82</span>
                     <span class="muted" th:if="${c.keywordScore > 0}"
                           th:text="'· 키워드 ' + ${#numbers.formatPercent(c.keywordScore, 1, 0)}">· 키워드 50%</span>
                 </summary>

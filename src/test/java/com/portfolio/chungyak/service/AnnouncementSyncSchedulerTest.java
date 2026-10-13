@@ -1,6 +1,7 @@
 package com.portfolio.chungyak.service;
 
 import com.portfolio.chungyak.alert.NewAnnouncementAlertService;
+import com.portfolio.chungyak.rag.AnnouncementIndexer;
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.external.ApplyhomeClient;
 import com.portfolio.chungyak.external.ExternalAnnouncement;
@@ -51,7 +52,8 @@ class AnnouncementSyncSchedulerTest {
         syncStatus = new SyncStatus();
         NewAnnouncementAlertService alertService = Mockito.mock(NewAnnouncementAlertService.class);
         scheduler = new AnnouncementSyncScheduler(List.of(applyhomeClient), syncService, repo, props,
-                syncStatus, Clock.fixed(Instant.parse("2026-09-03T04:00:00Z"), ZoneOffset.UTC), alertService);
+                syncStatus, Clock.fixed(Instant.parse("2026-09-03T04:00:00Z"), ZoneOffset.UTC), alertService,
+                Mockito.mock(AnnouncementIndexer.class));
     }
 
     @Test
@@ -117,7 +119,7 @@ class AnnouncementSyncSchedulerTest {
         PublicDataProperties props = new PublicDataProperties();
         new AnnouncementSyncScheduler(List.of(lh), syncService, repo, props, syncStatus,
                 Clock.fixed(Instant.parse("2026-10-12T04:00:00Z"), ZoneOffset.UTC),
-                Mockito.mock(NewAnnouncementAlertService.class)).runSync();
+                Mockito.mock(NewAnnouncementAlertService.class), Mockito.mock(AnnouncementIndexer.class)).runSync();
 
         verify(lh).enrichWithDetail(needsBackfill);
         verify(lh, never()).enrichWithDetail(alreadyDetailed);

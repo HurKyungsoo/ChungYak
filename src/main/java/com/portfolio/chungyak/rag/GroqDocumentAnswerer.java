@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * {@link DocumentAnswerer} 의 Groq 구현 — 프롬프트는 Anthropic 구현과 같다(발췌문에만 근거, 판정 금지).
  * 입력은 공개 공고문 발췌와 질문뿐이라 소득·자산 같은 개인 판정 정보는 나가지 않는다.
- * 단, 검색(임베딩)이 따로 필요해 VOYAGE_API_KEY 가 없으면 Q&A 자체가 꺼진 채로 있다.
+ * 검색은 VOYAGE_API_KEY 가 없으면 BM25(키워드)만으로 돈다(#22) — Groq 만으로 Q&A 가 켜진다.
  */
 public class GroqDocumentAnswerer implements DocumentAnswerer {
 

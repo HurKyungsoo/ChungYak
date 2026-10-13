@@ -14,7 +14,9 @@ import java.util.Optional;
  * 흐름: 질문 → {@link VectorSearch#searchWithin} 로 관련 발췌 → {@link DocumentAnswerer} 가 답변.
  * 판정이 아니라 정보 검색이다(방향 3). 답변은 항상 발췌 근거와 함께 화면에 표시된다.
  *
- * 임베딩(Voyage) 또는 응답기(Anthropic) 중 하나라도 없으면 DISABLED — 화면에서 입력창을 숨긴다.
+ * 응답기(Anthropic 또는 Groq)가 없으면 DISABLED — 화면에서 입력창을 숨긴다.
+ * 임베딩(Voyage)이 없어도 동작한다 — 검색이 BM25(키워드)만으로 돈다(#22). 그때 "관련 발췌 없음" 판단은
+ * 코사인이 늘 0 이라 키워드 겹침({@code keyword-min-score})만 본다.
  */
 @Slf4j
 @Service
@@ -40,7 +42,12 @@ public class DocumentQaService {
     }
 
     public boolean isEnabled() {
-        return vectorSearch.isAvailable() && answerer.isPresent();
+        return answerer.isPresent();
+    }
+
+    /** 의미(벡터) 검색까지 하는지 — false 면 BM25(키워드)만 */
+    public boolean isSemantic() {
+        return vectorSearch.isSemantic();
     }
 
     /** 이 공고에 인덱싱된 공고문 청크가 있는지 — 화면에서 입력창 노출 여부. */
@@ -57,9 +64,20 @@ public class DocumentQaService {
 
     public record Citation(int chunkIndex, String excerpt, double score, double keywordScore) {}
 
+    /** 금액 표기 — "33,148,000", "6,600,000원", "292만원" */
+    private static final java.util.regex.Pattern AMOUNT =
+            java.util.regex.Pattern.compile("\\d{1,3}(?:,\\d{3})+|\\d+\\s*(?:만\\s*)?원");
+
     public record QaAnswer(Status status, String answer, List<Citation> citations) {
         public boolean isShown() { return status != Status.DISABLED; }
         public boolean hasAnswer() { return status == Status.ANSWERED; }
+
+        /**
+         * 답변에 금액이 있는지 — 공고문 표는 텍스트로 뽑히면 열 구분이 사라져, 모델이 보증금·임대료 열을 섞어 읽는다
+         * (#22 실사용: 임대보증금 표에서 다른 열의 값을 "월 임대료"로 답함). 프롬프트로 막아도 새므로 화면이 항상
+         * "원문 표에서 확인" 안내를 붙인다.
+         */
+        public boolean mentionsAmount() { return answer != null && AMOUNT.matcher(answer).find(); }
 
         static QaAnswer disabled()  { return new QaAnswer(Status.DISABLED, null, List.of()); }
         static QaAnswer noIndex()   { return new QaAnswer(Status.NO_INDEX, null, List.of()); }
@@ -75,7 +93,8 @@ public class DocumentQaService {
 
         List<Hit> hits = vectorSearch.searchWithin(announcementId, question.strip(), contextChunks);
         if (hits.isEmpty()) {
-            return QaAnswer.noIndex();
+            // BM25 모드는 키워드가 하나도 안 걸린 청크를 빼므로, 인덱스가 있어도 결과가 빌 수 있다 — 그건 "관련 없음"이다
+            return hasIndex(announcementId) ? QaAnswer.noMatch(List.of()) : QaAnswer.noIndex();
         }
 
         List<Citation> citations = hits.stream()
@@ -83,7 +102,8 @@ public class DocumentQaService {
                 .toList();
 
         Hit top = hits.get(0);
-        if (top.score() < minScore && top.keywordScore() < keywordMinScore) {
+        boolean weakMeaning = !vectorSearch.isSemantic() || top.score() < minScore;
+        if (weakMeaning && top.keywordScore() < keywordMinScore) {
             log.info("공고 #{} Q&A — 최고 발췌 코사인 {} · 키워드 {} 로 관련 발췌 없음", announcementId,
                     String.format("%.2f", top.score()), String.format("%.2f", top.keywordScore()));
             return QaAnswer.noMatch(citations);

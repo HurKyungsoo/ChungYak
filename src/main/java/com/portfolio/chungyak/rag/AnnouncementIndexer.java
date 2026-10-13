@@ -18,7 +18,12 @@ import java.util.Optional;
  * 공고문 원문 → 청크 + 임베딩.
  *
  * 판정과 무관하다 — 정보 검색용이다. 원문(textHash)이나 임베딩 모델이 바뀐 공고만
- * 다시 인덱싱한다(idempotent). {@link EmbeddingClient} 가 없으면(키 미설정) 아무것도 안 한다.
+ * 다시 인덱싱한다(idempotent).
+ *
+ * <b>두 모드</b> (#22): {@link EmbeddingClient}(Voyage) 가 있으면 청크 + 임베딩, 없으면 <b>BM25 모드</b> —
+ * 청크만 저장하고 임베딩은 빈 배열({@code "[]"}), 모델명은 {@link #BM25_MODEL}. 스키마는 그대로다
+ * ({@code embedding} 이 NOT NULL). 나중에 Voyage 키를 넣으면 모델명 불일치로 {@link #isUpToDate} 가
+ * 낡은 것으로 보고 임베딩까지 다시 만든다.
  */
 @Slf4j
 @Service
@@ -42,27 +47,39 @@ public class AnnouncementIndexer {
         this.clock = clock;
     }
 
-    public boolean isAvailable() {
+    /** 임베딩 없이 청크만 저장한 인덱스의 모델명 — 검색은 BM25(키워드)만 쓴다. */
+    public static final String BM25_MODEL = "bm25";
+
+    /** 의미(벡터) 검색까지 되는지 — false 면 BM25 모드 */
+    public boolean isSemantic() {
         return embeddingClient.isPresent();
+    }
+
+    /**
+     * 수집 직후 자동 인덱싱 — <b>BM25 모드일 때만</b>(무료). 임베딩 모드는 호출마다 과금이라
+     * 지금처럼 관리자 API({@code /api/admin/rag/reindex})로만 돌린다.
+     */
+    public void indexAfterSync() {
+        if (isSemantic()) {
+            log.info("임베딩 모드 — 수집 후 자동 인덱싱은 하지 않음(과금). 필요하면 /api/admin/rag/reindex");
+            return;
+        }
+        indexPending();
     }
 
     /** 원문이 있으나 최신 인덱스가 없는 공고를 모두 인덱싱한다. */
     public RagIndexReport indexPending() {
-        if (embeddingClient.isEmpty()) {
-            log.info("임베딩 클라이언트 없음 — RAG 인덱싱 건너뜀");
-            return RagIndexReport.disabled();
-        }
-        EmbeddingClient client = embeddingClient.get();
+        String model = embeddingClient.map(EmbeddingClient::model).orElse(BM25_MODEL);
 
         int scanned = 0, indexed = 0, skipped = 0, failed = 0, chunks = 0;
         for (AnnouncementDocument doc : documentRepository.findAll()) {
             scanned++;
-            if (isUpToDate(doc, client.model())) {
+            if (isUpToDate(doc, model)) {
                 skipped++;
                 continue;
             }
             try {
-                chunks += reindex(doc, client);
+                chunks += reindex(doc, model);
                 indexed++;
             } catch (RuntimeException e) {
                 failed++;
@@ -70,7 +87,7 @@ public class AnnouncementIndexer {
             }
         }
 
-        RagIndexReport report = new RagIndexReport(true, scanned, indexed, skipped, failed, chunks);
+        RagIndexReport report = new RagIndexReport(model, scanned, indexed, skipped, failed, chunks);
         log.info("RAG 인덱싱 완료 — {}", report);
         return report;
     }
@@ -87,7 +104,7 @@ public class AnnouncementIndexer {
      * 원자성보다 재실행 가능성에 기댄다 — 중간에 실패해 청크가 섞여 남아도
      * 다음 실행의 {@link #isUpToDate} 가 불일치로 보고 지운 뒤 다시 만든다.
      */
-    private int reindex(AnnouncementDocument doc, EmbeddingClient client) {
+    private int reindex(AnnouncementDocument doc, String model) {
         chunkRepository.deleteByAnnouncementId(doc.getAnnouncementId());
 
         List<String> texts = splitter.split(doc.getRawText());
@@ -96,7 +113,9 @@ public class AnnouncementIndexer {
             return 0;
         }
 
-        List<float[]> vectors = client.embed(texts, InputType.DOCUMENT);
+        List<float[]> vectors = embeddingClient
+                .map(client -> client.embed(texts, InputType.DOCUMENT))
+                .orElseGet(() -> texts.stream().map(t -> new float[0]).toList());
         if (vectors.size() != texts.size()) {
             throw new IllegalStateException("임베딩 개수 불일치: " + vectors.size() + " != " + texts.size());
         }
@@ -105,7 +124,7 @@ public class AnnouncementIndexer {
         for (int i = 0; i < texts.size(); i++) {
             chunkRepository.save(new DocumentChunk(
                     doc.getAnnouncementId(), i, texts.get(i), vectors.get(i),
-                    client.model(), doc.getTextHash(), now));
+                    model, doc.getTextHash(), now));
         }
         return texts.size();
     }

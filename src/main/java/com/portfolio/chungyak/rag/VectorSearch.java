@@ -22,6 +22,9 @@ import java.util.function.Predicate;
  * 벡터 쪽 가중치는 {@code rag.search.hybrid-weight}.
  * 판정이 아니라 정보 검색이다 — 결과 청크는 근거 인용과 함께 LLM 답변 컨텍스트로 들어간다.
  *
+ * 임베딩 클라이언트(Voyage)가 없으면 <b>BM25 모드</b>(#22) — 키워드 순위만 쓴다. 질의 임베딩을 만들 수 없고
+ * 청크에도 벡터가 없기 때문이다(AnnouncementIndexer 가 빈 배열로 저장). 이때 {@link Hit#score} 는 0 이다.
+ *
  * 공고 수백 건 규모라 매 질의마다 전체 청크를 메모리에 올려 코사인·BM25 를 계산한다.
  * (수천 건을 넘어가면 역색인/캐시 또는 네이티브 벡터 인덱스로 교체.)
  */
@@ -46,13 +49,14 @@ public class VectorSearch {
         this.hybridWeight = properties.search().hybridWeight();
     }
 
-    public boolean isAvailable() {
+    /** 의미(벡터) 검색까지 하는지 — false 면 BM25(키워드)만. 검색 자체는 두 모드 모두 된다. */
+    public boolean isSemantic() {
         return embeddingClient.isPresent();
     }
 
     /**
      * 한 조각의 검색 결과.
-     * @param score        의미 유사도(코사인, -1..1)
+     * @param score        의미 유사도(코사인, -1..1). BM25 모드에서는 0
      * @param keywordScore 질의 키워드 겹침 비율(0..1)
      */
     public record Hit(Long announcementId, int chunkIndex, String content,
@@ -73,14 +77,14 @@ public class VectorSearch {
     }
 
     private List<Hit> hybrid(String query, int topK, Predicate<DocumentChunk> keep) {
-        if (embeddingClient.isEmpty() || query == null || query.isBlank()) {
+        if (query == null || query.isBlank()) {
             return List.of();
         }
         List<DocumentChunk> all = chunkRepository.findAll();
         if (all.isEmpty()) return List.of();
 
         String q = query.strip();
-        float[] qVec = embeddingClient.get().embed(List.of(q), InputType.QUERY).get(0);
+        float[] qVec = embeddingClient.map(e -> e.embed(List.of(q), InputType.QUERY).get(0)).orElse(null);
 
         // BM25 는 전체 코퍼스로 (IDF 가 코퍼스 통계라 공고 하나로 좁히면 의미 없다)
         Bm25Index bm25 = Bm25Index.build(all.stream().map(DocumentChunk::getContent).toList());
@@ -92,10 +96,21 @@ public class VectorSearch {
             DocumentChunk c = all.get(i);
             if (!keep.test(c)) continue;
             cands.add(new Cand(i, c,
-                    Cosine.similarity(qVec, c.getEmbedding()), bmScores[i],
+                    qVec == null ? 0.0 : Cosine.similarity(qVec, c.getEmbedding()), bmScores[i],
                     bm25.termCoverage(q, i)));
         }
         if (cands.isEmpty()) return List.of();
+
+        if (qVec == null) {
+            // BM25 모드 — 키워드가 하나도 안 걸린 청크는 순위를 매길 근거가 없어 뺀다
+            return cands.stream()
+                    .filter(x -> x.bm() > 0)
+                    .sorted(Comparator.comparingDouble(Cand::bm).reversed())
+                    .limit(Math.max(1, topK))
+                    .map(x -> new Hit(x.c().getAnnouncementId(), x.c().getChunkIndex(),
+                            x.c().getContent(), 0.0, x.cover()))
+                    .toList();
+        }
 
         Map<Integer, Integer> cosRank = rankMap(cands, Comparator.comparingDouble(Cand::cos).reversed());
         Map<Integer, Integer> bmRank = rankMap(

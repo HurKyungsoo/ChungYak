@@ -43,7 +43,7 @@ public class AdminRagController {
     @GetMapping("/status")
     public Map<String, Object> status() {
         return Map.of(
-                "embeddingAvailable", indexer.isAvailable(),
+                "semanticSearch", indexer.isSemantic(),
                 "documents", documentRepository.count(),
                 "chunks", chunkRepository.count());
     }

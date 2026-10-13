@@ -305,6 +305,7 @@ public class AnnouncementController {
         model.addAttribute("hasCalendarEvents", !AnnouncementIcs.events(announcement).isEmpty());
         model.addAttribute("qaEnabled", qaService.isEnabled());
         model.addAttribute("qaIndexed", qaService.hasIndex(id));
+        model.addAttribute("qaSemantic", qaService.isSemantic());   // BM25 모드면 '의미' 점수(늘 0)를 숨긴다
         // 문의처는 하이픈 없는 숫자로 들어온다 — 읽을 수 있게 끊어서 보여주고,
         // 거는 건 원본 그대로 tel: 로 넘긴다(다이얼러가 하이픈도 알아서 처리한다).
         model.addAttribute("inquiryTelDisplay", PhoneNumbers.format(announcement.getInquiryTel()));

@@ -34,7 +34,7 @@ class DocumentQaServiceTest {
         search = mock(VectorSearch.class);
         chunkRepo = mock(DocumentChunkRepository.class);
         lastExcerpts = new AtomicReference<>();
-        when(search.isAvailable()).thenReturn(true);
+        when(search.isSemantic()).thenReturn(true);
     }
 
     private DocumentAnswerer answerer(String reply) {
@@ -94,6 +94,22 @@ class DocumentQaServiceTest {
     }
 
     @Test
+    @DisplayName("BM25 모드(임베딩 없음) — 코사인은 늘 0 이라 키워드 겹침만으로 관련 여부를 가른다 (#22)")
+    void bm25ModeGatesOnKeywordOnly() {
+        when(search.isSemantic()).thenReturn(false);
+        when(search.searchWithin(eq(1L), anyString(), anyInt())).thenReturn(List.of(
+                new Hit(1L, 2, "발코니 확장 비용은 세대당 별도 부과", 0.0, 0.9)));
+        DocumentQaService svc = service(Optional.of(answerer("발코니 확장 비용은 별도입니다 [1].")));
+
+        assertThat(svc.isEnabled()).as("임베딩 없이도 응답기만 있으면 켜진다").isTrue();
+        assertThat(svc.answer(1L, "발코니 확장 비용").status()).isEqualTo(Status.ANSWERED);
+
+        when(search.searchWithin(eq(1L), anyString(), anyInt())).thenReturn(List.of(
+                new Hit(1L, 5, "당첨자 발표 안내", 0.0, 0.2)));
+        assertThat(svc.answer(1L, "발코니 확장 비용").status()).isEqualTo(Status.NO_MATCH);
+    }
+
+    @Test
     @DisplayName("관련 발췌가 있으면 → ANSWERED, 번호 붙인 발췌를 넘기고 답+근거를 함께 반환")
     void answersWithCitations() {
         when(search.searchWithin(eq(1L), anyString(), anyInt())).thenReturn(List.of(
@@ -133,6 +149,27 @@ class DocumentQaServiceTest {
 
         assertThat(a.status()).isEqualTo(Status.ANSWER_FAILED);
         assertThat(a.citations()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("인덱스는 있는데 키워드가 하나도 안 걸려 결과가 비면 → NO_MATCH (NO_INDEX 아님, #22)")
+    void emptyHitsWithIndexIsNoMatch() {
+        when(search.searchWithin(eq(1L), anyString(), anyInt())).thenReturn(List.of());
+        when(chunkRepo.existsByAnnouncementId(1L)).thenReturn(true);
+
+        QaAnswer a = service(Optional.of(answerer("불려선 안 됨"))).answer(1L, "반려동물 키워도 되나요?");
+
+        assertThat(a.status()).isEqualTo(Status.NO_MATCH);
+        assertThat(lastExcerpts.get()).isNull();
+    }
+
+    @Test
+    @DisplayName("답변에 금액이 있으면 '원문 표에서 확인' 안내 대상 — 표 열이 섞여 읽히는 문제 (#22)")
+    void mentionsAmount() {
+        assertThat(new QaAnswer(Status.ANSWERED, "임대보증금은 33,148,000원입니다 [1].", List.of()).mentionsAmount()).isTrue();
+        assertThat(new QaAnswer(Status.ANSWERED, "월 임대료는 29만 원 수준입니다.", List.of()).mentionsAmount()).isTrue();
+        assertThat(new QaAnswer(Status.ANSWERED, "당첨자 발표는 2026년 10월 26일입니다 [1].", List.of()).mentionsAmount()).isFalse();
+        assertThat(new QaAnswer(Status.NO_MATCH, null, List.of()).mentionsAmount()).isFalse();
     }
 
     @Test
