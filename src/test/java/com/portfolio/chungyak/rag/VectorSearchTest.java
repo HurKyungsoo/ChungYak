@@ -29,6 +29,14 @@ class VectorSearchTest {
         @Override public String model() { return "fake"; }
     };
 
+    /** 저장소 목 — 전체 조회·본문만 조회·공고별 조회가 같은 청크 집합을 보게 */
+    private void stub(List<DocumentChunk> chunks) {
+        when(chunkRepo.findAll()).thenReturn(chunks);
+        when(chunkRepo.findAllContents()).thenReturn(chunks.stream().map(DocumentChunk::getContent).toList());
+        when(chunkRepo.findByAnnouncementId(org.mockito.ArgumentMatchers.anyLong())).thenAnswer(inv ->
+                chunks.stream().filter(c -> c.getAnnouncementId().equals(inv.getArgument(0))).toList());
+    }
+
     private RagProperties props(double hybridWeight) {
         return new RagProperties(new RagProperties.Chunk(900, 150),
                 new RagProperties.Search(5, hybridWeight), new RagProperties.Qa(4, 0.25, 0.5));
@@ -41,7 +49,7 @@ class VectorSearchTest {
     @Test
     @DisplayName("의미가 가까운 청크가 위로 (벡터 신호)")
     void ranksBySemantics() {
-        when(chunkRepo.findAll()).thenReturn(List.of(
+        stub(List.of(
                 chunk(1, 0, new float[]{0f, 1f}, "관련 없는 내용"),
                 chunk(2, 0, new float[]{1f, 0.1f}, "거의 같은 방향"),
                 chunk(3, 0, new float[]{-1f, 0f}, "반대 방향")));
@@ -56,7 +64,7 @@ class VectorSearchTest {
     @DisplayName("벡터로는 안 잡히는 청크도 키워드가 정확히 맞으면 상위로 (BM25 신호)")
     void keywordLiftsExactMatch() {
         // 벡터상 전부 직교(코사인 0). 순위는 BM25 가 가른다.
-        when(chunkRepo.findAll()).thenReturn(List.of(
+        stub(List.of(
                 chunk(1, 0, new float[]{0f, 1f}, "일반적인 청약 안내문입니다"),
                 chunk(2, 1, new float[]{0f, 1f}, "발코니 확장 비용은 세대당 별도 부과됩니다"),
                 chunk(3, 2, new float[]{0f, 1f}, "당첨자 발표는 홈페이지에서 확인하세요")));
@@ -71,7 +79,7 @@ class VectorSearchTest {
     @Test
     @DisplayName("keywordScore 는 질의 키워드 겹침 비율")
     void keywordScoreIsCoverage() {
-        when(chunkRepo.findAll()).thenReturn(List.of(
+        stub(List.of(
                 chunk(1, 0, new float[]{1f, 0f}, "잔여세대 신청은 무주택자만 가능합니다"),
                 chunk(1, 1, new float[]{1f, 0f}, "관계 없는 문장")));
 
@@ -86,7 +94,7 @@ class VectorSearchTest {
     @Test
     @DisplayName("searchWithin — 그 공고 청크만, BM25 IDF 는 전체 코퍼스 기준")
     void searchWithinScopesButUsesGlobalIdf() {
-        when(chunkRepo.findAll()).thenReturn(List.of(
+        stub(List.of(
                 chunk(7, 0, new float[]{1f, 0f}, "7번 공고: 특별공급 일정 안내"),
                 chunk(7, 1, new float[]{0f, 1f}, "7번 공고: 잔여세대 신청 조건"),
                 chunk(9, 0, new float[]{1f, 0f}, "9번 공고: 잔여세대 잔여세대 잔여세대")));
@@ -101,7 +109,7 @@ class VectorSearchTest {
     @Test
     @DisplayName("topK 로 자른다")
     void limitsTopK() {
-        when(chunkRepo.findAll()).thenReturn(List.of(
+        stub(List.of(
                 chunk(1, 0, new float[]{1f, 0f}, "a"), chunk(2, 0, new float[]{0.9f, 0.1f}, "b"),
                 chunk(3, 0, new float[]{0.5f, 0.5f}, "c"), chunk(4, 0, new float[]{0f, 1f}, "d")));
 
@@ -118,14 +126,14 @@ class VectorSearchTest {
         VectorSearch withEmbed = new VectorSearch(chunkRepo, Optional.of(embedder), props(0.6));
         assertThat(withEmbed.search("  ")).isEmpty();
 
-        when(chunkRepo.findAll()).thenReturn(List.of());
+        stub(List.of());
         assertThat(withEmbed.search("q")).isEmpty();
     }
 
     @Test
     @DisplayName("임베더 없음 → BM25 모드: 키워드 순위만, 의미 점수 0, 키워드가 안 걸린 청크는 제외 (#22)")
     void bm25OnlyWithoutEmbedder() {
-        when(chunkRepo.findAll()).thenReturn(List.of(
+        stub(List.of(
                 chunk(1, 0, new float[0], "일반적인 청약 안내문입니다"),
                 chunk(1, 1, new float[0], "발코니 확장 비용은 세대당 별도 부과됩니다"),
                 chunk(1, 2, new float[0], "당첨자 발표는 홈페이지에서 확인하세요")));
@@ -150,22 +158,22 @@ class VectorSearchTest {
     }
 
     @Test
-    @DisplayName("코퍼스 캐시 — 청크 버전이 같으면 다시 읽지 않고, 바뀌면 다시 만든다 (#28)")
+    @DisplayName("코퍼스 통계 캐시 — 청크 버전이 같으면 본문을 다시 읽지 않고, 바뀌면 다시 만든다 (#28·#29)")
     void cachesCorpusUntilVersionChanges() {
-        when(chunkRepo.findAll()).thenReturn(List.of(chunk(1, 0, new float[0], "발코니 확장 비용 안내")));
+        stub(List.of(chunk(1, 0, new float[0], "발코니 확장 비용 안내")));
         when(chunkRepo.indexVersion()).thenReturn(version(1, 10));
         VectorSearch search = new VectorSearch(chunkRepo, Optional.empty(), props(0.6));
 
         search.searchWithin(1L, "발코니 확장", 3);
         search.searchWithin(1L, "확장 비용", 3);
-        org.mockito.Mockito.verify(chunkRepo, org.mockito.Mockito.times(1)).findAll();
+        org.mockito.Mockito.verify(chunkRepo, org.mockito.Mockito.times(1)).findAllContents();
 
         // 재인덱싱 — 지우고 다시 넣어 최대 id 가 바뀐다
-        when(chunkRepo.findAll()).thenReturn(List.of(chunk(1, 0, new float[0], "계약금 정액제 안내")));
+        stub(List.of(chunk(1, 0, new float[0], "계약금 정액제 안내")));
         when(chunkRepo.indexVersion()).thenReturn(version(1, 11));
         List<VectorSearch.Hit> hits = search.searchWithin(1L, "계약금", 3);
 
-        org.mockito.Mockito.verify(chunkRepo, org.mockito.Mockito.times(2)).findAll();
+        org.mockito.Mockito.verify(chunkRepo, org.mockito.Mockito.times(2)).findAllContents();
         assertThat(hits).extracting(VectorSearch.Hit::content).containsExactly("계약금 정액제 안내");
     }
 }

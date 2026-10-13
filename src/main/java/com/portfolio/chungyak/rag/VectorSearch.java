@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 /**
  * 공고문 청크에 대한 <b>하이브리드</b> 검색 — 의미(벡터 코사인) + 키워드(BM25).
@@ -25,9 +24,10 @@ import java.util.function.Predicate;
  * 임베딩 클라이언트(Voyage)가 없으면 <b>BM25 모드</b>(#22) — 키워드 순위만 쓴다. 질의 임베딩을 만들 수 없고
  * 청크에도 벡터가 없기 때문이다(AnnouncementIndexer 가 빈 배열로 저장). 이때 {@link Hit#score} 는 0 이다.
  *
- * <b>캐시</b> (#28): 청크 목록과 BM25 인덱스를 메모리에 한 번 만들어 두고, 청크 집합이 바뀌었을 때만
- * ({@link DocumentChunkRepository#indexVersion} — 개수·최대 id) 다시 만든다. 질의마다 전체 청크를 읽어
- * 인덱스를 새로 만들던 때는 운영(5,802청크)에서 검색만 ~1.2초였다.
+ * <b>캐시</b> (#28·#29): BM25 코퍼스 <b>통계</b>(IDF·평균 길이)만 메모리에 두고, 청크 집합이 바뀌었을 때만
+ * ({@link DocumentChunkRepository#indexVersion} — 개수·최대 id) 다시 만든다. 질문이 오면 그 공고의 청크만 DB 에서
+ * 읽어 즉석으로 점수를 낸다. 전체 청크의 단어 빈도를 들고 있던 때는 5,802 청크에 ~130MB 였고, 공고문 전문
+ * (~19,000 청크)이면 ~426MB 라 서버(여유 ~580MB)에 들어가지 않는다.
  * (수천 건을 넘어가면 역색인/캐시 또는 네이티브 벡터 인덱스로 교체.)
  */
 @Slf4j
@@ -42,8 +42,8 @@ public class VectorSearch {
     private final int defaultTopK;
     private final double hybridWeight;
 
-    /** 청크 목록 + 그 위의 BM25 — 함께 바뀌어야 하므로 한 덩어리로 교체한다 */
-    private record Corpus(long count, long maxId, List<DocumentChunk> chunks, Bm25Index bm25) {}
+    /** 코퍼스 BM25 통계(IDF·평균 길이)와 그 버전 — 청크 자체는 들고 있지 않는다(#29 메모리) */
+    private record Corpus(long count, long maxId, Bm25Index bm25) {}
 
     private volatile Corpus corpus;
 
@@ -73,39 +73,34 @@ public class VectorSearch {
         return search(query, defaultTopK);
     }
 
-    /** 전체 공고문에서 검색. */
+    /** 전체 공고문에서 검색 — 관리자 API 용. 전체 청크를 읽으므로 화면에서는 쓰지 않는다. */
     public List<Hit> search(String query, int topK) {
-        return hybrid(query, topK, c -> true);
+        return hybrid(query, topK, chunkRepository.findAll());
     }
 
-    /** 특정 공고 안에서만 검색 — "이 공고에 질문하기" 화면용. BM25 IDF 는 전체 코퍼스 기준. */
+    /** 특정 공고 안에서만 검색 — "이 공고에 질문하기" 화면용. 그 공고의 청크만 읽고, BM25 IDF 는 전체 코퍼스 기준. */
     public List<Hit> searchWithin(Long announcementId, String query, int topK) {
-        return hybrid(query, topK, c -> c.getAnnouncementId().equals(announcementId));
+        if (query == null || query.isBlank()) return List.of();
+        return hybrid(query, topK, chunkRepository.findByAnnouncementId(announcementId));
     }
 
-    private List<Hit> hybrid(String query, int topK, Predicate<DocumentChunk> keep) {
-        if (query == null || query.isBlank()) {
+    private List<Hit> hybrid(String query, int topK, List<DocumentChunk> chunks) {
+        if (query == null || query.isBlank() || chunks.isEmpty()) {
             return List.of();
         }
-        Corpus current = corpus();
-        List<DocumentChunk> all = current.chunks();
-        if (all.isEmpty()) return List.of();
-
         String q = query.strip();
         float[] qVec = embeddingClient.map(e -> e.embed(List.of(q), InputType.QUERY).get(0)).orElse(null);
 
-        // BM25 는 전체 코퍼스로 (IDF 가 코퍼스 통계라 공고 하나로 좁히면 의미 없다)
-        Bm25Index bm25 = current.bm25();
-        double[] bmScores = bm25.scores(q);
+        // BM25 IDF 는 전체 코퍼스 통계로 (공고 하나로 좁히면 IDF 가 의미 없다), 단어 빈도는 청크마다 즉석으로
+        Bm25Index bm25 = corpus().bm25();
+        Bm25Index.Query bq = Bm25Index.query(q);
 
-        // 후보(필터 통과분)에 코사인·BM25 붙이기
         List<Cand> cands = new ArrayList<>();
-        for (int i = 0; i < all.size(); i++) {
-            DocumentChunk c = all.get(i);
-            if (!keep.test(c)) continue;
+        for (int i = 0; i < chunks.size(); i++) {
+            DocumentChunk c = chunks.get(i);
             cands.add(new Cand(i, c,
-                    qVec == null ? 0.0 : Cosine.similarity(qVec, c.getEmbedding()), bmScores[i],
-                    bm25.termCoverage(q, i)));
+                    qVec == null ? 0.0 : Cosine.similarity(qVec, c.getEmbedding()), bm25.score(bq, c.getContent()),
+                    Bm25Index.coverage(bq, c.getContent())));
         }
         if (cands.isEmpty()) return List.of();
 
@@ -134,7 +129,7 @@ public class VectorSearch {
     }
 
     /**
-     * 캐시된 코퍼스 — 청크 집합의 버전(개수·최대 id)이 그대로면 재사용, 바뀌었으면 다시 읽어 BM25 를 만든다.
+     * 캐시된 코퍼스 통계 — 청크 집합의 버전(개수·최대 id)이 그대로면 재사용, 바뀌었으면 본문만 다시 읽어 만든다.
      * 버전을 못 읽으면(테스트 목 등) 매번 새로 만든다.
      */
     private Corpus corpus() {
@@ -144,12 +139,12 @@ public class VectorSearch {
         synchronized (this) {
             c = corpus;
             if (v != null && c != null && c.count() == v.getCount() && c.maxId() == v.getMaxId()) return c;
-            List<DocumentChunk> chunks = chunkRepository.findAll();
+            List<String> contents = chunkRepository.findAllContents();
             Corpus built = new Corpus(v == null ? -1 : v.getCount(), v == null ? -1 : v.getMaxId(),
-                    chunks, Bm25Index.build(chunks.stream().map(DocumentChunk::getContent).toList()));
+                    Bm25Index.statsOf(contents));
             if (v != null) {
                 corpus = built;
-                log.info("검색 코퍼스 다시 만듦 — 청크 {}개", chunks.size());
+                log.info("검색 코퍼스 통계 다시 만듦 — 청크 {}개", contents.size());
             }
             return built;
         }

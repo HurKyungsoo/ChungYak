@@ -58,6 +58,8 @@ public class AnnouncementSyncService {
                         external.getRegulationFlags(),
                         external.getSupplyCategory(), external.getSupplyTypeName(),
                         external.getNoticePdfUrl());
+                // 기존 공고는 원문을 다시 받았을 때만(잘린 원문 백필, #29) 교체한다
+                if (external.getNoticeContent() != null) saveNoticeContent(existing, external);
                 updated++;
             }
         }

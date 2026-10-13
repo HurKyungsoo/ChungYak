@@ -8,7 +8,9 @@ import lombok.NoArgsConstructor;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HexFormat;
+import java.util.List;
 
 /**
  * 한 공고의 입주자모집공고문 원문(비정형 텍스트).
@@ -35,14 +37,24 @@ public class AnnouncementDocument {
     private String source;
 
     /**
-     * 공고문 본문(첨부 PDF 추출 or PAN_DTL_CTS). 컬럼은 VARCHAR(16000) 이라
-     * 수집 시 {@code MAX_LEN} 로 잘라 넣는다 — 앞부분(자격요건·세대수·일정)이 핵심이라 충분하다.
-     * (전체 원문 보존이 필요해지면 TEXT 컬럼으로 마이그레이션.)
+     * 공고문 본문(첨부 PDF 추출 or PAN_DTL_CTS) <b>전문</b> (#29). 앞 {@link #PART_LEN} 자는 raw_text 에, 나머지는
+     * {@link AnnouncementDocumentPart} 에 같은 크기로 나눠 담는다 — MariaDB 행 상한 때문에 한 컬럼에 다 못 넣는다.
+     * 예전에는 15,500자({@link #LEGACY_CAP})에서 잘랐다: LH 공고문 전문은 30,000~68,000자라 23~52% 만 남아
+     * 제출 서류·소득 기준 같은 뒷부분이 검색되지 않았다. 전체 상한 {@link #MAX_LEN} 은 방어용이다.
      */
-    public static final int MAX_LEN = 15_500;
+    public static final int PART_LEN = 15_000;
+    public static final int MAX_LEN = 200_000;
+    /** 예전 수집의 절단 길이 — 이 길이에 조각이 없으면 잘린 원문으로 보고 다시 받는다 */
+    public static final int LEGACY_CAP = 15_500;
 
+    /** 원문의 앞 {@link #PART_LEN} 자 (예전 수집분은 앞 15,500자) */
     @Column(name = "raw_text", nullable = false, length = 16_000)
-    private String rawText;
+    private String firstPart;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JoinColumn(name = "document_id", nullable = false)
+    @OrderBy("partIndex")
+    private List<AnnouncementDocumentPart> parts = new ArrayList<>();
 
     @Column(name = "text_hash", nullable = false, length = 64)
     private String textHash;
@@ -53,20 +65,40 @@ public class AnnouncementDocument {
     public AnnouncementDocument(Long announcementId, String source, String rawText, Instant fetchedAt) {
         this.announcementId = announcementId;
         this.source = source;
-        this.rawText = clip(rawText);
-        this.textHash = sha256(this.rawText);
-        this.fetchedAt = fetchedAt;
+        replaceText(rawText, fetchedAt);
     }
 
-    /** 원문 교체 — 해시가 바뀌면 인덱서가 재인덱싱한다. */
+    /** 원문 전문 — 조각을 이어 붙인다 */
+    public String getRawText() {
+        if (parts.isEmpty()) return firstPart;
+        StringBuilder sb = new StringBuilder(firstPart);
+        parts.forEach(p -> sb.append(p.getContent()));
+        return sb.toString();
+    }
+
+    /** 예전 수집(15,500자 절단)으로 잘린 원문인지 — 다시 받아야 한다(#29 백필) */
+    public boolean isLegacyTruncated() {
+        return parts.isEmpty() && firstPart.length() == LEGACY_CAP;
+    }
+
+    /**
+     * 원문 교체 — 해시가 바뀌면 인덱서가 재인덱싱한다. 조각은 <b>있던 행을 재사용</b>한다: 지우고 새로 넣으면
+     * Hibernate 가 삽입을 삭제보다 먼저 내보내 (document_id, part_index) 유일 제약에 걸린다.
+     */
     public void replaceText(String rawText, Instant fetchedAt) {
-        this.rawText = clip(rawText);
-        this.textHash = sha256(this.rawText);
+        String text = rawText.length() <= MAX_LEN ? rawText : rawText.substring(0, MAX_LEN);
+        this.firstPart = text.substring(0, Math.min(PART_LEN, text.length()));
+        List<String> rest = new ArrayList<>();
+        for (int i = PART_LEN; i < text.length(); i += PART_LEN) {
+            rest.add(text.substring(i, Math.min(i + PART_LEN, text.length())));
+        }
+        for (int i = 0; i < rest.size(); i++) {
+            if (i < parts.size()) parts.get(i).replaceContent(rest.get(i));
+            else parts.add(new AnnouncementDocumentPart(i, rest.get(i)));
+        }
+        while (parts.size() > rest.size()) parts.remove(parts.size() - 1);
+        this.textHash = sha256(text);
         this.fetchedAt = fetchedAt;
-    }
-
-    private static String clip(String s) {
-        return s.length() <= MAX_LEN ? s : s.substring(0, MAX_LEN);
     }
 
     public static String sha256(String s) {
