@@ -50,6 +50,8 @@ publicdata:
     base-url: https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1
     detail-path: /getAPTLttotPblancDetail
     model-path: /getAPTLttotPblancMdl
+    # 특공 유형별 배정·신청 건수(참고 정보, #33) — 같은 키로 data.go.kr 15098905 활용신청 필요
+    special-supply-status-url: https://api.odcloud.kr/api/ApplyhomeInfoCmpetRtSvc/v1/getAPTSpsplyReqstStus
     per-page: 100
     max-pages: 30
 

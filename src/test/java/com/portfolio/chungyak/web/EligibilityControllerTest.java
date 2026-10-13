@@ -36,6 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 class EligibilityControllerTest {
 
+    private com.portfolio.chungyak.service.SpecialSupplyApplicationService applicationService;
+
     private ExplanationService explanationService;
     private EligibilityEngine engine;
     private MockMvc mockMvc;
@@ -61,10 +63,13 @@ class EligibilityControllerTest {
         when(explanationService.isAvailable()).thenReturn(true);
         when(explanationService.explain(any())).thenReturn(ExplanationResult.ai("요약입니다"));
         when(incomeReference.basisYear()).thenReturn("2024");
+        applicationService = org.mockito.Mockito.mock(com.portfolio.chungyak.service.SpecialSupplyApplicationService.class);
+        when(applicationService.forAnnouncement(any())).thenReturn(
+                com.portfolio.chungyak.service.SpecialSupplyApplicationService.Summary.EMPTY);
 
         mockMvc = MockMvcBuilders.standaloneSetup(new EligibilityController(
                 queryService, engine, assembler, extraction, explanationService, incomeReference,
-                new EligibilityResultStore())).build();
+                new EligibilityResultStore(), applicationService)).build();
     }
 
     @Test

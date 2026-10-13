@@ -238,6 +238,13 @@
     <p class="muted">유형별로 규칙 엔진이 요건을 하나씩 대조한 결과입니다 — 넣을 수 있는 유형부터 보여 드립니다.
         재당첨·소득·자산·통장·거주처럼 여러 유형이 공유하는 요건은 위 요약 레일에 한 번만 나오므로
         카드에는 <strong>이 유형만의 요건</strong>을 펼쳐 두고, 공통 요건까지 포함한 전체 목록은 접어 두었습니다.</p>
+    <!--/* 특공 신청 현황 안내(#33) — 숫자는 청약홈 집계(해당·시도·기타지역 합)이고 판정과 무관하다 */-->
+    <p class="muted" th:if="${applications != null and !applications.empty}">
+        카드의 <strong>신청 N건</strong>은 이 공고의 특별공급 접수 결과(청약홈 집계, 주택형 합)입니다 — 참고용입니다.
+        유형마다 추첨·가점·지역 우선 방식이 달라, 신청이 많다고 당첨이 어렵다는 뜻은 아닙니다.</p>
+    <p class="muted" th:if="${(applications == null or applications.empty) and status == '접수예정'
+                              and !#strings.startsWith(announcement.externalId, 'LH')}">
+        특별공급 접수 전이라 유형별 신청 현황은 아직 없습니다 — 접수가 끝나면 카드에 신청 건수가 함께 표시됩니다.</p>
 
     <!-- 근거 카드 (#19-1). 배지는 엔진 판정 그대로다: 자격 충족 / 정보 필요 / 지금은 불가 / 자격 미충족.
          "지금은 불가"는 엔진의 EligibilityDecision.isFixable()(미충족이 전부 기간·선택으로 메울 수 있음)일
@@ -257,6 +264,10 @@
         <!-- 이 공고의 이 유형 배정 (목업 Verdict) — 세대수를 모르는 공고(LH)는 생략 -->
         <span class="alloc-note" th:if="${d.allocatedInAnnouncement != null}"
               th:text="${d.allocatedInAnnouncement > 0} ? |이 공고 배정 ${#numbers.formatInteger(d.allocatedInAnnouncement, 1, 'COMMA')}세대| : '이 공고엔 이 유형 배정 없음'">이 공고 배정 48세대</span>
+        <!--/* 특공 신청 현황(#33) — 청약홈 집계 그대로, 참고 정보. 판정과 무관하다. */-->
+        <span class="alloc-note apply-note" th:if="${applications != null and applications.byTypeName[d.typeName] != null}"
+              th:with="c=${applications.byTypeName[d.typeName]}"
+              th:text="|신청 ${#numbers.formatInteger(c.applications, 1, 'COMMA')}건 (배정 ${#numbers.formatInteger(c.households, 1, 'COMMA')}세대 기준)|">신청 2,950건</span>
 
         <!-- 막은 요건 · 입력 필요 — 맨 위에 항상 펼쳐서 -->
         <ul class="reasons" th:if="${!d.ownFailedReasons.isEmpty() or !d.ownMissingInputs.isEmpty()}">

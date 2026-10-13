@@ -30,6 +30,8 @@ public class PublicDataProperties {
         private String baseUrl;
         private String detailPath;
         private String modelPath;
+        /** 특별공급 신청현황 — ApplyhomeInfoCmpetRtSvc/v1/getAPTSpsplyReqstStus (#33, 별도 활용신청 필요) */
+        private String specialSupplyStatusUrl;
         private int perPage = 100;
         private int maxPages = 30;
     }

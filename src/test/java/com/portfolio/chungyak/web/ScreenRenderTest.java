@@ -51,7 +51,8 @@ class ScreenRenderTest {
     @Autowired private MockMvc mvc;
     @Autowired private AnnouncementRepository repository;
     @MockBean private AnnouncementSyncScheduler scheduler;
-    @MockBean private ProfileExtractionService extractionService;   // 키 없이도 추출 결과 화면을 그려 본다
+    @MockBean private ProfileExtractionService extractionService;
+    @MockBean private com.portfolio.chungyak.service.SpecialSupplyApplicationService applicationService;   // 외부 API 를 부르지 않게   // 키 없이도 추출 결과 화면을 그려 본다
 
     private Long aptId;
     private Long lhId;
@@ -151,6 +152,9 @@ class ScreenRenderTest {
     @Test
     @DisplayName("판정 결과 — 근거 카드가 끝까지 그려지고 사유의 내 값은 굵게(th:utext)")
     void verdictResultRenders() throws Exception {
+        org.mockito.Mockito.when(applicationService.forAnnouncement(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new com.portfolio.chungyak.service.SpecialSupplyApplicationService.Summary(java.util.Map.of(
+                        "FIRST_TIME", new com.portfolio.chungyak.external.SpecialSupplyApplication.Count(1, 2950))));
         MvcResult posted = mvc.perform(post("/announcements/" + aptId + "/eligibility")
                         .param("married", "true").param("monthsSinceMarriage", "100")
                         .param("houseless", "true").param("accountMonths", "3")
@@ -164,6 +168,8 @@ class ScreenRenderTest {
         assertThat(body).contains("<strong>100개월</strong>").contains("(84개월)");
         // 맨 위 요약 카드(#21) — AI 없이 늘 그려지고, 유형 이름이 근거 카드로 이어진다
         assertThat(body).contains("summary-card").contains("href=\"#decision-");
+        // 특공 신청 현황(#33) — 생애최초 카드에 청약홈 집계 신청 건수, 참고 안내
+        assertThat(body).contains("신청 2,950건").contains("참고용입니다");
     }
 
     @Test

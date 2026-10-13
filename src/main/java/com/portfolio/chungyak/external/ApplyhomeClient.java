@@ -17,6 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 한국부동산원 청약홈 클라이언트 (odcloud 게이트웨이).
@@ -127,6 +128,77 @@ public class ApplyhomeClient implements AnnouncementSource {
             log.warn("청약홈 주택형 조회 실패. pblancNo={}, msg={}", pblancNo, e.getMessage());
             return List.of();
         }
+    }
+
+    /**
+     * 공고의 특별공급 신청현황(주택형별 유형 배정·신청 건수) — 참고 정보(#33). 특공 접수가 끝나야 데이터가 생긴다.
+     * 실패하거나 키·URL 이 없으면 빈 리스트(앱은 그대로 돈다).
+     */
+    public List<SpecialSupplyApplication> fetchSpecialSupplyApplications(String houseManageNo) {
+        String url = properties.getApplyhome().getSpecialSupplyStatusUrl();
+        if (url == null || url.isBlank() || houseManageNo == null) return List.of();
+
+        URI uri = UriComponentsBuilder
+                .fromUriString(url)
+                .queryParam("page", 1)
+                .queryParam("perPage", 100)
+                .queryParam("cond[HOUSE_MANAGE_NO::EQ]", houseManageNo)
+                .queryParam("serviceKey", properties.getServiceKey())
+                .build()      // cond[..] 의 대괄호는 인코딩이 필요해 build(true) 를 쓰지 않는다 (fetchUnitTypes 와 같은 방식)
+                .toUri();
+        try {
+            byte[] body = publicDataRestClient.get().uri(uri).retrieve().body(byte[].class);
+            return parseSpecialSupplyApplications(body);
+        } catch (Exception e) {
+            log.warn("청약홈 특공 신청현황 조회 실패. houseManageNo={}, msg={}", houseManageNo, e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * 특공 유형 ↔ 신청현황 필드 접미사 (CLAUDE.md "데이터에서 확인된 사실"). 배정은 {@code <접미사>_HSHLDCO},
+     * 신청은 {@code CRSPAREA_/CTPRVN_/ETC_AREA_<접미사>_CNT}. 노부모만 배정 필드 이름이 다르다.
+     */
+    private static final Map<SpecialSupplyType, String[]> SPSPLY_FIELDS = Map.of(
+            SpecialSupplyType.MULTI_CHILD, new String[]{"MNYCH_HSHLDCO", "MNYCH_CNT"},
+            SpecialSupplyType.NEWLYWED, new String[]{"NWWDS_NMTW_HSHLDCO", "NWWDS_NMTW_CNT"},
+            SpecialSupplyType.FIRST_TIME, new String[]{"LFE_FRST_HSHLDCO", "LFE_FRST_CNT"},
+            SpecialSupplyType.OLD_PARENTS, new String[]{"OLD_PARNTS_SUPORT_HSHLDCO", "OPS_CNT"},
+            SpecialSupplyType.NEWBORN, new String[]{"NWBB_NWBBSHR_HSHLDCO", "NWBB_NWBBSHR_CNT"},
+            SpecialSupplyType.YOUTH, new String[]{"YGMN_HSHLDCO", "YGMN_CNT"});
+
+    /** 파싱 실패 행은 스킵한다(외부 API 규칙). 배정·신청이 모두 0 인 유형은 담지 않는다. */
+    List<SpecialSupplyApplication> parseSpecialSupplyApplications(byte[] body) throws Exception {
+        if (body == null || body.length == 0) return List.of();
+        JsonNode data = objectMapper.readTree(body).path("data");
+        if (!data.isArray()) return List.of();
+
+        List<SpecialSupplyApplication> out = new ArrayList<>();
+        for (JsonNode row : data) {
+            try {
+                Map<SpecialSupplyType, SpecialSupplyApplication.Count> byType = new java.util.EnumMap<>(SpecialSupplyType.class);
+                SPSPLY_FIELDS.forEach((type, f) -> {
+                    int households = intOf(row, f[0]);
+                    int applications = intOf(row, "CRSPAREA_" + f[1]) + intOf(row, "CTPRVN_" + f[1]) + intOf(row, "ETC_AREA_" + f[1]);
+                    if (households > 0 || applications > 0) {
+                        byType.put(type, new SpecialSupplyApplication.Count(households, applications));
+                    }
+                });
+                out.add(new SpecialSupplyApplication(row.path("HOUSE_TY").asText(null), byType));
+            } catch (RuntimeException e) {
+                log.warn("청약홈 특공 신청현황 행 파싱 실패 — 스킵: {}", e.getMessage());
+            }
+        }
+        return out;
+    }
+
+    /** 숫자 또는 숫자 문자열 → int. 없거나 빈 값은 0, 숫자가 아니면 예외(행 스킵). */
+    private static int intOf(JsonNode row, String field) {
+        JsonNode v = row.path(field);
+        if (v.isMissingNode() || v.isNull()) return 0;
+        if (v.isNumber()) return v.asInt();
+        String s = v.asText().replace(",", "").strip();
+        return s.isEmpty() ? 0 : Integer.parseInt(s);
     }
 
     // package-private: 계약 테스트(ApplyhomeParseContractTest)가 픽스처 바이트로 직접 호출한다
