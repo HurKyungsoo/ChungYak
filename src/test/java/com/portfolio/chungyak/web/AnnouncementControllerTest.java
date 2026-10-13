@@ -56,7 +56,8 @@ class AnnouncementControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(
                 new AnnouncementController(queryService, qaService, lotteryCalculator,
                         new EligibilityEngine(RuleTestSupport.allRules()), new MatchResultStore(),
-                        mock(com.portfolio.chungyak.repository.AnnouncementDocumentRepository.class))).build();
+                        mock(com.portfolio.chungyak.repository.AnnouncementDocumentRepository.class),
+                        mock(com.portfolio.chungyak.rag.NoticeQuestionService.class))).build();
     }
 
     private static Announcement announcement(long id) {

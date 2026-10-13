@@ -6,6 +6,8 @@ import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.domain.SupplyCategory;
 import com.portfolio.chungyak.domain.UnitType;
 import com.portfolio.chungyak.rag.DocumentQaService;
+import com.portfolio.chungyak.rag.NoticeQuestionService;
+import com.portfolio.chungyak.rag.NoticeSummaryTable;
 import com.portfolio.chungyak.repository.AnnouncementDocumentRepository;
 import com.portfolio.chungyak.rule.ApplicantProfile;
 import com.portfolio.chungyak.rule.EligibilityEngine.MatchResult;
@@ -22,7 +24,6 @@ import com.portfolio.chungyak.web.view.CalendarFilter;
 import com.portfolio.chungyak.web.view.CalendarView;
 import com.portfolio.chungyak.web.view.Dday;
 import com.portfolio.chungyak.web.view.DetailHighlights;
-import com.portfolio.chungyak.web.view.NoticeSummaryTable;
 import com.portfolio.chungyak.web.view.PhoneNumbers;
 import com.portfolio.chungyak.web.view.Prices;
 import com.portfolio.chungyak.web.view.ScheduleTimeline;
@@ -71,6 +72,7 @@ public class AnnouncementController {
     private final EligibilityEngine eligibilityEngine;
     private final MatchResultStore matchResultStore;
     private final AnnouncementDocumentRepository documentRepository;
+    private final NoticeQuestionService questionService;
 
     @GetMapping("/announcements")
     public String list(@RequestParam(required = false) String region,
@@ -290,7 +292,7 @@ public class AnnouncementController {
     public String ask(@PathVariable Long id,
                       @RequestParam("question") String question,
                       Model model) {
-        model.addAttribute("qa", qaService.answer(id, question));
+        model.addAttribute("qa", questionService.answer(id, question));   // 구조화 데이터 먼저, 아니면 AI(#39)
         model.addAttribute("question", question);
         return renderDetail(id, model);
     }

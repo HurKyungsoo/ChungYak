@@ -31,7 +31,9 @@ final class Bm25Index {
             "어떻게", "어떤", "어떤가요", "뭐", "뭐가", "뭔가요", "뭐예요", "무엇", "무엇인가요", "무슨",
             "언제", "어디", "어디서", "어디에", "얼마", "얼마나", "몇",
             "되나요", "돼", "돼요", "되요", "되는", "인가요", "인지", "하나요", "해요", "해야", "하는",
-            "있나요", "있어", "있어요", "있는", "알려줘", "알려주세요", "궁금해요", "좀", "수", "건가요");
+            "있나요", "있어", "있어요", "있는", "알려줘", "알려주세요", "궁금해요", "좀", "수", "건가요",
+            // 구어 (#39 eval) — "인지세는 누가 내요?", "둘 다 넣어도 돼요?" 의 이 어절들은 공고문에 없어 겹침만 깎았다
+            "누가", "둘", "다", "내요", "내도", "괜찮나요", "가능한가요", "가능해요");
 
     /** 이 어간으로 시작하는 어절도 의문사로 본다 — "언제인가요", "얼마예요", "어떻게요" */
     private static final List<String> QUESTION_STEMS = List.of("언제", "얼마", "어떻", "무엇", "어디", "뭐");
@@ -82,9 +84,11 @@ final class Bm25Index {
         List<String> words = queryWords(query);
         List<String> expanded = new ArrayList<>();
         for (String w : words) {
-            expanded.add(w);
+            if (!QuerySynonyms.replaces(w)) expanded.add(w);
             expanded.addAll(QuerySynonyms.of(w));   // "돈" → 보증금·임대료… (#28)
         }
+        // "어디" 는 의문사라 어절에서 빠지지만, 답은 주소·위치 문장에 있다 (#39) — 검색어로만 더한다(겹침 계산엔 안 넣음)
+        if (query != null && query.contains("어디")) expanded.addAll(List.of("주소", "위치"));
         return new Query(tokenize(String.join(" ", expanded)).stream().distinct().toList(), words);
     }
 

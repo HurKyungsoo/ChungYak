@@ -103,6 +103,25 @@ class Bm25IndexTest {
     }
 
     @Test
+    @DisplayName("#39 eval — 구어 어절은 겹침에서 빼고, '모델하우스'는 '견본주택'으로 바꾸고, '어디'는 주소·위치를 찾는다")
+    void colloquialAliasAndWhere() {
+        assertThat(Bm25Index.queryWords("인지세는 누가 내요?")).containsExactly("인지세는");
+        assertThat(Bm25Index.queryWords("특별공급이랑 일반공급 둘 다 넣어도 돼요?"))
+                .containsExactly("특별공급이랑", "일반공급", "넣어도");
+
+        Bm25Index.Query q = Bm25Index.query("모델하우스 어디 있어요?");
+        assertThat(q.terms()).contains("견본", "본주", "주소", "위치").doesNotContain("하우", "우스");
+        assertThat(q.words()).containsExactly("모델하우스");   // 겹침 계산엔 '어디'의 확장어를 넣지 않는다
+
+        Bm25Index index = Bm25Index.build(List.of(
+                "견본주택 (주소 : 부산광역시 수영구 연수로 311)",
+                "커뮤니티 북카페 하우스 운영 안내"));
+        double[] s = index.scores("모델하우스 어디 있어요?");
+        assertThat(s[0]).isGreaterThan(s[1]);
+        assertThat(index.termCoverage("모델하우스 어디 있어요?", 0)).isEqualTo(1.0);
+    }
+
+    @Test
     @DisplayName("동의어는 단어 전체가 있어야 겹침 — '임대' 조각만으로는 '임대료' 동의어가 걸리지 않는다")
     void synonymNeedsWholeWord() {
         Bm25Index index = Bm25Index.build(List.of("행복주택 임대 공고 유의사항 안내"));

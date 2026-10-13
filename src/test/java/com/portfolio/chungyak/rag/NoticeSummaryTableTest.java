@@ -1,4 +1,4 @@
-package com.portfolio.chungyak.web.view;
+package com.portfolio.chungyak.rag;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

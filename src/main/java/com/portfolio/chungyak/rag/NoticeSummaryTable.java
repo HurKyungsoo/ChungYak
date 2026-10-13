@@ -1,4 +1,4 @@
-package com.portfolio.chungyak.web.view;
+package com.portfolio.chungyak.rag;
 
 import java.util.ArrayList;
 import java.util.List;

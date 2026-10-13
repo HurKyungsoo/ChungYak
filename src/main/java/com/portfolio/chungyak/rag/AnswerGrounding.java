@@ -29,6 +29,8 @@ final class AnswerGrounding {
 
     /** 발췌에서 항목 이름 뒤로 값을 찾는 범위(글자) */
     static final int WINDOW = 30;
+    /** 항목 이름 앞으로 날짜를 찾는 범위(글자) — 기간 하나("2026.11.02.(월)~11.06(금)까지 등기우편으로 ")가 들어갈 만큼 */
+    static final int BACK_WINDOW = 45;
 
     /** 금액 — "1억 2,000만원", "1,000만원", "33,148,000원", "292,150" (쉼표 묶음은 원 없이도 금액으로 본다) */
     private static final Pattern MONEY = Pattern.compile(
@@ -159,10 +161,8 @@ final class AnswerGrounding {
             String label = nearestLabel(sentence, m.start(), m.end(), DATE_LABELS);
             if (label == null) {
                 if (!dateAnywhere(corpus, date)) return Optional.of("날짜 " + m.group().strip() + " 이(가) 발췌에 없음");
-            } else if (!labelFollowedBy(corpus, DATE_LABELS.get(label), next -> {
-                Ymd found = dateAt(corpus, next);
-                return found != null && found.sameAs(date);
-            })) {
+            } else if (!labelFollowedBy(corpus, DATE_LABELS.get(label), next -> rangeAt(corpus, next).stream().anyMatch(date::sameAs))
+                    && !labelPrecededBy(corpus, DATE_LABELS.get(label), date)) {
                 return Optional.of("'" + label + "' " + m.group().strip() + " — 발췌에서 그 항목 바로 뒤의 날짜가 아님");
             }
         }
@@ -178,10 +178,69 @@ final class AnswerGrounding {
         return new Ymd(m.group(1) == null ? null : Integer.parseInt(m.group(1)), month, day);
     }
 
-    private static Ymd dateAt(String corpus, int from) {
+    /** 기간 이음표 — "11.02(월) ~ 11.06(금)", "11.02부터 11.06까지" */
+    private static final Pattern RANGE_JOIN = Pattern.compile("^\\.?\\s*(?:\\([^)]{1,3}\\))?\\.?\\s*(?:~|∼|-|부터)\\s*$");
+
+    /**
+     * 날짜와 그 뒤 항목 이름 사이 — 날짜에 "까지·부터·에" 가 붙어 같은 문장으로 이어져야 한다. "[임대종료일 2027.07.31.]
+     * 기존 단지 최초 입주" 처럼 괄호·기호로 끊긴 앞 날짜는 그 항목의 값이 아니다.
+     */
+    private static final Pattern DATE_THEN_LABEL =
+            Pattern.compile("^\\.?(?:\\([^)]{1,3}\\))?\\.?\\s*(?:까지|부터|에|이후|이전)[^\\[\\]:：■※]{0,20}$");
+
+    /** from 위치의 날짜, 그리고 바로 뒤가 기간(~)이면 그 끝 날짜까지 — 날짜가 아니면 빈 목록 */
+    private static List<Ymd> rangeAt(String corpus, int from) {
         Matcher m = DATE.matcher(corpus);
         m.region(from, corpus.length());
-        return m.lookingAt() ? ymd(m) : null;
+        if (!m.lookingAt()) return List.of();
+        Ymd first = ymd(m);
+        List<Ymd> out = new ArrayList<>();
+        if (first != null) out.add(first);
+        int end = m.end();
+        Matcher second = DATE.matcher(corpus);
+        second.region(end, Math.min(corpus.length(), end + 12));
+        if (second.find() && RANGE_JOIN.matcher(corpus.substring(end, second.start())).matches()) {
+            Ymd d = ymd(second);
+            if (d != null) out.add(d);
+        }
+        return out;
+    }
+
+    /**
+     * 한국어 문장은 날짜가 항목 앞에 오기도 한다 — "2026.11.02.(월)~11.06(금)까지 등기우편으로 서류를 제출" (#39 로컬 시험,
+     * 정답이 숨겨졌다). 항목 이름 바로 앞 {@link #BACK_WINDOW}자 안의 <b>마지막</b> 날짜(기간이면 그 시작 날짜도)가 같으면 근거로 본다.
+     * 날짜만 — 금액은 표의 "값 값 항목" 줄에서 앞 값을 잘못 짚기 쉬워 뒤 방향만 본다.
+     */
+    private static boolean labelPrecededBy(String corpus, List<String> names, Ymd date) {
+        for (String name : names) {
+            int i = corpus.indexOf(name);
+            while (i >= 0) {
+                // 기간("2026.11.02.(월)~11.06(금)까지 …")의 시작 날짜까지 닿게 조금 넓게, 숫자 중간에서 시작하지 않게
+                int from = Math.max(0, i - BACK_WINDOW);
+                while (from > 0 && (Character.isDigit(corpus.charAt(from - 1)) || corpus.charAt(from - 1) == '.')) from--;
+                Matcher m = DATE.matcher(corpus);
+                m.region(from, i);
+                Ymd last = null, prev = null;
+                int lastStart = -1, lastEnd = -1, prevEnd = -1;
+                while (m.find()) {
+                    Ymd d = ymd(m);
+                    if (d == null) continue;
+                    prev = last;
+                    prevEnd = lastEnd;
+                    last = d;
+                    lastStart = m.start();
+                    lastEnd = m.end();
+                }
+                boolean bound = last != null && DATE_THEN_LABEL.matcher(corpus.substring(lastEnd, i)).matches();
+                if (bound && last.sameAs(date)) return true;
+                if (bound && prev != null && RANGE_JOIN.matcher(corpus.substring(prevEnd, lastStart)).matches()
+                        && prev.sameAs(date)) {
+                    return true;
+                }
+                i = corpus.indexOf(name, i + 1);
+            }
+        }
+        return false;
     }
 
     private static boolean dateAnywhere(String corpus, Ymd date) {

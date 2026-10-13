@@ -296,8 +296,11 @@
         <div th:if="${qa != null and qa.hasAnswer()}" class="card tint" style="margin-top:12px">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
                 <strong>답변</strong>
-                <span class="ai-chip">AI</span>
-                <span class="muted">아래 발췌만 근거로 정리했습니다</span>
+                <!--/* FACT(#39) — 구조화 데이터 값 그대로, LLM 을 거치지 않았다 */-->
+                <span th:if="${qa.fact}" class="chip hl">공식 데이터</span>
+                <span th:if="${qa.fact}" class="muted" th:text="|${qa.source} 값 그대로 — AI 를 거치지 않았습니다|">출처</span>
+                <span th:unless="${qa.fact}" class="ai-chip">AI</span>
+                <span th:unless="${qa.fact}" class="muted">아래 발췌만 근거로 정리했습니다</span>
             </div>
             <p style="margin:0;white-space:pre-wrap" th:text="${qa.answer}">답변</p>
             <p class="muted" style="margin:8px 0 0;font-size:.85rem" th:if="${qa.mentionsAmount()}">

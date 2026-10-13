@@ -101,7 +101,8 @@ public class DocumentQaService {
      * UNGROUNDED = 답변은 만들었지만 금액·날짜가 발췌에 "그 항목의 값"으로 적혀 있지 않아({@link AnswerGrounding})
      * 보여주지 않음 (#31). 표 열이 섞여 다른 값을 단정한 답을 화면에 내보내지 않는다.
      */
-    public enum Status { DISABLED, NO_INDEX, NO_MATCH, ANSWER_FAILED, UNGROUNDED, ANSWERED }
+    /** FACT = 구조화 데이터(API·공고문 요약표) 값으로 답함 — LLM 을 거치지 않았다(#39, {@link FactAnswerer}) */
+    public enum Status { DISABLED, NO_INDEX, NO_MATCH, ANSWER_FAILED, UNGROUNDED, ANSWERED, FACT }
 
     public record Citation(int chunkIndex, String excerpt, double score, double keywordScore) {}
 
@@ -109,22 +110,29 @@ public class DocumentQaService {
     private static final java.util.regex.Pattern AMOUNT =
             java.util.regex.Pattern.compile("\\d{1,3}(?:,\\d{3})+|\\d+\\s*(?:만\\s*)?원");
 
-    public record QaAnswer(Status status, String answer, List<Citation> citations) {
+    /** @param source FACT 일 때 값의 출처(그 밖에는 null) */
+    public record QaAnswer(Status status, String answer, List<Citation> citations, String source) {
+        public QaAnswer(Status status, String answer, List<Citation> citations) {
+            this(status, answer, citations, null);
+        }
+
         public boolean isShown() { return status != Status.DISABLED; }
-        public boolean hasAnswer() { return status == Status.ANSWERED; }
+        public boolean hasAnswer() { return status == Status.ANSWERED || status == Status.FACT; }
+        public boolean isFact() { return status == Status.FACT; }
 
         /**
          * 답변에 금액이 있는지 — 화면이 "주택형마다 다를 수 있으니 원문 확인" 안내를 붙인다.
          * 표 오독 금액은 {@link AnswerGrounding} 이 이미 걸러 UNGROUNDED 로 숨기므로(#31), 여기까지 온 금액은
          * 발췌에서 그 항목 바로 옆에 적힌 값이다.
          */
-        public boolean mentionsAmount() { return answer != null && AMOUNT.matcher(answer).find(); }
+        public boolean mentionsAmount() { return status == Status.ANSWERED && answer != null && AMOUNT.matcher(answer).find(); }
 
         static QaAnswer disabled()  { return new QaAnswer(Status.DISABLED, null, List.of()); }
         static QaAnswer noIndex()   { return new QaAnswer(Status.NO_INDEX, null, List.of()); }
         static QaAnswer noMatch(List<Citation> c) { return new QaAnswer(Status.NO_MATCH, null, c); }
         static QaAnswer answerFailed(List<Citation> c) { return new QaAnswer(Status.ANSWER_FAILED, null, c); }
         static QaAnswer answered(String a, List<Citation> c) { return new QaAnswer(Status.ANSWERED, a, c); }
+        static QaAnswer fact(String a, String source) { return new QaAnswer(Status.FACT, a, List.of(), source); }
         static QaAnswer ungrounded(List<Citation> c) { return new QaAnswer(Status.UNGROUNDED, null, c); }
     }
 
@@ -188,7 +196,7 @@ public class DocumentQaService {
         }
     }
 
-    private void count(String outcome) {
+    void count(String outcome) {
         stats.ifPresent(st -> st.count("qa." + outcome));
     }
 }

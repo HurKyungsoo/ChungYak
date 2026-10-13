@@ -62,6 +62,23 @@ final class QuerySynonyms {
         BY_PREFIX.put("집을", List.of("주택소유", "무주택"));
         BY_PREFIX.put("청약통장", List.of("입주자저축", "주택청약종합저축"));
         BY_PREFIX.put("통장", List.of("입주자저축", "주택청약종합저축"));
+        // #39 eval 에서 놓친 일상어
+        BY_PREFIX.put("모델하우스", List.of("견본주택"));
+        BY_PREFIX.put("구경", List.of("견본주택", "주택개방"));
+        BY_PREFIX.put("사본", List.of("원본", "사본"));
+        BY_PREFIX.put("뽑", List.of("선정", "추첨"));
+        BY_PREFIX.put("넣어", List.of("청약", "신청"));
+        BY_PREFIX.put("넣으", List.of("청약", "신청"));
+    }
+
+    /**
+     * 동의어로 <b>바꾸는</b> 어절 — 공고문에 쓰이지 않는 말이라 원래 글자는 검색어에서 뺀다 (#39).
+     * "모델하우스"를 남겨 두면 "하우스" 조각이 엉뚱한 청크(커뮤니티 시설 안내)에 걸려 "견본주택" 청크를 이겼다.
+     */
+    private static final List<String> REPLACED = List.of("모델하우스");
+
+    static boolean replaces(String word) {
+        return REPLACED.stream().anyMatch(word::startsWith);
     }
 
     /** 질의 어절 하나의 동의어 — 없으면 빈 목록 */

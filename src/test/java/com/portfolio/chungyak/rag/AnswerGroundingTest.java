@@ -41,6 +41,21 @@ class AnswerGroundingTest {
         assertThat(AnswerGrounding.check("입주는 2027년 7월에 가능합니다 [2].", TABLE)).isPresent();   // 2027.07 은 임대종료일
     }
 
+    /** #2901 서류 제출 — 날짜가 항목 앞에 오는 문장, 그리고 열이 섞인 일정표 */
+    private static final List<String> DOCS = List.of(
+            "[1] 2026.11.02.(월)~11.06(금)까지 등기우편으로 서류를 제출하여야 하며, 서류제출기간 내에 서류를 제출하지 않거나",
+            "[2] 서류제출 계약 (온라인) 및 소명 26.10.26(월) 26.10.30(금) 26.11.02(월) ~ 26.11.06(금) 자격검증");
+
+    @Test
+    @DisplayName("날짜가 항목 앞에 오는 문장('~11.06(금)까지 등기우편으로 서류를')·기간의 끝 날짜는 통과 (#39 로컬 시험에서 정답이 숨겨졌다)")
+    void passesDateBeforeLabelAndRangeEnd() {
+        assertThat(AnswerGrounding.check("서류는 2026년 11월 2일부터 11월 6일까지 등기우편으로 제출합니다 [1].", DOCS)).isEmpty();
+        assertThat(AnswerGrounding.check("서류 제출 마감은 11월 6일입니다 [1].", DOCS)).isEmpty();
+        // 일정표 줄에서 서류 바로 뒤 첫 날짜(10.26)는 다른 열이다 — 그걸 서류 날짜로 단정하면 여전히 막는다
+        assertThat(AnswerGrounding.check("서류 제출일은 10월 26일입니다 [2].", DOCS)).isPresent();
+        assertThat(AnswerGrounding.check("서류는 11월 9일까지 내면 됩니다 [1].", DOCS)).isPresent();
+    }
+
     @Test
     @DisplayName("문장에 항목 이름과 함께 적힌 값은 통과 — 단위가 달라도(1,000만원 = 10,000,000원)")
     void passesSentenceGrounded() {
