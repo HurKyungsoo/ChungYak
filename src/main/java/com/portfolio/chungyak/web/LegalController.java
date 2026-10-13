@@ -40,6 +40,8 @@ public class LegalController {
         model.addAttribute("groqEnabled", groqClient.getIfAvailable() != null);
         model.addAttribute("groqExplain", groqClient.getIfAvailable() != null && explainer.getIfAvailable() != null);
         model.addAttribute("qaEnabled", qaService.isEnabled());
+        // Voyage 는 의미 검색(임베딩)일 때만 질문을 받는다 — BM25 모드(#22)에서는 위탁하지 않으니 적지 않는다
+        model.addAttribute("qaSemantic", qaService.isEnabled() && qaService.isSemantic());
         model.addAttribute("privacyContact", privacyContact);
         return "legal/privacy";
     }

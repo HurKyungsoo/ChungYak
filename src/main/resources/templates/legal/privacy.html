@@ -81,7 +81,7 @@
             <li th:if="${groqEnabled}"><strong>Groq, Inc. (미국)</strong> — 자연어로 적은 질문에서 조건을 읽어 오기
                 (이용자가 적은 문장)<span th:if="${qaEnabled}">, 공고문 Q&amp;A 답변 만들기 (공고문 발췌와 이용자 질문)</span><span th:if="${groqExplain}">, 판정 근거를 문장으로 요약하기 (판정 근거 — 소득·자산 수치가 포함될 수 있음)</span>.
                 자격 판정 자체는 AI 가 하지 않습니다. 국외 이전에 해당합니다.</li>
-            <li th:if="${qaEnabled}"><strong>Voyage AI (미국)</strong> — 공고문 검색용 임베딩 (공고문 Q&amp;A 에 적은 질문)</li>
+            <li th:if="${qaSemantic}"><strong>Voyage AI (미국)</strong> — 공고문 검색용 임베딩 (공고문 Q&amp;A 에 적은 질문)</li>
             <li th:if="${!mailEnabled and !aiEnabled and !groqEnabled and !qaEnabled}">현재 위탁하는 업무가 없습니다. 기능이 추가되면 이 방침을 고쳐 알립니다.</li>
         </ul>
     </section>
