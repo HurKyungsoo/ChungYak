@@ -126,6 +126,26 @@ class AnnouncementMatchServiceTest {
         org.springframework.test.util.ReflectionTestUtils.setField(a, "id", id);
     }
 
+    @Test
+    @DisplayName("무순위·잔여세대는 특별공급 판정 대상이 아니다 — 매칭 결과·보완 묶음·목록 배지 어디에도 넣지 않는다")
+    void remainderIsNeverJudged() {
+        Announcement remainder = Announcement.builder()
+                .externalId("APPLYHOME-RM-1-1").houseManageNo("1").pblancNo("1").houseName("무순위 단지")
+                .houseType(HouseType.REMAINDER).houseDetailType(HouseDetailType.UNKNOWN)
+                .supplyCategory(com.portfolio.chungyak.domain.SupplyCategory.REMAINDER)
+                .regionName("서울").receptBeginDate(LocalDate.now(CLOCK).plusDays(1))
+                .receptEndDate(LocalDate.now(CLOCK).plusDays(1))
+                .regulationFlags(RegulationFlags.builder().build()).build();
+        // 혹시 특공 세대가 잡혀 있어도(원천 오류) 판정하지 않는다
+        remainder.addUnitType(unitType("084A", SupplyBreakdown.builder().newlywed(10).build()));
+        matchService = serviceWith(remainder);
+
+        assertThat(remainder.isEligibilityTarget()).isFalse();
+        assertThat(matchService.findMatching(newlywedProfile())).isEmpty();
+        assertThat(matchService.fixableGroups(newlywedProfile())).isEmpty();
+        assertThat(matchService.badges(newlywedProfile())).isEmpty();
+    }
+
     private AnnouncementMatchService serviceWith(Announcement... announcements) {
         AnnouncementRepository repo = mock(AnnouncementRepository.class);
         when(repo.findOpenWithUnitTypes(any())).thenReturn(List.of(announcements));

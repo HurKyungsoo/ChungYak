@@ -39,6 +39,10 @@ public class VerdictSummaryController {
     public String summary(@PathVariable Long id, @ModelAttribute("form") EligibilityForm form, Model model) {
         Announcement announcement = queryService.findDetail(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "공고를 찾을 수 없습니다."));
+        if (!announcement.isEligibilityTarget()) {
+            // 무순위 — 판정 대상 아님. 화면 스크립트는 오류 응답이면 기본 안내를 그대로 둔다.
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "판정 대상이 아닌 공고");
+        }
         model.addAttribute("announcement", announcement);
         model.addAttribute("result", resultAssembler.assemble(eligibilityEngine.evaluate(form.toProfile(), announcement)));
         return "announcements/verdict-summary :: card";

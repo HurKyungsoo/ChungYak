@@ -14,7 +14,12 @@ package com.portfolio.chungyak.domain;
 public enum SupplyCategory {
     SALE("분양"),
     RENTAL("임대"),
-    HOPE_TOWN("신혼희망타운");
+    HOPE_TOWN("신혼희망타운"),
+    /**
+     * 무순위·잔여세대(불법행위 재공급 포함) — 청약홈 무순위 분양정보. 특별공급 구조가 없어 이 서비스의 자격 판정
+     * (특별공급 규칙 엔진) 대상이 아니다. 신청 자격(무주택·거주지역 등)은 공고마다 달라 공고문으로 안내한다.
+     */
+    REMAINDER("무순위·잔여");
 
     private final String label;
 

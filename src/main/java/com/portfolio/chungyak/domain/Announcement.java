@@ -187,6 +187,19 @@ public class Announcement {
         if (sum > 0) this.totalSupplyCount = sum;
     }
 
+    /** 무순위·잔여세대 공고인지 — {@link SupplyCategory#REMAINDER} */
+    public boolean isRemainder() {
+        return supplyCategory == SupplyCategory.REMAINDER;
+    }
+
+    /**
+     * 특별공급 자격 판정(규칙 엔진) 대상인지. 무순위·잔여세대는 특별공급 구조가 없어 엔진에 넣으면
+     * "신청 가능한 유형 없음" 같은 틀린 결론이 나온다 — 판정·매칭·알림·목록 배지에서 모두 뺀다.
+     */
+    public boolean isEligibilityTarget() {
+        return !isRemainder();
+    }
+
     /** LH 공고인지 — 청약홈과 화면 구성이 다르다(규제·특공 세대수 정보가 원천에 없다). */
     public boolean isLh() {
         return externalId != null && externalId.startsWith("LH-");

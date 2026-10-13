@@ -8,6 +8,10 @@ public enum HouseType {
     APT("01", "APT"),
     PRE_SUBSCRIPTION("09", "민간사전청약"),
     NEWLYWED_HOPE_TOWN("10", "신혼희망타운"),
+    /** 무순위·잔여세대 — 청약홈 무순위 분양정보(getRemndrLttotPblancDetail)에서만 온다 */
+    REMAINDER("04", "무순위"),
+    /** 불법행위 재공급 — 무순위 분양정보에 함께 온다 */
+    ILLEGAL_RESUPPLY("06", "불법행위 재공급"),
     UNKNOWN("", "미상");
 
     private final String code;

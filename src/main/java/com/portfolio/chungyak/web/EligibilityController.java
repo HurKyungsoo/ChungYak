@@ -67,6 +67,7 @@ public class EligibilityController {
     @GetMapping("/announcements/{id}/eligibility")
     public String form(@PathVariable Long id, Model model) {
         Announcement announcement = loadAnnouncement(id);
+        if (!announcement.isEligibilityTarget()) return notJudged(id);
         model.addAttribute("announcement", announcement);
         model.addAttribute("status", queryService.statusOf(announcement));
         model.addAttribute("extractionAvailable", profileExtractionService.isAvailable());
@@ -85,6 +86,7 @@ public class EligibilityController {
                           @RequestParam("naturalText") String naturalText,
                           Model model) {
         Announcement announcement = loadAnnouncement(id);
+        if (!announcement.isEligibilityTarget()) return notJudged(id);
         ProfileExtractionResult result = profileExtractionService.extract(naturalText);
 
         EligibilityForm form = new EligibilityForm();
@@ -116,7 +118,7 @@ public class EligibilityController {
     public String evaluate(@PathVariable Long id,
                            @ModelAttribute("form") EligibilityForm form,
                            @RequestParam(name = "explain", defaultValue = "false") boolean explain) {
-        loadAnnouncement(id);   // 존재하지 않는 공고면 리다이렉트 전에 404
+        if (!loadAnnouncement(id).isEligibilityTarget()) return notJudged(id);   // 없는 공고면 리다이렉트 전에 404
         String token = resultStore.put(id, form, explain);
         return "redirect:/announcements/" + id + "/eligibility/result/" + token;
     }
@@ -134,6 +136,7 @@ public class EligibilityController {
         }
 
         Announcement announcement = loadAnnouncement(id);
+        if (!announcement.isEligibilityTarget()) return notJudged(id);
         EligibilityForm form = submission.get().form();
         ApplicantProfile profile = form.toProfile();
 
@@ -179,6 +182,14 @@ public class EligibilityController {
         // 특공 유형별 신청 현황 — 판정과 무관한 참고 정보(#33). 접수 전·LH 는 비어 있다.
         model.addAttribute("applications", applicationService.forAnnouncement(announcement));
         return "announcements/eligibility-result";
+    }
+
+    /**
+     * 특별공급 판정 대상이 아닌 공고(무순위·잔여세대) — 판정 화면 대신 공고 상세로 돌려보낸다. 상세 화면이
+     * "판정 대상 아님 · 신청 자격은 공고문" 안내를 보여준다. 규칙 엔진에 넣으면 틀린 결론이 나온다.
+     */
+    private static String notJudged(Long id) {
+        return "redirect:/announcements/" + id;
     }
 
     private Announcement loadAnnouncement(Long id) {

@@ -130,6 +130,99 @@ public class ApplyhomeClient implements AnnouncementSource {
         }
     }
 
+    // === 무순위·잔여세대 (getRemndrLttotPblancDetail / getRemndrLttotPblancMdl) ===
+    // 같은 odcloud 서비스·같은 키. 응답 필드는 APT 와 거의 같지만 접수일이 SUBSCRPT_RCEPT_BGNDE/ENDDE 이고
+    // 규제·민영/국민 구분·특공 일정이 없다(2026-10-13 라이브). ApplyhomeRemainderSource 가 수집 소스로 감싼다.
+
+    static final String REMAINDER_PREFIX = "APPLYHOME-RM-";
+
+    /** 무순위·잔여세대 공고 목록 page 페이지 — 최신순. 실패하면 빈 리스트. */
+    public List<ExternalAnnouncement> fetchRemainderAnnouncements(int page) {
+        PublicDataProperties.Applyhome config = properties.getApplyhome();
+        if (config.getRemainderDetailPath() == null) return List.of();
+        URI uri = UriComponentsBuilder
+                .fromUriString(config.getBaseUrl() + config.getRemainderDetailPath())
+                .queryParam("page", page)
+                .queryParam("perPage", config.getPerPage())
+                .queryParam("serviceKey", properties.getServiceKey())
+                .build(true)
+                .toUri();
+        try {
+            byte[] body = publicDataRestClient.get().uri(uri).retrieve().body(byte[].class);
+            return parseRemainderAnnouncements(body);
+        } catch (Exception e) {
+            log.warn("청약홈 무순위 공고 조회 실패. page={}, msg={}", page, e.getMessage());
+            return List.of();
+        }
+    }
+
+    /** 무순위 공고의 주택형 — 응답 필드가 APT 주택형과 같아 {@link #parseUnitTypes} 를 그대로 쓴다(특공 세대수 필드는 없어 0). */
+    public List<ExternalUnitType> fetchRemainderUnitTypes(String houseManageNo, String pblancNo) {
+        PublicDataProperties.Applyhome config = properties.getApplyhome();
+        if (config.getRemainderModelPath() == null) return List.of();
+        URI uri = UriComponentsBuilder
+                .fromUriString(config.getBaseUrl() + config.getRemainderModelPath())
+                .queryParam("page", 1)
+                .queryParam("perPage", 100)
+                .queryParam("cond[HOUSE_MANAGE_NO::EQ]", houseManageNo)
+                .queryParam("cond[PBLANC_NO::EQ]", pblancNo)
+                .queryParam("serviceKey", properties.getServiceKey())
+                .build()      // cond[..] 의 대괄호는 인코딩이 필요해 build(true) 를 쓰지 않는다
+                .toUri();
+        try {
+            byte[] body = publicDataRestClient.get().uri(uri).retrieve().body(byte[].class);
+            return parseUnitTypes(body);
+        } catch (Exception e) {
+            log.warn("청약홈 무순위 주택형 조회 실패. pblancNo={}, msg={}", pblancNo, e.getMessage());
+            return List.of();
+        }
+    }
+
+    List<ExternalAnnouncement> parseRemainderAnnouncements(byte[] body) throws Exception {
+        if (body == null || body.length == 0) return List.of();
+        JsonNode data = objectMapper.readTree(body).path("data");
+        if (!data.isArray()) return List.of();
+        List<ExternalAnnouncement> result = new ArrayList<>();
+        for (JsonNode item : data) {
+            try {
+                ExternalAnnouncement parsed = toRemainderExternal(item);
+                if (parsed.isValid()) result.add(parsed);
+            } catch (RuntimeException e) {
+                log.warn("청약홈 무순위 공고 파싱 실패 — 스킵: {}", e.getMessage());
+            }
+        }
+        return result;
+    }
+
+    private ExternalAnnouncement toRemainderExternal(JsonNode item) {
+        String houseManageNo = parser.text(item, "HOUSE_MANAGE_NO");
+        String pblancNo = parser.text(item, "PBLANC_NO");
+        return ExternalAnnouncement.builder()
+                .externalId(REMAINDER_PREFIX + houseManageNo + "-" + pblancNo)
+                .houseManageNo(houseManageNo)
+                .pblancNo(pblancNo)
+                .houseName(parser.text(item, "HOUSE_NM"))
+                .houseType(HouseType.from(parser.text(item, "HOUSE_SECD")))   // 04 무순위 · 06 불법행위 재공급
+                .supplyCategory(SupplyCategory.REMAINDER)
+                .houseDetailType(HouseDetailType.UNKNOWN)   // 무순위 응답엔 민영/국민 구분이 없다
+                .regionName(parser.text(item, "SUBSCRPT_AREA_CODE_NM"))
+                .regionCode(parser.text(item, "SUBSCRPT_AREA_CODE"))
+                .address(parser.text(item, "HSSPLY_ADRES"))
+                .zipCode(parser.text(item, "HSSPLY_ZIP"))
+                .totalSupplyCount(parser.number(item, "TOT_SUPLY_HSHLDCO"))
+                .noticeDate(parser.date(item, "RCRIT_PBLANC_DE"))
+                .receptBeginDate(parser.date(item, "SUBSCRPT_RCEPT_BGNDE"))
+                .receptEndDate(parser.date(item, "SUBSCRPT_RCEPT_ENDDE"))
+                .winnerAnnounceDate(parser.date(item, "PRZWNER_PRESNATN_DE"))
+                .regulationFlags(RegulationFlags.builder().build())   // 무순위 응답엔 규제 정보가 없다
+                .noticeUrl(parser.text(item, "PBLANC_URL"))
+                .homepageUrl(parser.text(item, "HMPG_ADRES"))
+                .inquiryTel(parser.text(item, "MDHS_TELNO"))
+                .developerName(parser.text(item, "BSNS_MBY_NM"))
+                .moveInYearMonth(parser.text(item, "MVN_PREARNGE_YM"))
+                .build();
+    }
+
     /**
      * 공고의 특별공급 신청현황(주택형별 유형 배정·신청 건수) — 참고 정보(#33). 특공 접수가 끝나야 데이터가 생긴다.
      * 실패하거나 키·URL 이 없으면 빈 리스트(앱은 그대로 돈다).

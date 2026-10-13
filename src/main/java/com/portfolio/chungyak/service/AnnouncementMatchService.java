@@ -41,6 +41,7 @@ public class AnnouncementMatchService {
 
         List<MatchRow> rows = new ArrayList<>();
         for (Announcement announcement : announcements) {
+            if (!announcement.isEligibilityTarget()) continue;   // 무순위 — 특별공급 판정 대상 아님
             MatchResult result = eligibilityEngine.evaluate(profile, announcement);
             if (!result.hasAnyMatch()) {
                 continue;
@@ -65,6 +66,7 @@ public class AnnouncementMatchService {
     public List<FixableGroup> fixableGroups(ApplicantProfile profile) {
         Map<List<String>, List<FixableGroup.Item>> byHints = new LinkedHashMap<>();
         for (Announcement announcement : queryService.findOpenOrUpcoming(null, null, null)) {
+            if (!announcement.isEligibilityTarget()) continue;
             MatchResult result = eligibilityEngine.evaluate(profile, announcement);
             if (result.hasAnyMatch()) continue;   // 이미 신청 가능한 공고는 위 결과 목록에 있다
             var offered = java.util.Set.copyOf(announcement.visibleSupplyTypes());
@@ -97,6 +99,7 @@ public class AnnouncementMatchService {
     public Map<Long, ListBadge> badges(ApplicantProfile profile) {
         Map<Long, ListBadge> badges = new LinkedHashMap<>();
         for (Announcement announcement : queryService.findOpenOrUpcoming(null, null, null)) {
+            if (!announcement.isEligibilityTarget()) continue;   // 무순위엔 "내 자격" 배지를 달지 않는다
             badges.put(announcement.getId(), ListBadge.of(eligibilityEngine.evaluate(profile, announcement)));
         }
         return badges;

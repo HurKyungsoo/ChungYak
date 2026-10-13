@@ -30,6 +30,11 @@ public class PublicDataProperties {
         private String baseUrl;
         private String detailPath;
         private String modelPath;
+        /** 무순위·잔여세대 공고·주택형 (같은 서비스·같은 키) — 비우면 수집하지 않는다 */
+        private String remainderDetailPath;
+        private String remainderModelPath;
+        /** 무순위는 최신순이라 앞 몇 페이지만 — 2020년부터 1,700여 건이 쌓여 있다 */
+        private int remainderMaxPages = 3;
         /** 특별공급 신청현황 — ApplyhomeInfoCmpetRtSvc/v1/getAPTSpsplyReqstStus (#33, 별도 활용신청 필요) */
         private String specialSupplyStatusUrl;
         private int perPage = 100;

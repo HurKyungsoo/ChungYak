@@ -214,7 +214,8 @@ public class AnnouncementController {
                 .map(queryService::findDetail)
                 .flatMap(Optional::stream)
                 .map(a -> AnnouncementCompareRow.of(a, queryService.statusOf(a), today,
-                        profile.map(p -> toMatchInfo(eligibilityEngine.evaluate(p, a))).orElse(null)))
+                        profile.filter(p -> a.isEligibilityTarget())   // 무순위는 판정하지 않는다
+                                .map(p -> toMatchInfo(eligibilityEngine.evaluate(p, a))).orElse(null)))
                 .toList();
 
         model.addAttribute("rows", rows);

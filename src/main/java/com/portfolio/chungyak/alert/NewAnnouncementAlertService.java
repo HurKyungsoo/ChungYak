@@ -62,6 +62,7 @@ public class NewAnnouncementAlertService {
         ApplicantProfile profile = AlertSubscriptionProfiles.toProfile(subscription);
         List<Match> matches = new ArrayList<>();
         for (Announcement announcement : announcements) {
+            if (!announcement.isEligibilityTarget()) continue;   // 무순위 — 특별공급 판정 대상 아님
             MatchResult result = eligibilityEngine.evaluate(profile, announcement);
             if (!result.hasAnyMatch()) {
                 continue;

@@ -56,6 +56,7 @@ class ScreenRenderTest {
 
     private Long aptId;
     private Long lhId;
+    private Long remainderId;
 
     @BeforeEach
     void seed() {
@@ -85,6 +86,35 @@ class ScreenRenderTest {
         lh.addUnitType(UnitType.builder().modelNo("01").typeName("26A").supplyArea("38.50")
                 .generalSupplyCount(40).supplyBreakdown(SupplyBreakdown.ofPresentTypes(java.util.Set.of())).build());
         lhId = repository.save(lh).getId();
+
+        Announcement remainder = Announcement.builder()
+                .externalId("APPLYHOME-RM-RENDER-1").houseManageNo("9").pblancNo("9").houseName("렌더링 무순위 단지")
+                .houseType(HouseType.REMAINDER).houseDetailType(HouseDetailType.UNKNOWN)
+                .supplyCategory(SupplyCategory.REMAINDER).regionName("서울").totalSupplyCount(10)
+                .noticeUrl("https://www.applyhome.co.kr/x")
+                .receptBeginDate(today.plusDays(1)).receptEndDate(today.plusDays(1)).winnerAnnounceDate(today.plusDays(4))
+                .regulationFlags(RegulationFlags.builder().build()).build();
+        remainder.addUnitType(UnitType.builder().modelNo("01").typeName("039.6950").generalSupplyCount(10)
+                .topAmount(76112).supplyBreakdown(SupplyBreakdown.builder().build()).build());
+        remainderId = repository.save(remainder).getId();
+    }
+
+    @Test
+    @DisplayName("무순위 공고 — 상세는 판정 대상 아님 안내·공고문 버튼, 판정 버튼·특공 타일 없음 / 판정 화면은 상세로 / 목록은 '무순위·잔여'")
+    void remainderScreens() throws Exception {
+        String detail = render("/announcements/" + remainderId);
+        assertThat(detail).contains("무순위 공고입니다").contains("특별공급 자격 판정 대상이 아닙니다")
+                .contains("청약홈 공고문").contains("공급 세대")
+                .doesNotContain("내 조건으로 자격 판정").doesNotContain(">특별공급</th>").doesNotContain("id=\"verdictSummarySlot\"");
+
+        mvc.perform(get("/announcements/" + remainderId + "/eligibility"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/announcements/" + remainderId));
+
+        assertThat(render("/announcements")).contains("무순위·줍줍 1건 모아보기");   // 바로가기 칩
+        String list = render("/announcements?category=REMAINDER");
+        assertThat(list).contains("렌더링 무순위 단지").contains("무순위·잔여").contains("공급 10세대")
+                .doesNotContain("특공 물량 없음").contains("← 전체 공고 보기");
     }
 
     /** 200 + 문서 끝까지(렌더링 도중 끊기면 </html> 이 없다) */

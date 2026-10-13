@@ -50,7 +50,9 @@ public class QuickCheckService {
     private final EligibilityEngine eligibilityEngine;
 
     public QuickCheckView check(ApplicantProfile profile) {
-        List<Announcement> announcements = queryService.findOpenOrUpcoming(null, null, null);
+        List<Announcement> announcements = queryService.findOpenOrUpcoming(null, null, null).stream()
+                .filter(Announcement::isEligibilityTarget)   // 무순위 — 특별공급 판정 대상 아님
+                .toList();
         if (announcements.isEmpty()) {
             return QuickCheckView.notEvaluated();
         }

@@ -37,6 +37,15 @@
     <div class="sec-head" id="list">
         <h2>접수중 · 접수예정</h2>
         <span class="count" id="listCount" th:text="|${rows.size()}건|">9건</span>
+        <!-- 무순위·줍줍 바로가기 — 구분 드롭다운 안에만 있으면 그것만 찾는 사람이 못 찾는다. 특별공급 판정 대상이
+             아니라 메인 흐름(특공 찾기)에 섞지 않고 칩 하나로만 둔다. 이미 걸러 보는 중이면 전체로 돌아가는 칩. -->
+        <th:block th:with="remainderCount=${rows.?[remainder].size()}">
+            <a class="chip remainder-chip" th:if="${selectedCategory == null and remainderCount > 0}"
+               th:href="@{/announcements(category='REMAINDER')} + '#list'"
+               th:text="|무순위·줍줍 ${remainderCount}건 모아보기|">무순위·줍줍 7건 모아보기</a>
+            <a class="chip remainder-chip" th:if="${selectedCategory != null and selectedCategory.name() == 'REMAINDER'}"
+               th:href="@{/announcements} + '#list'">← 전체 공고 보기</a>
+        </th:block>
         <!-- 저장된 조건으로 카드에 배지를 붙였을 때만 보인다(listBadgesScript) -->
         <a id="myBadgeNote" class="my-badge-note" th:href="@{/my-profile}" hidden>
             내 조건으로 <b>0</b>곳 신청 가능 · 내 조건 보기</a>
@@ -110,7 +119,13 @@
                 </span>
                 <span class="fact" th:if="${row.receptBeginDate == null and row.receptEndDate != null}"
                       th:text="|접수 마감 ${row.receptEndDate}|">접수 마감 2026-01-05</span>
-                <th:block th:unless="${row.lh}">
+                <th:block th:if="${row.remainder}">
+                    <span class="fact hl">무순위·잔여</span>
+                    <span class="fact" th:if="${row.totalSupplyCount != null}"
+                          th:text="|공급 ${#numbers.formatInteger(row.totalSupplyCount, 1, 'COMMA')}세대|">공급 10세대</span>
+                    <span class="fact" th:text="|주택형 ${row.unitTypeCount}개|">주택형 1개</span>
+                </th:block>
+                <th:block th:unless="${row.lh or row.remainder}">
                     <span class="fact hl" th:if="${row.totalSpecialSupply > 0}"
                           th:text="|특공 ${#numbers.formatInteger(row.totalSpecialSupply, 1, 'COMMA')}세대|">특공 35세대</span>
                     <span class="fact zero" th:if="${row.totalSpecialSupply == 0}">특공 물량 없음</span>
