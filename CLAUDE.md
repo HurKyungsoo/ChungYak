@@ -134,6 +134,16 @@
   `dsSbd.HSH_CNT` 는 **기존 단지 전체 세대수**라 공급세대로 쓰면 안 된다.
 - LH 목록의 `ALL_CNT` 는 세대수가 아니라 **조회 전체 건수**다(모든 행이 같은 값).
   LH 총 공급세대는 주택형 `NOW_HSH_CNT`/`SIL_HSH_CNT`("금회공급 세대수") 합계로 채운다.
+- **청약홈 경쟁률·당첨가점·특공 신청현황 API** (`ApplyhomeInfoCmpetRtSvc/v1`, data.go.kr 15098905, 2026-10-13 활용신청·라이브 확인).
+  같은 odcloud 게이트웨이·같은 키. 공고 2020~현재, 최신순. 조인 키는 `HOUSE_MANAGE_NO`(+ `MODEL_NO`/`HOUSE_TY`).
+  - `getAPTLttotPblancCmpet`(55,222행): 주택형 × 순위(`SUBSCRPT_RANK_CODE`) × 거주(`RESIDE_SENM` 해당/기타지역)별
+    `SUPLY_HSHLDCO`·`REQ_CNT`(문자열)·`CMPET_RATE`(문자열 — "2.00", 미달은 "(△1)", 2순위 미집계는 "-").
+  - `getAPTLttotPblancScore`(29,918행): 주택형 × 거주별 `LWET_SCORE`/`AVRG_SCORE`/`TOP_SCORE`(문자열, 추첨·미달은 "0").
+  - `getAPTSpsplyReqstStus`(12,436행): 주택형별 특공 유형 배정 `*_HSHLDCO` + 신청 건수 `CRSPAREA_/CTPRVN_/ETC_AREA_*_CNT`
+    (해당지역/시도/기타지역). 유형 접미사: MNYCH 다자녀·NWWDS_NMTW 신혼부부·LFE_FRST 생애최초·OPS(배정은
+    `OLD_PARNTS_SUPORT_HSHLDCO`) 노부모·NWBB_NWBBSHR 신생아·YGMN 청년·INSTT_RECOMEND 기관추천·TRANSR_INSTT_ENFSN 이전기관.
+    예) 2026000374 051.9931B 생애최초 1세대에 2,950건(해당 2,461 + 기타 489).
+  - `getRemndrLttotPblancCmpet`: 무순위·잔여세대 경쟁률. LH 공고는 이 API 범위 밖이다.
 - **LH 공급 API 의 금액 필드는 유형에 따라 다르다** (2026-10-13 라이브, 최근 공고 400건 유형별 3건씩):
   10년 공공임대(`SPL_INF_TP_CD=060`, `dsList02`)만 주택형별 `LS_GMY`(임대보증금, 원)·`MM_RFE`(월임대료, 원)가 숫자.
   분양(050)·신혼희망 분양(390)은 `SIL_AMT`(분양가, 원 → `topAmount` 만원으로 이미 수집). 국민·영구·행복·통합공공임대·
