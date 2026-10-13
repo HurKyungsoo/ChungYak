@@ -2,6 +2,7 @@ package com.portfolio.chungyak.llm;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
@@ -16,6 +17,7 @@ import java.util.Map;
  * 빈 응답)는 예외로 올린다 — 호출하는 서비스가 잡아 기능만 끄고(폴백) 앱은 계속 돈다. 재시도는 하지 않는다:
  * 무료 등급의 429 는 잠시 뒤에도 같기 쉽고, 사용자를 기다리게 하는 것보다 폴백이 낫다.
  */
+@Slf4j
 public class GroqChatClient {
 
     private final RestClient restClient;
@@ -36,8 +38,28 @@ public class GroqChatClient {
      * @return 응답 본문 텍스트(비면 예외)
      */
     public String chat(String system, String user, int maxTokens, boolean json) {
+        return chat(properties.model(), null, system, user, maxTokens, json);
+    }
+
+    /**
+     * 공고문 Q&A 호출 (#32) — {@link GroqProperties#qaModel()} 과 {@link GroqProperties#qaReasoningEffort()} 로.
+     * 자연어 추출은 eval 로 검증한 설정 그대로 두고 Q&A 만 바꾸려고 따로 둔다.
+     */
+    public String qa(String system, String user, int maxTokens) {
+        return chat(properties.qaModel(), properties.qaReasoningEffort(), system, user, maxTokens, false);
+    }
+
+    /**
+     * @param model           이 호출에 쓸 모델 — 용도별로 무료 한도(모델별)를 나눠 쓰려고(#32)
+     * @param reasoningEffort gpt-oss 의 추론 토큰 양. null 이면 보내지 않는다(Groq 기본값).
+     *                        추론 토큰도 max_tokens 안에서 쓰여, 기본값에서 1,024 를 추론에 다 써 답이 빈 적이 있다.
+     */
+    String chat(String model, String reasoningEffort, String system, String user, int maxTokens, boolean json) {
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("model", properties.model());
+        body.put("model", model);
+        if (reasoningEffort != null && model.startsWith("openai/gpt-oss")) {
+            body.put("reasoning_effort", reasoningEffort);
+        }
         body.put("temperature", 0);   // 같은 입력이면 같은 출력에 가깝게 — 추출·요약에 창의성이 필요 없다
         body.put("max_tokens", maxTokens);
         body.put("messages", List.of(
@@ -54,7 +76,9 @@ public class GroqChatClient {
                 .body(String.class);
 
         try {
-            JsonNode content = mapper.readTree(raw).path("choices").path(0).path("message").path("content");
+            JsonNode root = mapper.readTree(raw);
+            logUsage(model, root.path("usage"));
+            JsonNode content = root.path("choices").path(0).path("message").path("content");
             if (content.isMissingNode() || content.asText().isBlank()) {
                 throw new IllegalStateException("Groq 응답이 비어 있음");
             }
@@ -62,5 +86,18 @@ public class GroqChatClient {
         } catch (java.io.IOException e) {
             throw new IllegalStateException("Groq 응답을 읽지 못함", e);
         }
+    }
+
+    /**
+     * 토큰 사용량 로그 (#32) — 무료 등급은 하루 토큰 한도(200K)가 상한이라, 기능별로 얼마나 쓰는지 알아야
+     * 발췌 수·모델·reasoning_effort 를 고를 수 있다. reasoning 토큰은 응답에 있을 때만 적는다.
+     */
+    private static void logUsage(String model, JsonNode usage) {
+        if (usage.isMissingNode()) return;
+        JsonNode reasoning = usage.path("completion_tokens_details").path("reasoning_tokens");
+        log.info("Groq 토큰 — model={} prompt={} completion={}{} total={}", model,
+                usage.path("prompt_tokens").asInt(), usage.path("completion_tokens").asInt(),
+                reasoning.isMissingNode() ? "" : " (reasoning " + reasoning.asInt() + ")",
+                usage.path("total_tokens").asInt());
     }
 }

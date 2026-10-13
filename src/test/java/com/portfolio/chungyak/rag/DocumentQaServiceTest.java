@@ -189,6 +189,53 @@ class DocumentQaServiceTest {
     }
 
     @Test
+    @DisplayName("답 캐시 — 같은 공고·같은 질문(공백·물음표 차이 무시)은 다시 묻지 않고, 재인덱싱하면 새로 묻는다 (#32)")
+    void cachesAnswersUntilReindex() {
+        when(search.searchWithin(eq(1L), anyString(), anyInt())).thenReturn(List.of(
+                new Hit(1L, 2, "계약금 1,000만원 정액제", 0.0, 1.0)));
+        when(search.searchWithin(eq(2L), anyString(), anyInt())).thenReturn(List.of(
+                new Hit(2L, 0, "계약금 1,000만원 정액제", 0.0, 1.0)));
+        when(chunkRepo.indexVersion()).thenReturn(version(10, 100));
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        DocumentQaService svc = service(Optional.of((q, ex) -> { calls.incrementAndGet(); return "계약금은 1,000만원입니다 [1]."; }));
+
+        svc.answer(1L, "계약금은 얼마인가요?");
+        QaAnswer again = svc.answer(1L, "  계약금은   얼마인가요 ");
+        assertThat(again.status()).isEqualTo(Status.ANSWERED);
+        assertThat(calls).hasValue(1);
+
+        svc.answer(2L, "계약금은 얼마인가요?");   // 다른 공고
+        assertThat(calls).hasValue(2);
+
+        when(chunkRepo.indexVersion()).thenReturn(version(10, 101));   // 재인덱싱
+        svc.answer(1L, "계약금은 얼마인가요?");
+        assertThat(calls).hasValue(3);
+    }
+
+    @Test
+    @DisplayName("응답 실패(429 등)는 캐시하지 않는다 — 다음 요청에서 다시 시도")
+    void failuresAreNotCached() {
+        when(search.searchWithin(eq(1L), anyString(), anyInt())).thenReturn(List.of(
+                new Hit(1L, 2, "계약금 1,000만원 정액제", 0.0, 1.0)));
+        when(chunkRepo.indexVersion()).thenReturn(version(10, 100));
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        DocumentQaService svc = service(Optional.of((q, ex) -> {
+            if (calls.incrementAndGet() == 1) throw new IllegalStateException("429");
+            return "계약금은 1,000만원입니다 [1].";
+        }));
+
+        assertThat(svc.answer(1L, "계약금은?").status()).isEqualTo(Status.ANSWER_FAILED);
+        assertThat(svc.answer(1L, "계약금은?").status()).isEqualTo(Status.ANSWERED);
+    }
+
+    private static DocumentChunkRepository.IndexVersion version(long count, long maxId) {
+        return new DocumentChunkRepository.IndexVersion() {
+            @Override public long getCount() { return count; }
+            @Override public long getMaxId() { return maxId; }
+        };
+    }
+
+    @Test
     @DisplayName("hasIndex 는 청크 존재 여부")
     void hasIndexDelegates() {
         when(chunkRepo.existsByAnnouncementId(9L)).thenReturn(true);

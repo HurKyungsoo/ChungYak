@@ -135,4 +135,35 @@ class GroqClientTest {
 
         assertThat(new GroqExplainer(client).explain("판정 근거")).isEqualTo("정리한 문장");
     }
+
+    @Test
+    @DisplayName("Q&A 는 GROQ_QA_MODEL·Q&A reasoning_effort 로, 자연어 추출 등 일반 호출은 기본 모델·reasoning 없이 (#32)")
+    void qaModelAndReasoningEffort() {
+        GroqProperties p = new GroqProperties("gsk_test", "openai/gpt-oss-120b", null, false, "openai/gpt-oss-20b", "low");
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer s = MockRestServiceServer.bindTo(builder).build();
+        GroqChatClient client = new GroqChatClient(builder.build(), p);
+
+        s.expect(requestTo(URL))
+                .andExpect(jsonPath("$.model").value("openai/gpt-oss-20b"))
+                .andExpect(jsonPath("$.reasoning_effort").value("low"))
+                .andRespond(withSuccess("{\"choices\":[{\"message\":{\"content\":\"답\"}}],"
+                        + "\"usage\":{\"prompt_tokens\":3000,\"completion_tokens\":120,\"total_tokens\":3120}}", MediaType.APPLICATION_JSON));
+        s.expect(requestTo(URL))
+                .andExpect(jsonPath("$.model").value("openai/gpt-oss-120b"))
+                .andExpect(jsonPath("$.reasoning_effort").doesNotExist())
+                .andRespond(withSuccess(completion("답2"), MediaType.APPLICATION_JSON));
+
+        assertThat(client.qa("시스템", "질문", 100)).isEqualTo("답");
+        assertThat(client.chat("시스템", "질문", 100, false)).isEqualTo("답2");
+        s.verify();
+    }
+
+    @Test
+    @DisplayName("설정이 비면 Q&A 모델은 기본 모델과 같고 reasoning_effort 는 보내지 않는다 — 지금까지와 같은 동작")
+    void defaultsKeepCurrentBehavior() {
+        GroqProperties p = new GroqProperties("gsk_test", "openai/gpt-oss-120b", null, false, "", "");
+        assertThat(p.qaModel()).isEqualTo("openai/gpt-oss-120b");
+        assertThat(p.qaReasoningEffort()).isNull();
+    }
 }

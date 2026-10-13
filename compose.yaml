@@ -51,6 +51,8 @@ services:
       GROQ_API_KEY: ${GROQ_API_KEY:-REPLACE_ME}
       GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
       GROQ_EXPLAIN_ENABLED: ${GROQ_EXPLAIN_ENABLED:-false}
+      GROQ_QA_MODEL: ${GROQ_QA_MODEL:-}
+      GROQ_QA_REASONING_EFFORT: ${GROQ_QA_REASONING_EFFORT:-}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
       # 새 공고 알림 메일 — MAIL_HOST 가 비면 발송을 끄고 화면의 구독 입구도 숨긴다

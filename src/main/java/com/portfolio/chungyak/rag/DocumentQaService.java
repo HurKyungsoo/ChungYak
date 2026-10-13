@@ -1,10 +1,13 @@
 package com.portfolio.chungyak.rag;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.portfolio.chungyak.rag.VectorSearch.Hit;
 import com.portfolio.chungyak.repository.DocumentChunkRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,6 +32,16 @@ public class DocumentQaService {
     private final double minScore;
     private final double keywordMinScore;
 
+    /**
+     * 답 캐시 (#32) — 무료 등급 하루 토큰 한도(200K, Q&A 한 번 ≈ 3,800 토큰)를 아끼려고, 같은 공고·같은 질문은
+     * 다시 묻지 않는다. 키에 청크 버전(개수·최대 id)을 넣어 재인덱싱하면 자동으로 새로 묻는다.
+     * 토큰을 쓴 결과(ANSWERED·UNGROUNDED)만 담는다 — ANSWER_FAILED(429 등)는 다음 요청에서 다시 시도한다.
+     */
+    private final Cache<String, QaAnswer> answerCache = Caffeine.newBuilder()
+            .maximumSize(2_000)
+            .expireAfterWrite(Duration.ofHours(24))
+            .build();
+
     public DocumentQaService(VectorSearch vectorSearch,
                              DocumentChunkRepository chunkRepository,
                              Optional<DocumentAnswerer> answerer,
@@ -39,6 +52,14 @@ public class DocumentQaService {
         this.contextChunks = properties.qa().contextChunks();
         this.minScore = properties.qa().minScore();
         this.keywordMinScore = properties.qa().keywordMinScore();
+    }
+
+    /** 공백·물음표·대소문자 차이는 같은 질문으로 본다. 청크 버전을 못 읽으면 캐시하지 않는다(null). */
+    private String cacheKey(Long announcementId, String question) {
+        DocumentChunkRepository.IndexVersion v = chunkRepository.indexVersion();
+        if (v == null) return null;
+        String q = question.strip().toLowerCase().replaceAll("[\\s?？!.]+", " ").strip();
+        return announcementId + "|" + v.getCount() + "|" + v.getMaxId() + "|" + q;
     }
 
     public boolean isEnabled() {
@@ -96,6 +117,20 @@ public class DocumentQaService {
             return QaAnswer.disabled();
         }
 
+        String key = cacheKey(announcementId, question);
+        QaAnswer cached = key == null ? null : answerCache.getIfPresent(key);
+        if (cached != null) {
+            log.debug("공고 #{} Q&A 캐시 적중", announcementId);
+            return cached;
+        }
+        QaAnswer fresh = answerUncached(announcementId, question);
+        if (key != null && (fresh.status() == Status.ANSWERED || fresh.status() == Status.UNGROUNDED)) {
+            answerCache.put(key, fresh);
+        }
+        return fresh;
+    }
+
+    private QaAnswer answerUncached(Long announcementId, String question) {
         List<Hit> hits = vectorSearch.searchWithin(announcementId, question.strip(), contextChunks);
         if (hits.isEmpty()) {
             // BM25 모드는 키워드가 하나도 안 걸린 청크를 빼므로, 인덱스가 있어도 결과가 빌 수 있다 — 그건 "관련 없음"이다

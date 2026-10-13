@@ -82,6 +82,10 @@ llm:
     api-key: ${GROQ_API_KEY:REPLACE_ME}
     model: ${GROQ_MODEL:openai/gpt-oss-120b}
     explain-enabled: ${GROQ_EXPLAIN_ENABLED:false}
+    # 무료 등급 하루 토큰 한도(200K)는 모델별 — Q&A 를 다른 모델로 돌리면 추출과 한도를 나눠 쓰지 않는다(#32). 비우면 model.
+    qa-model: ${GROQ_QA_MODEL:}
+    # Q&A 의 gpt-oss 추론 토큰 양(low/medium/high). 비우면 보내지 않는다(Groq 기본값). 추출에는 적용하지 않는다.
+    qa-reasoning-effort: ${GROQ_QA_REASONING_EFFORT:}
 
 # 새 공고 알림(C2). 확인·해지 메일의 링크에 쓸 절대 URL 베이스.
 app:
@@ -117,7 +121,7 @@ rag:
     top-k: 5
     hybrid-weight: 0.6   # RRF 융합에서 벡터(의미) 쪽 가중치. 나머지는 BM25(키워드)
   qa:
-    context-chunks: 4        # 답변에 넣을 발췌 개수
+    context-chunks: 2        # 답변에 넣을 발췌 개수 — 4→2 로 Q&A 토큰 ~3,200→~1,800(#32 측정, 답 결과 같음). 분당 8K·하루 200K 한도
     min-score: 0.25          # 최고 발췌 코사인이 이 미만이고
     keyword-min-score: 0.5   # 키워드 겹침도 이 미만이면 "관련 내용 없음" — LLM 호출 생략
 
