@@ -16,6 +16,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -148,9 +149,9 @@ public class AnnouncementSyncScheduler {
                 } else {
                     ExternalAnnouncement base = source.needsDetailBackfill(existing)
                             ? enrichSafely(source, announcement) : announcement;
-                    // 공고문 원문 백필(#29) — 예전 수집에서 15,500자로 잘린 원문은 다시 받아 전문으로 바꾼다.
-                    // 한 번 바뀌면 잘린 상태가 아니므로 다음 배치부터는 다시 받지 않는다.
-                    if (hasLegacyTruncatedNotice(existing)) {
+                    // 공고문 원문 백필 — (#29) 예전 수집에서 15,500자로 잘린 원문, (#38) 원문 기능이 생기기 전에 수집돼
+                    // 원문이 아예 없는 접수 전·중 공고. 한 번 받으면 조건이 풀려 다음 배치부터는 다시 받지 않는다.
+                    if (needsNoticeBackfill(source, existing)) {
                         String content = fetchNoticeContentSafely(source, base);
                         if (content != null) base = base.toBuilder().noticeContent(content).build();
                     }
@@ -168,10 +169,12 @@ public class AnnouncementSyncScheduler {
         return new SourceSyncResult(new SyncReport(pagesFetched, received, created, updated), createdAnnouncements);
     }
 
-    private boolean hasLegacyTruncatedNotice(Announcement existing) {
-        return documentRepository.findByAnnouncementId(existing.getId())
-                .map(AnnouncementDocument::isLegacyTruncated)
-                .orElse(false);
+    private boolean needsNoticeBackfill(AnnouncementSource source, Announcement existing) {
+        var doc = documentRepository.findByAnnouncementId(existing.getId());
+        if (doc.isPresent()) return doc.get().isLegacyTruncated();
+        LocalDate today = LocalDate.now(clock);
+        boolean current = existing.getReceptEndDate() == null || !existing.getReceptEndDate().isBefore(today);
+        return source.backfillsMissingNotice() && current;
     }
 
     /** 공고문 원문 조회 실패가 수집 전체를 막지 않도록 감싼다 (mock 이 null 을 줄 수도 있다). */

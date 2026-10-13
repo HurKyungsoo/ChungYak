@@ -131,6 +131,22 @@
     </section>
 
 
+    <!-- 공고문 요약표 (#38) — 청약홈 공고문 첫 페이지 "단지 주요정보" 표를 AI 없이 그대로 옮긴다.
+         표가 없거나 칸이 어긋나는 공고는 그리지 않는다(NoticeSummaryTable). 판정과 무관한 정보 표시. -->
+    <section class="card notice-summary" th:if="${noticeSummary != null}" aria-label="공고문 요약표">
+        <div class="ns-head">
+            <h2 style="margin:0">공고문 요약표</h2>
+            <span class="muted">청약홈 공고문 첫 페이지 표 그대로 ·
+                <a th:if="${announcement.noticeUrl != null}" th:href="${announcement.noticeUrl}" target="_blank" rel="noopener">원문 확인</a></span>
+        </div>
+        <dl class="ns-grid">
+            <div th:each="it : ${noticeSummary.items}">
+                <dt th:text="${it.label}">전매제한</dt>
+                <dd th:text="${it.value}">6개월</dd>
+            </div>
+        </dl>
+    </section>
+
     <!-- 특별공급 유형별 배정 (목업 Main) — 공고 전체 합계. 어느 유형이 이 공고에 몇 세대 있는지가
          주택형 표보다 먼저 궁금한 정보라 카드로 꺼낸다. 세대수를 아는 주택형만 센다(DetailHighlights). -->
     <th:block th:unless="${announcement.remainder}">

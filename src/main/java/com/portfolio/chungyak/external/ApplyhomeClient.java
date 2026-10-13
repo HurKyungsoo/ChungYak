@@ -8,7 +8,6 @@ import com.portfolio.chungyak.domain.RegulationFlags;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.domain.SupplyBreakdown;
 import com.portfolio.chungyak.domain.SupplyCategory;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -32,7 +31,6 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class ApplyhomeClient implements AnnouncementSource {
 
     private static final String SOURCE_PREFIX = "APPLYHOME-";
@@ -41,6 +39,34 @@ public class ApplyhomeClient implements AnnouncementSource {
     private final PublicDataProperties properties;
     private final PublicDataParser parser;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    /** 공고문 PDF 원문(#38) — 없으면(테스트) 원문을 가져오지 않는다 */
+    private final ApplyhomeNoticeFetcher noticeFetcher;
+
+    public ApplyhomeClient(RestClient publicDataRestClient, PublicDataProperties properties, PublicDataParser parser) {
+        this(publicDataRestClient, properties, parser, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public ApplyhomeClient(RestClient publicDataRestClient, PublicDataProperties properties, PublicDataParser parser,
+                           ApplyhomeNoticeFetcher noticeFetcher) {
+        this.publicDataRestClient = publicDataRestClient;
+        this.properties = properties;
+        this.parser = parser;
+        this.noticeFetcher = noticeFetcher;
+    }
+
+    /** 공고문 원문 — 공고 웹페이지의 PDF 첨부(#38, 공식 API 밖·끄는 스위치 있음). 판정에는 쓰지 않는다. */
+    @Override
+    public java.util.Optional<String> fetchNoticeContent(ExternalAnnouncement announcement) {
+        if (noticeFetcher == null) return java.util.Optional.empty();
+        return noticeFetcher.fetch(announcement.getNoticeUrl(), announcement.getHouseManageNo());
+    }
+
+    /** 원문이 아직 없는 기존 공고(접수 전·중)도 한 번 받는다 — 이 기능 이전에 수집된 공고용 */
+    @Override
+    public boolean backfillsMissingNotice() {
+        return noticeFetcher != null && noticeFetcher.isEnabled();
+    }
 
     @Override
     public String sourceName() {

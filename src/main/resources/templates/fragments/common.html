@@ -437,6 +437,16 @@
         .my-badge.needs_info { background: var(--surface-2); color: var(--text-muted); font-weight: 600; }
         .my-badge.none { background: transparent; color: var(--text-subtle); font-weight: 500; padding: 0; }
         .my-badge-note { margin-left: auto; font-size: .82rem; font-weight: 600; }
+        /* 공고문 요약표 (#38) — 상세의 벤토 아래 */
+        .notice-summary { margin: 0 0 16px; }
+        .notice-summary .ns-head { display: flex; align-items: baseline; justify-content: space-between;
+            gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .notice-summary .ns-head .muted { font-size: .8rem; }
+        .notice-summary .ns-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 0; }
+        .notice-summary .ns-grid div { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+        .notice-summary dt { font-size: .75rem; color: var(--text-muted); }
+        .notice-summary dd { margin: 2px 0 0; font-weight: 700; }
+        @media (max-width: 560px) { .notice-summary .ns-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         /* 무순위·줍줍 바로가기 칩 — 목록 제목 옆 */
         .remainder-chip { font-size: .8rem; font-weight: 650; text-decoration: none; color: var(--brand);
             border: 1px solid color-mix(in srgb, var(--brand) 35%, transparent); }

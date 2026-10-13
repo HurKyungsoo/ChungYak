@@ -50,6 +50,7 @@ class ScreenRenderTest {
 
     @Autowired private MockMvc mvc;
     @Autowired private AnnouncementRepository repository;
+    @Autowired private com.portfolio.chungyak.repository.AnnouncementDocumentRepository documentRepository;
     @MockBean private AnnouncementSyncScheduler scheduler;
     @MockBean private ProfileExtractionService extractionService;
     @MockBean private com.portfolio.chungyak.service.SpecialSupplyApplicationService applicationService;   // 외부 API 를 부르지 않게   // 키 없이도 추출 결과 화면을 그려 본다
@@ -75,6 +76,10 @@ class ScreenRenderTest {
                 .generalSupplyCount(60).specialSupplyCount(40).topAmount(89300)
                 .supplyBreakdown(SupplyBreakdown.builder().newlywed(20).newborn(10).firstTime(10).build()).build());
         aptId = repository.save(apt).getId();
+        // 공고문 첫 페이지 "단지 주요정보" 표(#38) — 상세에 요약표로 그려져야 한다
+        documentRepository.save(new com.portfolio.chungyak.domain.AnnouncementDocument(aptId, "APPLYHOME",
+                "주택유형 해당지역 기타지역 규제지역여부\n재당첨제한 전매제한 거주의무기간 분양가상한제 택지유형\n"
+                        + "없음 6개월 없음 미적용 민간택지\n본문", java.time.Instant.now()));
 
         Announcement lh = Announcement.builder()
                 .externalId("LH-RENDER-1").houseManageNo("03").pblancNo("2").houseName("렌더링 행복주택 예비입주자 모집공고")
@@ -156,6 +161,8 @@ class ScreenRenderTest {
         assertThat(apt).contains("data-type=\"NEWLYWED\"")                        // 자격 표시를 칠할 타일
                 .contains("이 공고에 없는 유형").contains("다자녀가구, 노부모부양, 청년");
         assertThat(apt).contains("/announcements/" + aptId + "/calendar.ics");   // 내 캘린더에 추가
+        // 공고문 요약표(#38) — 원문 표 그대로
+        assertThat(apt).contains("공고문 요약표").contains("<dd>6개월</dd>").contains("<dd>민간택지</dd>");
         // 비규제 민영은 가점제 비율을 몰라 전 행이 "-" — 빈 열은 그리지 않는다(안내 문단은 남는다)
         assertThat(apt).doesNotContain(">가점제</th>").contains("비규제지역이라 정확한 비율은");
 

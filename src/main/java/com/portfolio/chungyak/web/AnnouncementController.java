@@ -6,24 +6,26 @@ import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.domain.SupplyCategory;
 import com.portfolio.chungyak.domain.UnitType;
 import com.portfolio.chungyak.rag.DocumentQaService;
+import com.portfolio.chungyak.repository.AnnouncementDocumentRepository;
 import com.portfolio.chungyak.rule.ApplicantProfile;
-import com.portfolio.chungyak.rule.EligibilityEngine;
 import com.portfolio.chungyak.rule.EligibilityEngine.MatchResult;
 import com.portfolio.chungyak.rule.EligibilityEngine.UnitMatch;
+import com.portfolio.chungyak.rule.EligibilityEngine;
 import com.portfolio.chungyak.rule.GeneralSupplyLotteryCalculator;
 import com.portfolio.chungyak.service.AnnouncementQueryService;
 import com.portfolio.chungyak.web.form.EligibilityForm;
 import com.portfolio.chungyak.web.view.AnnouncementCompareRow;
+import com.portfolio.chungyak.web.view.AnnouncementIcs;
 import com.portfolio.chungyak.web.view.AnnouncementListRow;
 import com.portfolio.chungyak.web.view.AnnouncementListSort;
 import com.portfolio.chungyak.web.view.CalendarFilter;
 import com.portfolio.chungyak.web.view.CalendarView;
 import com.portfolio.chungyak.web.view.Dday;
 import com.portfolio.chungyak.web.view.DetailHighlights;
+import com.portfolio.chungyak.web.view.NoticeSummaryTable;
 import com.portfolio.chungyak.web.view.PhoneNumbers;
 import com.portfolio.chungyak.web.view.Prices;
 import com.portfolio.chungyak.web.view.ScheduleTimeline;
-import com.portfolio.chungyak.web.view.AnnouncementIcs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -68,6 +70,7 @@ public class AnnouncementController {
     private final GeneralSupplyLotteryCalculator lotteryCalculator;
     private final EligibilityEngine eligibilityEngine;
     private final MatchResultStore matchResultStore;
+    private final AnnouncementDocumentRepository documentRepository;
 
     @GetMapping("/announcements")
     public String list(@RequestParam(required = false) String region,
@@ -307,6 +310,9 @@ public class AnnouncementController {
         model.addAttribute("qaEnabled", qaService.isEnabled());
         model.addAttribute("qaIndexed", qaService.hasIndex(id));
         model.addAttribute("qaSemantic", qaService.isSemantic());   // BM25 모드면 '의미' 점수(늘 0)를 숨긴다
+        // 공고문 첫 페이지 "단지 주요정보" 표(#38) — 원문 표 그대로, 표가 없거나 칸이 어긋나면 null
+        model.addAttribute("noticeSummary", documentRepository.findByAnnouncementId(id)
+                .flatMap(d -> NoticeSummaryTable.parse(d.getFirstPart())).orElse(null));
         // 문의처는 하이픈 없는 숫자로 들어온다 — 읽을 수 있게 끊어서 보여주고,
         // 거는 건 원본 그대로 tel: 로 넘긴다(다이얼러가 하이픈도 알아서 처리한다).
         model.addAttribute("inquiryTelDisplay", PhoneNumbers.format(announcement.getInquiryTel()));

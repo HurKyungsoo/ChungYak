@@ -54,6 +54,9 @@ publicdata:
     remainder-detail-path: /getRemndrLttotPblancDetail
     remainder-model-path: /getRemndrLttotPblancMdl
     remainder-max-pages: 3
+    # 공고문 PDF 원문(#38) — 공식 API 밖(공고 웹페이지의 첨부 링크)이라 끄는 스위치를 둔다. 공고당 한 번, 1초 간격.
+    notice-pdf-enabled: ${APPLYHOME_NOTICE_PDF_ENABLED:true}
+    notice-request-interval-ms: 1000
     # 특공 유형별 배정·신청 건수(참고 정보, #33) — 같은 키로 data.go.kr 15098905 활용신청 필요
     special-supply-status-url: https://api.odcloud.kr/api/ApplyhomeInfoCmpetRtSvc/v1/getAPTSpsplyReqstStus
     per-page: 100

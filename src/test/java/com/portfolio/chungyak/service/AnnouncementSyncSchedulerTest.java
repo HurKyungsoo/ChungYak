@@ -170,6 +170,44 @@ class AnnouncementSyncSchedulerTest {
         assertThat(synced.getValue()).extracting(ExternalAnnouncement::getNoticeContent).containsExactly("전문 공고문", null);
     }
 
+    @Test
+    @DisplayName("원문이 없는 기존 공고는 접수 전·중일 때만 한 번 받는다 — 마감 공고·원문 있는 공고는 받지 않는다 (#38)")
+    void backfillsMissingNoticeOnlyForCurrent() {
+        ApplyhomeClient applyhome = Mockito.mock(ApplyhomeClient.class);
+        when(applyhome.isEnabled()).thenReturn(true);
+        when(applyhome.sourceName()).thenReturn("청약홈");
+        when(applyhome.maxPages()).thenReturn(1);
+        when(applyhome.backfillsMissingNotice()).thenReturn(true);
+        ExternalAnnouncement current = listed("A-20");
+        ExternalAnnouncement closed = listed("A-21");
+        ExternalAnnouncement hasDoc = listed("A-22");
+        when(applyhome.fetchAnnouncements(1)).thenReturn(List.of(current, closed, hasDoc));
+        when(applyhome.fetchNoticeContent(current)).thenReturn(Optional.of("공고문 전문"));
+
+        java.time.LocalDate today = java.time.LocalDate.of(2026, 10, 13);
+        Announcement a20 = Announcement.builder().externalId("A-20").receptEndDate(today.plusDays(5)).build();
+        Announcement a21 = Announcement.builder().externalId("A-21").receptEndDate(today.minusDays(1)).build();
+        Announcement a22 = Announcement.builder().externalId("A-22").receptEndDate(today.plusDays(5)).build();
+        org.springframework.test.util.ReflectionTestUtils.setField(a20, "id", 20L);
+        org.springframework.test.util.ReflectionTestUtils.setField(a21, "id", 21L);
+        org.springframework.test.util.ReflectionTestUtils.setField(a22, "id", 22L);
+        AnnouncementRepository repo = Mockito.mock(AnnouncementRepository.class);
+        when(repo.findByExternalId("A-20")).thenReturn(Optional.of(a20));
+        when(repo.findByExternalId("A-21")).thenReturn(Optional.of(a21));
+        when(repo.findByExternalId("A-22")).thenReturn(Optional.of(a22));
+        AnnouncementDocumentRepository docs = Mockito.mock(AnnouncementDocumentRepository.class);
+        when(docs.findByAnnouncementId(22L)).thenReturn(Optional.of(new AnnouncementDocument(22L, "APPLYHOME", "전문", Instant.now())));
+        when(syncService.sync(any())).thenReturn(new AnnouncementSyncService.SyncStat(3, 0, 3, List.of()));
+
+        new AnnouncementSyncScheduler(List.of(applyhome), syncService, repo, new PublicDataProperties(), syncStatus,
+                Clock.fixed(Instant.parse("2026-10-13T04:00:00Z"), ZoneOffset.UTC),
+                Mockito.mock(NewAnnouncementAlertService.class), Mockito.mock(AnnouncementIndexer.class), docs).runSync();
+
+        verify(applyhome).fetchNoticeContent(current);
+        verify(applyhome, never()).fetchNoticeContent(closed);
+        verify(applyhome, never()).fetchNoticeContent(hasDoc);
+    }
+
     private static ExternalAnnouncement listed(String externalId) {
         return ExternalAnnouncement.builder().externalId(externalId).houseName("x").pblancNo(externalId).build();
     }

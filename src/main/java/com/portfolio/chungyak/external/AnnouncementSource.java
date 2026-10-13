@@ -45,6 +45,14 @@ public interface AnnouncementSource {
         return announcement;
     }
 
+    /**
+     * 원문이 아직 없는 기존 공고(접수 전·중)의 원문을 수집 때 받아 둘지. 원문 기능이 나중에 생긴 소스용(청약홈 #38).
+     * 원문이 생기면 다시 받지 않는다(원문 유무로 판단).
+     */
+    default boolean backfillsMissingNotice() {
+        return false;
+    }
+
     /** 이미 저장된 공고인데 상세 정보를 아직 못 채웠으면 true — 다음 수집에서 한 번 더 조회한다. */
     default boolean needsDetailBackfill(Announcement existing) {
         return false;

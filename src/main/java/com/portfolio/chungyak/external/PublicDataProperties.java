@@ -35,6 +35,10 @@ public class PublicDataProperties {
         private String remainderModelPath;
         /** 무순위는 최신순이라 앞 몇 페이지만 — 2020년부터 1,700여 건이 쌓여 있다 */
         private int remainderMaxPages = 3;
+        /** 공고문 PDF 원문 가져오기(#38, 공식 API 밖) — 끄면 청약홈 웹페이지에 접근하지 않는다 */
+        private boolean noticePdfEnabled = true;
+        /** 공고 페이지·PDF 요청 사이 최소 간격(ms) */
+        private long noticeRequestIntervalMs = 1000;
         /** 특별공급 신청현황 — ApplyhomeInfoCmpetRtSvc/v1/getAPTSpsplyReqstStus (#33, 별도 활용신청 필요) */
         private String specialSupplyStatusUrl;
         private int perPage = 100;
