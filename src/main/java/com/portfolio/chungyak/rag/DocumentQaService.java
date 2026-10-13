@@ -60,7 +60,11 @@ public class DocumentQaService {
      * ANSWER_FAILED = 관련 발췌는 찾았지만 응답기(LLM) 호출이 실패함(크레딧·네트워크 등).
      * 화면에서 둘을 같은 문구로 뭉개면 "발췌를 찾긴 했는데 왜 답이 없지?"가 "관련 내용이 없다"로 오해된다.
      */
-    public enum Status { DISABLED, NO_INDEX, NO_MATCH, ANSWER_FAILED, ANSWERED }
+    /**
+     * UNGROUNDED = 답변은 만들었지만 금액·날짜가 발췌에 "그 항목의 값"으로 적혀 있지 않아({@link AnswerGrounding})
+     * 보여주지 않음 (#31). 표 열이 섞여 다른 값을 단정한 답을 화면에 내보내지 않는다.
+     */
+    public enum Status { DISABLED, NO_INDEX, NO_MATCH, ANSWER_FAILED, UNGROUNDED, ANSWERED }
 
     public record Citation(int chunkIndex, String excerpt, double score, double keywordScore) {}
 
@@ -73,9 +77,9 @@ public class DocumentQaService {
         public boolean hasAnswer() { return status == Status.ANSWERED; }
 
         /**
-         * 답변에 금액이 있는지 — 공고문 표는 텍스트로 뽑히면 열 구분이 사라져, 모델이 보증금·임대료 열을 섞어 읽는다
-         * (#22 실사용: 임대보증금 표에서 다른 열의 값을 "월 임대료"로 답함). 프롬프트로 막아도 새므로 화면이 항상
-         * "원문 표에서 확인" 안내를 붙인다.
+         * 답변에 금액이 있는지 — 화면이 "주택형마다 다를 수 있으니 원문 확인" 안내를 붙인다.
+         * 표 오독 금액은 {@link AnswerGrounding} 이 이미 걸러 UNGROUNDED 로 숨기므로(#31), 여기까지 온 금액은
+         * 발췌에서 그 항목 바로 옆에 적힌 값이다.
          */
         public boolean mentionsAmount() { return answer != null && AMOUNT.matcher(answer).find(); }
 
@@ -84,6 +88,7 @@ public class DocumentQaService {
         static QaAnswer noMatch(List<Citation> c) { return new QaAnswer(Status.NO_MATCH, null, c); }
         static QaAnswer answerFailed(List<Citation> c) { return new QaAnswer(Status.ANSWER_FAILED, null, c); }
         static QaAnswer answered(String a, List<Citation> c) { return new QaAnswer(Status.ANSWERED, a, c); }
+        static QaAnswer ungrounded(List<Citation> c) { return new QaAnswer(Status.UNGROUNDED, null, c); }
     }
 
     public QaAnswer answer(Long announcementId, String question) {
@@ -116,7 +121,13 @@ public class DocumentQaService {
 
         try {
             String text = answerer.get().answer(question.strip(), numbered);
-            return text.isBlank() ? QaAnswer.answerFailed(citations) : QaAnswer.answered(text, citations);
+            if (text.isBlank()) return QaAnswer.answerFailed(citations);
+            // 금액·날짜 근거 검사(#31) — 어긋나면 답을 숨기고 발췌만 보여준다. 다시 만들지 않는다: 같은 발췌면
+            // 같은 표를 같은 식으로 잘못 읽어(실사용 2/2 재실패) 무료 등급 분당 한도(429)만 깎았다.
+            Optional<String> problem = AnswerGrounding.check(text, numbered);
+            if (problem.isEmpty()) return QaAnswer.answered(text, citations);
+            log.warn("공고 #{} Q&A 답변 근거 불일치 — 답을 숨김: {}", announcementId, problem.get());
+            return QaAnswer.ungrounded(citations);
         } catch (RuntimeException e) {
             log.warn("공고 #{} Q&A 응답 생성 실패 — {}", announcementId, e.toString());
             return QaAnswer.answerFailed(citations);

@@ -263,8 +263,8 @@
             </div>
             <p style="margin:0;white-space:pre-wrap" th:text="${qa.answer}">답변</p>
             <p class="muted" style="margin:8px 0 0;font-size:.85rem" th:if="${qa.mentionsAmount()}">
-                ⚠ 금액은 공고문 표에서 뽑은 것입니다. 표는 글자로 옮기면 칸이 섞여 잘못 읽힐 수 있으니
-                주택형별 정확한 금액은 공고문 원문의 표에서 확인하세요.</p>
+                금액은 공고문 발췌에서 그 항목 바로 옆에 적힌 값만 옮겼습니다. 주택형마다 다를 수 있으니
+                원문에서 한 번 더 확인하세요.</p>
         </div>
 
         <div th:if="${qa != null and qa.status.name() == 'NO_MATCH'}" class="card" style="margin-top:12px">
@@ -277,6 +277,12 @@
         <div th:if="${qa != null and qa.status.name() == 'ANSWER_FAILED'}" class="card" style="margin-top:12px">
             <p class="muted" style="margin:0">관련 발췌는 찾았지만 지금 답변 생성에 실패했습니다.
                 아래 근거 발췌를 직접 확인해 주세요.</p>
+        </div>
+
+        <!-- 금액·날짜 근거 검사(#31)에 걸린 답 — 표 열이 섞여 다른 값을 단정할 수 있어 답 대신 발췌만 보여준다 -->
+        <div th:if="${qa != null and qa.status.name() == 'UNGROUNDED'}" class="card" style="margin-top:12px">
+            <p class="muted" style="margin:0">답변의 금액·날짜를 공고문 발췌에서 확인하지 못해 보여드리지 않았습니다.
+                공고문 표는 글자로 옮기면 칸이 섞여 잘못 읽힐 수 있어요 — 아래 발췌나 공고문 원문의 표를 직접 확인해 주세요.</p>
         </div>
 
         <div th:if="${qa != null and #lists.size(qa.citations) > 0}" style="margin-top:12px">

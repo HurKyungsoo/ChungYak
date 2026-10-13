@@ -173,6 +173,22 @@ class DocumentQaServiceTest {
     }
 
     @Test
+    @DisplayName("금액이 발췌의 그 항목 값이 아니면 UNGROUNDED — 답은 숨기고 발췌는 보여준다, 다시 만들지 않는다 (#31)")
+    void ungroundedAnswerIsWithheld() {
+        when(search.searchWithin(eq(1L), anyString(), anyInt())).thenReturn(List.of(
+                new Hit(1L, 2, "보증금 임대료 059.9800A 33,148,000 6,600,000 292,150", 0.0, 1.0)));
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        DocumentAnswerer misreads = (q, ex) -> { calls.incrementAndGet(); return "월 임대료는 6,600,000원입니다 [1]."; };
+
+        QaAnswer a = service(Optional.of(misreads)).answer(1L, "월 임대료는 얼마인가요?");
+
+        assertThat(a.status()).isEqualTo(Status.UNGROUNDED);
+        assertThat(a.answer()).isNull();
+        assertThat(a.citations()).hasSize(1);
+        assertThat(calls).hasValue(1);
+    }
+
+    @Test
     @DisplayName("hasIndex 는 청크 존재 여부")
     void hasIndexDelegates() {
         when(chunkRepo.existsByAnnouncementId(9L)).thenReturn(true);
