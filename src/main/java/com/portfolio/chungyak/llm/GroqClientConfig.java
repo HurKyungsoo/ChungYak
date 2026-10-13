@@ -3,6 +3,7 @@ package com.portfolio.chungyak.llm;
 import com.portfolio.chungyak.rag.DocumentAnswerer;
 import com.portfolio.chungyak.rag.GroqDocumentAnswerer;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -30,12 +31,12 @@ import java.time.Duration;
 public class GroqClientConfig {
 
     @Bean
-    public GroqChatClient groqChatClient(GroqProperties properties) {
+    public GroqChatClient groqChatClient(GroqProperties properties, ObjectProvider<LlmUsageStats> stats) {
         log.info("Groq 클라이언트 활성화 — model={}, 판정 요약 사용={}", properties.model(), properties.explainEnabled());
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(5));
         factory.setReadTimeout(Duration.ofSeconds(20));
-        return new GroqChatClient(RestClient.builder().requestFactory(factory).build(), properties);
+        return new GroqChatClient(RestClient.builder().requestFactory(factory).build(), properties, stats.getIfAvailable());
     }
 
     @Bean

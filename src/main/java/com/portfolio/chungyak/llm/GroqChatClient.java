@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.util.LinkedHashMap;
@@ -23,10 +24,17 @@ public class GroqChatClient {
     private final RestClient restClient;
     private final GroqProperties properties;
     private final ObjectMapper mapper = new ObjectMapper();
+    /** 토큰·429 카운터(#25) — 없으면(테스트·eval) 세지 않는다 */
+    private final LlmUsageStats stats;
 
     public GroqChatClient(RestClient groqRestClient, GroqProperties properties) {
+        this(groqRestClient, properties, null);
+    }
+
+    public GroqChatClient(RestClient groqRestClient, GroqProperties properties, LlmUsageStats stats) {
         this.restClient = groqRestClient;
         this.properties = properties;
+        this.stats = stats;
     }
 
     public String model() {
@@ -67,17 +75,27 @@ public class GroqChatClient {
                 Map.of("role", "user", "content", user)));
         if (json) body.put("response_format", Map.of("type", "json_object"));
 
-        String raw = restClient.post()
-                .uri(properties.baseUrl() + "/chat/completions")
-                .header("Authorization", "Bearer " + properties.apiKey())
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(body)
-                .retrieve()
-                .body(String.class);
+        String raw;
+        try {
+            raw = restClient.post()
+                    .uri(properties.baseUrl() + "/chat/completions")
+                    .header("Authorization", "Bearer " + properties.apiKey())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(String.class);
+        } catch (HttpClientErrorException.TooManyRequests e) {
+            // 무료 등급 분당·하루 토큰 한도(#32) — 다른 실패와 구분해 화면이 "잠시 뒤 다시"라고 알리게 한다(#25)
+            if (stats != null) stats.count("groq.429." + model);
+            throw new LlmRateLimitedException("Groq 요청 한도 초과 — model=" + model, e);
+        }
 
         try {
             JsonNode root = mapper.readTree(raw);
             logUsage(model, root.path("usage"));
+            if (stats != null && !root.path("usage").isMissingNode()) {
+                stats.tokens(model, root.path("usage").path("total_tokens").asLong());
+            }
             JsonNode content = root.path("choices").path(0).path("message").path("content");
             if (content.isMissingNode() || content.asText().isBlank()) {
                 throw new IllegalStateException("Groq 응답이 비어 있음");

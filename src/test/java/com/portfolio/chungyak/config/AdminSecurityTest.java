@@ -70,6 +70,15 @@ class AdminSecurityTest {
     }
 
     @Test
+    @DisplayName("LLM 사용 통계(/api/admin/llm/stats)도 관리자만 — 인증 없으면 401, admin 이면 200 (#25)")
+    void llmStatsIsAdminOnly() throws Exception {
+        mvc.perform(get("/api/admin/llm/stats")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/admin/llm/stats").with(httpBasic("admin", "test-secret")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.since").exists());
+    }
+
+    @Test
     @DisplayName("공개 화면(/announcements)은 인증 없이 200")
     void publicScreensStayOpen() throws Exception {
         mvc.perform(get("/announcements"))

@@ -166,4 +166,24 @@ class GroqClientTest {
         assertThat(p.qaModel()).isEqualTo("openai/gpt-oss-120b");
         assertThat(p.qaReasoningEffort()).isNull();
     }
+
+    @Test
+    @DisplayName("429 는 LlmRateLimitedException 으로 바꿔 올리고 세며, 성공 응답의 토큰을 모델별로 합산한다 (#25)")
+    void rateLimitAndTokenStats() {
+        LlmUsageStats stats = new LlmUsageStats(java.time.Clock.systemUTC());
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer s = MockRestServiceServer.bindTo(builder).build();
+        GroqChatClient client = new GroqChatClient(builder.build(), props, stats);
+
+        s.expect(requestTo(URL)).andRespond(withSuccess("{\"choices\":[{\"message\":{\"content\":\"답\"}}],"
+                + "\"usage\":{\"prompt_tokens\":100,\"completion_tokens\":20,\"total_tokens\":120}}", MediaType.APPLICATION_JSON));
+        s.expect(requestTo(URL)).andRespond(withStatus(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS));
+
+        assertThat(client.chat("시스템", "질문", 100, false)).isEqualTo("답");
+        assertThatThrownBy(() -> client.chat("시스템", "질문", 100, false))
+                .isInstanceOf(LlmRateLimitedException.class);
+        assertThat(LlmRateLimitedException.isRateLimit(new RuntimeException(new LlmRateLimitedException("x", null)))).isTrue();
+        assertThat(stats.snapshot()).containsEntry("tokens.test-model", 120L).containsEntry("calls.test-model", 1L)
+                .containsEntry("groq.429.test-model", 1L);
+    }
 }

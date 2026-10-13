@@ -105,4 +105,29 @@ class ProfileExtractionServiceTest {
         assertThat(result.status()).isEqualTo(Status.EXTRACTED);
         assertThat(result.unknownFieldLabels()).isEmpty();
     }
+
+    @Test
+    @DisplayName("실패 이유별 안내 — 한도 초과(429)는 '잠시 뒤 다시', 호출 오류는 'AI 를 쓸 수 없음', 조건 없음은 '찾지 못함' (#25)")
+    void failureMessagesByCause() {
+        LlmUsageStats stats = new LlmUsageStats(java.time.Clock.systemUTC());
+
+        ProfileExtractionResult busy = new ProfileExtractionService(Optional.of(text -> {
+            throw new LlmRateLimitedException("429", null);
+        }), Optional.of(stats)).extract("결혼 3년");
+        assertThat(busy.status()).isEqualTo(Status.FAILED);
+        assertThat(busy.message()).contains("몰려").doesNotContain("이해하지 못했습니다");
+
+        ProfileExtractionResult error = new ProfileExtractionService(Optional.of(text -> {
+            throw new IllegalStateException("timeout");
+        }), Optional.of(stats)).extract("결혼 3년");
+        assertThat(error.message()).contains("AI 입력을 쓸 수 없어요");
+
+        ProfileExtractionResult none = new ProfileExtractionService(Optional.of(text ->
+                new ExtractedProfile(null, null, null, null, null, null, null, null, null)), Optional.of(stats))
+                .extract("오늘 날씨 좋네요");
+        assertThat(none.message()).contains("청약 조건");
+
+        assertThat(stats.snapshot()).containsEntry("extraction.RATE_LIMITED", 1L)
+                .containsEntry("extraction.ERROR", 1L).containsEntry("extraction.NO_VALUE", 1L);
+    }
 }

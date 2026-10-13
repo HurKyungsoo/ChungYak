@@ -1,6 +1,7 @@
 package com.portfolio.chungyak.llm;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -22,9 +23,17 @@ import java.util.Optional;
 public class ProfileExtractionService {
 
     private final Optional<LlmProfileCaller> caller;
+    /** 결과 분포 카운터(#25 운영 관찰) — 입력 문장은 담지 않는다 */
+    private final Optional<LlmUsageStats> stats;
 
     public ProfileExtractionService(Optional<LlmProfileCaller> caller) {
+        this(caller, Optional.empty());
+    }
+
+    @Autowired
+    public ProfileExtractionService(Optional<LlmProfileCaller> caller, Optional<LlmUsageStats> stats) {
         this.caller = caller;
+        this.stats = stats;
     }
 
     /** 이 기능을 쓸 수 있는지 — 화면에서 자연어 입력창 노출 여부를 정한다. */
@@ -44,19 +53,32 @@ public class ProfileExtractionService {
         try {
             extracted = caller.get().call(naturalText.strip());
         } catch (RuntimeException e) {
-            // 어떤 실패든 되물음이 필요 없다 — 사용자는 아래 폼을 직접 채우면 된다.
+            // 어떤 실패든 되물음이 필요 없다 — 사용자는 아래 폼을 직접 채우면 된다. 다만 한도 초과(429)는
+            // "질문을 이해 못 했다"가 아니라 "잠시 뒤 다시"라고 알린다 — 사용자 문장 탓이 아니다(#25).
+            if (LlmRateLimitedException.isRateLimit(e)) {
+                log.warn("자연어 추출 — 요청 한도 초과(429)");
+                count("RATE_LIMITED");
+                return ProfileExtractionResult.busy();
+            }
             log.warn("자연어 추출 실패 — {}", e.toString());
-            return ProfileExtractionResult.failed("LLM 호출 오류");
+            count("ERROR");
+            return ProfileExtractionResult.unavailable();
         }
 
         if (extracted == null || !extracted.hasAnyValue()) {
             log.info("자연어 추출 — 조건을 하나도 못 읽음. 입력='{}'", preview(naturalText));
-            return ProfileExtractionResult.failed("조건을 읽지 못함");
+            count("NO_VALUE");
+            return ProfileExtractionResult.noConditionFound();
         }
+        count("EXTRACTED");
 
         log.info("자연어 추출 완료 — 입력='{}', 미확인 필드={}",
                 preview(naturalText), extracted.unknownFieldLabels());
         return ProfileExtractionResult.extracted(extracted, naturalText);
+    }
+
+    private void count(String outcome) {
+        stats.ifPresent(st -> st.count("extraction." + outcome));
     }
 
     private static String preview(String s) {

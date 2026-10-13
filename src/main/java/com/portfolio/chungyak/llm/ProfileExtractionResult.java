@@ -34,6 +34,27 @@ public record ProfileExtractionResult(
                 "자연어 입력 기능이 꺼져 있습니다. 아래 폼에 직접 입력하세요.", List.of(), List.of(), List.of());
     }
 
+    /** 요청 한도 초과(429) — 사용자 문장 탓이 아니므로 "이해하지 못했다"고 하지 않는다(#25) */
+    public static ProfileExtractionResult busy() {
+        return new ProfileExtractionResult(Status.FAILED, null, List.of(),
+                "지금 AI 입력 요청이 몰려 잠시 쓸 수 없어요. 1분쯤 뒤 다시 시도하거나 아래 폼에 직접 입력하세요.",
+                List.of(), List.of(), List.of());
+    }
+
+    /** AI 호출 실패(네트워크·서버 오류 등) */
+    public static ProfileExtractionResult unavailable() {
+        return new ProfileExtractionResult(Status.FAILED, null, List.of(),
+                "지금은 AI 입력을 쓸 수 없어요. 잠시 뒤 다시 시도하거나 아래 폼에 직접 입력하세요.",
+                List.of(), List.of(), List.of());
+    }
+
+    /** 문장에서 청약 조건을 하나도 못 읽음 */
+    public static ProfileExtractionResult noConditionFound() {
+        return new ProfileExtractionResult(Status.FAILED, null, List.of(),
+                "문장에서 청약 조건(혼인·자녀·무주택·청약통장 등)을 찾지 못했어요. 아래 폼에 직접 입력하세요.",
+                List.of(), List.of(), List.of());
+    }
+
     public static ProfileExtractionResult failed(String reason) {
         return new ProfileExtractionResult(Status.FAILED, null, List.of(),
                 "질문을 이해하지 못했습니다(" + reason + "). 아래 폼에 직접 입력하세요.", List.of(), List.of(), List.of());

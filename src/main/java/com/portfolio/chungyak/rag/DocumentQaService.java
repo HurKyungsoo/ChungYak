@@ -2,9 +2,12 @@ package com.portfolio.chungyak.rag;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.portfolio.chungyak.llm.LlmRateLimitedException;
+import com.portfolio.chungyak.llm.LlmUsageStats;
 import com.portfolio.chungyak.rag.VectorSearch.Hit;
 import com.portfolio.chungyak.repository.DocumentChunkRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -42,10 +45,23 @@ public class DocumentQaService {
             .expireAfterWrite(Duration.ofHours(24))
             .build();
 
+    /** 결과 분포 카운터(#25 운영 관찰) — 질문 문장은 담지 않는다 */
+    private final Optional<LlmUsageStats> stats;
+
     public DocumentQaService(VectorSearch vectorSearch,
                              DocumentChunkRepository chunkRepository,
                              Optional<DocumentAnswerer> answerer,
                              RagProperties properties) {
+        this(vectorSearch, chunkRepository, answerer, properties, Optional.empty());
+    }
+
+    @Autowired
+    public DocumentQaService(VectorSearch vectorSearch,
+                             DocumentChunkRepository chunkRepository,
+                             Optional<DocumentAnswerer> answerer,
+                             RagProperties properties,
+                             Optional<LlmUsageStats> stats) {
+        this.stats = stats;
         this.vectorSearch = vectorSearch;
         this.chunkRepository = chunkRepository;
         this.answerer = answerer;
@@ -121,9 +137,11 @@ public class DocumentQaService {
         QaAnswer cached = key == null ? null : answerCache.getIfPresent(key);
         if (cached != null) {
             log.debug("공고 #{} Q&A 캐시 적중", announcementId);
+            count("CACHE_HIT");
             return cached;
         }
         QaAnswer fresh = answerUncached(announcementId, question);
+        count(fresh.status().name());
         if (key != null && (fresh.status() == Status.ANSWERED || fresh.status() == Status.UNGROUNDED)) {
             answerCache.put(key, fresh);
         }
@@ -164,8 +182,13 @@ public class DocumentQaService {
             log.warn("공고 #{} Q&A 답변 근거 불일치 — 답을 숨김: {}", announcementId, problem.get());
             return QaAnswer.ungrounded(citations);
         } catch (RuntimeException e) {
+            if (LlmRateLimitedException.isRateLimit(e)) count("RATE_LIMITED");
             log.warn("공고 #{} Q&A 응답 생성 실패 — {}", announcementId, e.toString());
             return QaAnswer.answerFailed(citations);
         }
+    }
+
+    private void count(String outcome) {
+        stats.ifPresent(st -> st.count("qa." + outcome));
     }
 }

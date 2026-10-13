@@ -5,7 +5,10 @@
     "note": "모든 값이 명시적. 언급 없는 신생아·주택소유이력·노부모는 null 이어야 한다.",
     "expect": {
       "married": true,
-      "monthsSinceMarriage": { "min": 34, "max": 38 },
+      "monthsSinceMarriage": {
+        "min": 34,
+        "max": 38
+      },
       "childCount": 2,
       "houseless": true,
       "accountMonths": 24,
@@ -111,7 +114,10 @@
     "note": "혼인 7년 경계 밖 케이스. 8년 → 약 96개월.",
     "expect": {
       "married": true,
-      "monthsSinceMarriage": { "min": 92, "max": 100 },
+      "monthsSinceMarriage": {
+        "min": 92,
+        "max": 100
+      },
       "houseless": true
     }
   },
@@ -158,14 +164,252 @@
     "note": "여러 값이 한 문장에. 4년 → 약 48개월, 통장 7년 → 약 84개월.",
     "expect": {
       "married": true,
-      "monthsSinceMarriage": { "min": 44, "max": 52 },
+      "monthsSinceMarriage": {
+        "min": 44,
+        "max": 52
+      },
       "childCount": 1,
       "hasNewborn": true,
       "houseless": true,
       "everOwnedHouse": false,
-      "accountMonths": { "min": 80, "max": 88 },
+      "accountMonths": {
+        "min": 80,
+        "max": 88
+      },
       "householdHead": true
     }
+  },
+  {
+    "id": "account-3-years-short",
+    "text": "청약통장 3년 넣었어요.",
+    "note": "#25 에서 본 숫자 오독(3년 → 24) 재현용. 3년 → 36.",
+    "expect": {
+      "accountMonths": 36
+    }
+  },
+  {
+    "id": "account-year-and-half",
+    "text": "청약통장 가입한 지 1년 반 됐어요.",
+    "note": "1년 반 → 18.",
+    "expect": {
+      "accountMonths": {
+        "min": 18,
+        "max": 18
+      }
+    }
+  },
+  {
+    "id": "marriage-3-and-half",
+    "text": "결혼한 지 3년 반 됐습니다.",
+    "note": "3년 반 → 42.",
+    "expect": {
+      "married": true,
+      "monthsSinceMarriage": {
+        "min": 41,
+        "max": 43
+      }
+    }
+  },
+  {
+    "id": "account-10-years",
+    "text": "청약통장은 10년째 유지 중이에요.",
+    "note": "10년 → 120.",
+    "expect": {
+      "accountMonths": {
+        "min": 118,
+        "max": 122
+      }
+    }
+  },
+  {
+    "id": "korean-numeral-two-years",
+    "text": "결혼한 지 두 해가 지났어요.",
+    "note": "한글 수사 '두 해' → 24.",
+    "expect": {
+      "married": true,
+      "monthsSinceMarriage": {
+        "min": 22,
+        "max": 26
+      }
+    }
+  },
+  {
+    "id": "korean-numeral-five-years",
+    "text": "청약통장 오 년 됐어요.",
+    "note": "한글 수사 '오 년' → 60.",
+    "expect": {
+      "accountMonths": {
+        "min": 58,
+        "max": 62
+      }
+    }
+  },
+  {
+    "id": "korean-numeral-four-kids",
+    "text": "아이가 넷이에요.",
+    "note": "'넷' → 4.",
+    "expect": {
+      "childCount": 4
+    }
+  },
+  {
+    "id": "nth-year-marriage",
+    "text": "결혼 3년차 부부입니다.",
+    "note": "'3년차' 는 3년째 해 — 24~36개월 어느 쪽이든 허용.",
+    "expect": {
+      "married": true,
+      "monthsSinceMarriage": {
+        "min": 24,
+        "max": 36
+      }
+    }
+  },
+  {
+    "id": "marriage-7-years-boundary",
+    "text": "결혼한 지 딱 7년 됐어요.",
+    "note": "혼인 7년 경계 → 84.",
+    "expect": {
+      "married": true,
+      "monthsSinceMarriage": {
+        "min": 83,
+        "max": 85
+      }
+    }
+  },
+  {
+    "id": "newlywed-6-months",
+    "text": "결혼한 지 6개월 된 신혼부부예요.",
+    "note": "개월 직접 명시 → 6.",
+    "expect": {
+      "married": true,
+      "monthsSinceMarriage": {
+        "min": 5,
+        "max": 7
+      }
+    }
+  },
+  {
+    "id": "relative-years-ago",
+    "text": "몇 년 전에 결혼했어요.",
+    "note": "기준 없는 상대 시점 → 혼인기간 null.",
+    "expect": {
+      "married": true,
+      "monthsSinceMarriage": null
+    }
+  },
+  {
+    "id": "relative-last-spring-account",
+    "text": "청약통장은 작년 봄에 만들었어요.",
+    "note": "'작년 봄' → 추측 금지, null.",
+    "expect": {
+      "accountMonths": null
+    }
+  },
+  {
+    "id": "relative-early-this-year",
+    "text": "올해 초에 결혼했어요.",
+    "note": "'올해 초' → null.",
+    "expect": {
+      "married": true,
+      "monthsSinceMarriage": null
+    }
+  },
+  {
+    "id": "negation-not-houseless",
+    "text": "집이 없는 건 아니에요. 작은 빌라가 하나 있어요.",
+    "note": "'없는 건 아니다' → 주택 소유 → houseless false.",
+    "expect": {
+      "houseless": false
+    }
+  },
+  {
+    "id": "double-negation-head",
+    "text": "세대주가 아닌 건 아니고요, 제가 세대주 맞아요.",
+    "note": "이중부정 → householdHead true.",
+    "expect": {
+      "householdHead": true
+    }
+  },
+  {
+    "id": "no-child-not-pregnant",
+    "text": "아직 아이는 없고 임신도 안 했어요.",
+    "note": "자녀 0, 신생아(태아 포함) 없음 → false.",
+    "expect": {
+      "childCount": 0,
+      "hasNewborn": false
+    }
+  },
+  {
+    "id": "many-numbers-one-sentence",
+    "text": "결혼 5년, 청약통장 2년, 아이 둘입니다.",
+    "note": "한 문장에 여러 수치 — 섞지 않아야 한다.",
+    "expect": {
+      "married": true,
+      "monthsSinceMarriage": {
+        "min": 58,
+        "max": 62
+      },
+      "accountMonths": 24,
+      "childCount": 2
+    }
+  },
+  {
+    "id": "child-age-not-newborn",
+    "text": "아이 하나 있는데 다섯 살이에요.",
+    "note": "자녀 1, 만 2세 이하 아님 → hasNewborn false.",
+    "expect": {
+      "childCount": 1,
+      "hasNewborn": false
+    }
+  },
+  {
+    "id": "payment-count-not-months",
+    "text": "청약통장에 24회 납입했어요.",
+    "note": "납입 '횟수'는 가입 기간이 아니다 → accountMonths null.",
+    "expect": {
+      "accountMonths": null
+    }
+  },
+  {
+    "id": "sold-house-before",
+    "text": "예전에 집이 있었는데 팔았고 지금은 월세 살아요.",
+    "note": "과거 소유 true, 현재 무주택 true.",
+    "expect": {
+      "everOwnedHouse": true,
+      "houseless": true
+    }
+  },
+  {
+    "id": "spouse-owns-house",
+    "text": "아내 명의로 아파트가 한 채 있어요.",
+    "note": "세대원 소유도 세대 무주택 아님 → houseless false.",
+    "expect": {
+      "married": true,
+      "houseless": false
+    }
+  },
+  {
+    "id": "old-parent-4-years",
+    "text": "68세이신 어머니를 4년째 모시고 부양하고 있어요.",
+    "note": "65세 이상·3년 이상 명시 → true.",
+    "expect": {
+      "supportingOldParents": true
+    }
+  },
+  {
+    "id": "old-parent-2-years",
+    "text": "여든 되신 할머니를 2년째 부양하고 있어요.",
+    "note": "3년 미만 → false.",
+    "expect": {
+      "supportingOldParents": false
+    }
+  },
+  {
+    "id": "unrelated-question",
+    "text": "요즘 강남 아파트 시세가 얼마예요?",
+    "note": "신청자 조건이 없다 → FAILED.",
+    "expectStatus": "FAILED",
+    "expect": {}
   },
   {
     "id": "unrelated-text",
