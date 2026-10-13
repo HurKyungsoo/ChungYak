@@ -103,14 +103,14 @@ class Bm25IndexTest {
     }
 
     @Test
-    @DisplayName("#39 eval — 구어 어절은 겹침에서 빼고, '모델하우스'는 '견본주택'으로 바꾸고, '어디'는 주소·위치를 찾는다")
+    @DisplayName("#39 eval — 구어 어절은 겹침에서 빼고, '모델하우스'는 '견본주택'으로 바꾸고, '어디'는 주소를 찾는다")
     void colloquialAliasAndWhere() {
         assertThat(Bm25Index.queryWords("인지세는 누가 내요?")).containsExactly("인지세는");
         assertThat(Bm25Index.queryWords("특별공급이랑 일반공급 둘 다 넣어도 돼요?"))
                 .containsExactly("특별공급이랑", "일반공급", "넣어도");
 
         Bm25Index.Query q = Bm25Index.query("모델하우스 어디 있어요?");
-        assertThat(q.terms()).contains("견본", "본주", "주소", "위치").doesNotContain("하우", "우스");
+        assertThat(q.terms()).contains("견본", "본주", "주소").doesNotContain("하우", "우스", "위치");
         assertThat(q.words()).containsExactly("모델하우스");   // 겹침 계산엔 '어디'의 확장어를 넣지 않는다
 
         Bm25Index index = Bm25Index.build(List.of(

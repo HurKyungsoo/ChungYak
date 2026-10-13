@@ -48,4 +48,22 @@ class NoticeQuestionServiceTest {
 
         assertThat(service.answer(1L, "신청 자격은?")).isSameAs(fromAi);
     }
+
+    @Test
+    @DisplayName("공고문 용어로 다시 묻기 — 못 찾았거나 AI 가 '확인할 수 없다'고 할 때만, 바꿀 일상어가 있을 때만")
+    void rephraseSuggestion() {
+        NoticeQuestionService service = new NoticeQuestionService(mock(AnnouncementQueryService.class),
+                mock(AnnouncementDocumentRepository.class), mock(DocumentQaService.class));
+        String q = "모델하우스 어디 있어요?";
+
+        assertThat(service.rephraseSuggestion(q, new QaAnswer(Status.NO_MATCH, null, List.of())))
+                .contains("견본주택 어디 있어요?");
+        assertThat(service.rephraseSuggestion(q, new QaAnswer(Status.ANSWERED,
+                "공고문 발췌에서는 모델하우스의 위치를 확인할 수 없습니다.", List.of()))).contains("견본주택 어디 있어요?");
+        // 답을 찾았으면 권하지 않는다
+        assertThat(service.rephraseSuggestion(q, new QaAnswer(Status.ANSWERED,
+                "견본주택은 부산광역시 수영구 연수로 311 에 있습니다.", List.of()))).isEmpty();
+        // 바꿀 말이 없으면 없다
+        assertThat(service.rephraseSuggestion("견본주택 어디예요?", new QaAnswer(Status.NO_MATCH, null, List.of()))).isEmpty();
+    }
 }

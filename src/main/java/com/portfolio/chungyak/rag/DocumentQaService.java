@@ -181,7 +181,8 @@ public class DocumentQaService {
         }
 
         try {
-            String text = answerer.get().answer(question.strip(), numbered);
+            // 일상어 용어 힌트(#39) — "모델하우스" 질문에 "견본주택" 발췌를 보고도 못 잇는 일이 있었다
+            String text = answerer.get().answer(question.strip() + QuerySynonyms.hintLine(question), numbered);
             if (text.isBlank()) return QaAnswer.answerFailed(citations);
             // 금액·날짜 근거 검사(#31) — 어긋나면 답을 숨기고 발췌만 보여준다. 다시 만들지 않는다: 같은 발췌면
             // 같은 표를 같은 식으로 잘못 읽어(실사용 2/2 재실패) 무료 등급 분당 한도(429)만 깎았다.

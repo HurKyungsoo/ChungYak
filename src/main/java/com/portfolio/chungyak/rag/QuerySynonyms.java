@@ -81,6 +81,56 @@ final class QuerySynonyms {
         return REPLACED.stream().anyMatch(word::startsWith);
     }
 
+    /**
+     * 일상어 → 공고문이 쓰는 <b>바로 그 말</b>(1:1) (#39). 검색 확장({@link #BY_PREFIX})과 달리 뜻이 하나로 정해지는 것만 —
+     * LLM 에 용어 힌트로 주고("모델하우스" 질문에 "견본주택" 발췌를 보고도 "확인할 수 없다"고 답했다),
+     * 답을 못 찾았을 때 "공고문 용어로 다시 묻기"를 만든다. "돈→보증금·분양가…" 처럼 갈래가 여럿인 말은 넣지 않는다.
+     */
+    private static final Map<String, String> ALIASES = new LinkedHashMap<>();
+
+    static {
+        ALIASES.put("모델하우스", "견본주택");
+        ALIASES.put("월세", "월임대료");
+        ALIASES.put("전세금", "임대보증금");
+        ALIASES.put("집값", "분양가");
+        ALIASES.put("청약통장", "입주자저축");
+        ALIASES.put("이사", "입주");
+        ALIASES.put("합격", "당첨");
+        ALIASES.put("결혼", "혼인");
+        ALIASES.put("준비물", "제출서류");
+        ALIASES.put("연봉", "소득");
+        ALIASES.put("월급", "소득");
+        ALIASES.put("재산", "자산");
+    }
+
+    /** 질문에 나온 일상어 → 공고문 용어 (순서 유지, 없으면 빈 맵) */
+    static Map<String, String> termHints(String question) {
+        Map<String, String> out = new LinkedHashMap<>();
+        for (String w : Bm25Index.queryWords(question)) {
+            ALIASES.forEach((k, v) -> { if (w.startsWith(k)) out.put(k, v); });
+        }
+        return out;
+    }
+
+    /** LLM 질문 끝에 붙이는 용어 힌트 한 줄 — 없으면 빈 문자열 */
+    static String hintLine(String question) {
+        Map<String, String> hints = termHints(question);
+        if (hints.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder("\n(용어: ");
+        hints.forEach((k, v) -> sb.append("질문의 '").append(k).append("' = 공고문의 '").append(v).append("', "));
+        sb.setLength(sb.length() - 2);
+        return sb.append(")").toString();
+    }
+
+    /** 일상어를 공고문 용어로 바꾼 질문 — 바꿀 말이 없으면 empty */
+    static java.util.Optional<String> rephrase(String question) {
+        Map<String, String> hints = termHints(question);
+        if (hints.isEmpty()) return java.util.Optional.empty();
+        String out = question.strip();
+        for (var e : hints.entrySet()) out = out.replace(e.getKey(), e.getValue());
+        return java.util.Optional.of(out);
+    }
+
     /** 질의 어절 하나의 동의어 — 없으면 빈 목록 */
     static List<String> of(String word) {
         for (var e : BY_PREFIX.entrySet()) {

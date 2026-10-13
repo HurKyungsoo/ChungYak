@@ -292,8 +292,10 @@ public class AnnouncementController {
     public String ask(@PathVariable Long id,
                       @RequestParam("question") String question,
                       Model model) {
-        model.addAttribute("qa", questionService.answer(id, question));   // 구조화 데이터 먼저, 아니면 AI(#39)
+        var qa = questionService.answer(id, question);   // 구조화 데이터 먼저, 아니면 AI(#39)
+        model.addAttribute("qa", qa);
         model.addAttribute("question", question);
+        model.addAttribute("qaRephrase", questionService.rephraseSuggestion(question, qa).orElse(null));
         return renderDetail(id, model);
     }
 

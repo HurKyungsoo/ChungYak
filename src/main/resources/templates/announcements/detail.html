@@ -326,6 +326,14 @@
                 공고문 표는 글자로 옮기면 칸이 섞여 잘못 읽힐 수 있어요 — 아래 발췌나 공고문 원문의 표를 직접 확인해 주세요.</p>
         </div>
 
+        <!-- 못 찾았을 때 공고문 용어로 다시 묻기(#39) — 일상어 사전으로 바꾼 질문, AI 아님 -->
+        <form th:if="${qaRephrase != null}" th:action="@{/announcements/{id}/qa(id=${announcement.id})}" method="post"
+              class="card" style="margin-top:12px" data-pending="공고문에서 찾는 중…">
+            <p class="muted" style="margin:0 0 6px">공고문은 다른 말을 씁니다. 공고문 용어로 다시 물어볼까요?</p>
+            <input type="hidden" name="question" th:value="${qaRephrase}">
+            <button type="submit" class="btn" th:text="|“${qaRephrase}” 로 다시 묻기|">다시 묻기</button>
+        </form>
+
         <div th:if="${qa != null and #lists.size(qa.citations) > 0}" style="margin-top:12px">
             <p class="muted" style="margin:0 0 6px">근거 발췌 (공고문에서)</p>
             <details th:each="c, it : ${qa.citations}" class="card" style="margin-bottom:6px">

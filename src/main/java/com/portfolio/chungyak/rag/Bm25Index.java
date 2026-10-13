@@ -87,8 +87,9 @@ final class Bm25Index {
             if (!QuerySynonyms.replaces(w)) expanded.add(w);
             expanded.addAll(QuerySynonyms.of(w));   // "돈" → 보증금·임대료… (#28)
         }
-        // "어디" 는 의문사라 어절에서 빠지지만, 답은 주소·위치 문장에 있다 (#39) — 검색어로만 더한다(겹침 계산엔 안 넣음)
-        if (query != null && query.contains("어디")) expanded.addAll(List.of("주소", "위치"));
+        // "어디" 는 의문사라 어절에서 빠지지만, 답은 주소 문장에 있다 (#39) — 검색어로만 더한다(겹침 계산엔 안 넣음).
+        // "위치"까지 넣으면 "견본주택 어디 있어요?"가 로컬 실사용에서 주소 청크를 놓쳤다("견본주택 주소"는 찾음)
+        if (query != null && query.contains("어디")) expanded.add("주소");
         return new Query(tokenize(String.join(" ", expanded)).stream().distinct().toList(), words);
     }
 
