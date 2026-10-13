@@ -10,5 +10,6 @@ data/
 .env
 .env.*
 !.env.example
-application-local.yml
+application-local*.yml
+!application-local*.example.yml
 application-local.properties

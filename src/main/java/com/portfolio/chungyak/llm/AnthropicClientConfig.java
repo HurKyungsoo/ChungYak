@@ -26,7 +26,7 @@ public class AnthropicClientConfig {
             "'${llm.anthropic.api-key:REPLACE_ME}' != 'REPLACE_ME' "
             + "&& '${llm.anthropic.api-key:}'.length() > 0")
     public AnthropicClient anthropicClient(LlmProperties properties) {
-        log.info("Anthropic 클라이언트 활성화 — model={}", properties.model());
+        log.warn("유료 API 키 로드됨 — Anthropic 클라이언트 활성화(호출마다 과금), model={}", properties.model());
         return AnthropicOkHttpClient.builder()
                 .apiKey(properties.apiKey())
                 .build();

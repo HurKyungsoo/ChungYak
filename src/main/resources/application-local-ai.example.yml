@@ -1,0 +1,9 @@
+# 예시 — 복사해서 application-local-ai.yml 로 쓴다(gitignored). 유료 API 가 켜진다(과금).
+#   ./gradlew bootRun --args='--spring.profiles.active=local,local-ai'
+# 키를 파일에 두기 싫으면 이 파일 없이 ANTHROPIC_API_KEY·VOYAGE_API_KEY 환경변수만 줘도 된다.
+llm:
+  anthropic:
+    api-key: REPLACE_ME
+rag:
+  voyage:
+    api-key: REPLACE_ME

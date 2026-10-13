@@ -27,7 +27,7 @@ public class EmbeddingConfig {
             "'${rag.voyage.api-key:REPLACE_ME}' != 'REPLACE_ME' "
             + "&& '${rag.voyage.api-key:}'.length() > 0")
     public EmbeddingClient voyageEmbeddingClient(VoyageProperties properties) {
-        log.info("Voyage 임베딩 클라이언트 활성화 — model={}", properties.model());
+        log.warn("유료 API 키 로드됨 — Voyage 임베딩 클라이언트 활성화(호출마다 과금), model={}", properties.model());
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(5));
         factory.setReadTimeout(Duration.ofSeconds(30));

@@ -1,0 +1,9 @@
+# 예시 — 복사해서 application-local.yml 로 쓴다(gitignored). 유료 AI 키는 넣지 말 것.
+# 로컬 기본(local 프로필)은 Anthropic·Voyage 가 꺼져 있다. 켜려면 application-local-ai.example.yml 참고.
+publicdata:
+  lh:
+    per-page: 8
+    max-pages: 1
+    lookback-months: 3
+  sync:
+    min-expected-records: 1   # 소량 수집해도 health DOWN·ERROR 로그가 안 뜨도록

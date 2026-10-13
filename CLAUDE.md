@@ -39,6 +39,11 @@
 `PUBLICDATA_SERVICE_KEY` 가 없으면 외부 API 는 빈 리스트를 반환한다(앱은 정상 기동).
 `ANTHROPIC_API_KEY` 도 `GROQ_API_KEY` 도 없으면 자연어 입력 기능만 꺼진다(`@ConditionalOnExpression`).
 통합테스트(`*ProfileExtractionIntegrationTest*`)는 키 없으면 skip.
+로컬 기본(`local`)은 **유료 AI(Anthropic·Voyage) 꺼짐** — 셸에 키가 있어도 안 켜진다. 켜려면
+`./gradlew bootRun --args='--spring.profiles.active=local,local-ai'` + 환경변수 또는 `application-local-ai.yml`
+(gitignore, 예시 `application-local-ai.example.yml`). Groq 는 `GROQ_API_KEY` 만 있으면 켜진다.
+`@SpringBootTest` 는 `ai-off.properties` 로 외부 AI 빈을 항상 끈다 — 새 통합 컨텍스트 테스트에도 붙일 것.
+`application-local.yml` 에 유료 키를 넣지 말 것(그 파일은 `local` 마다 읽힌다).
 
 ## ★ 절대 규칙 — LLM 과 규칙 엔진의 경계
 

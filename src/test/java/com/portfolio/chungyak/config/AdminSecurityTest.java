@@ -1,5 +1,8 @@
 package com.portfolio.chungyak.config;
 
+import com.anthropic.client.AnthropicClient;
+import com.portfolio.chungyak.llm.GroqChatClient;
+import com.portfolio.chungyak.rag.embedding.EmbeddingClient;
 import com.portfolio.chungyak.service.AnnouncementSyncScheduler;
 import com.portfolio.chungyak.service.AnnouncementSyncScheduler.SyncReport;
 import org.junit.jupiter.api.DisplayName;
@@ -8,8 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.ApplicationContext;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -26,11 +32,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "security.admin.username=admin",
         "security.admin.password=test-secret"
 })
+@TestPropertySource(locations = "classpath:ai-off.properties")
 @AutoConfigureMockMvc
 class AdminSecurityTest {
 
     @Autowired
     private MockMvc mvc;
+
+    @Autowired
+    private ApplicationContext context;
 
     @MockBean
     private AnnouncementSyncScheduler scheduler;
@@ -78,5 +88,13 @@ class AdminSecurityTest {
     void otherActuatorBlocked() throws Exception {
         mvc.perform(get("/actuator/env"))
                 .andExpect(status().is4xxClientError());
+    }
+
+    @Test
+    @DisplayName("테스트 컨텍스트에는 외부 AI 클라이언트 빈이 없다 — 셸에 키가 있어도 (#23)")
+    void aiClientsOffInTests() {
+        assertThat(context.getBeanNamesForType(AnthropicClient.class)).isEmpty();
+        assertThat(context.getBeanNamesForType(EmbeddingClient.class)).isEmpty();
+        assertThat(context.getBeanNamesForType(GroqChatClient.class)).isEmpty();
     }
 }
