@@ -18,6 +18,7 @@ import org.mockito.Mockito;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -168,6 +169,44 @@ class AnnouncementSyncSchedulerTest {
         org.mockito.ArgumentCaptor<List<ExternalAnnouncement>> synced = org.mockito.ArgumentCaptor.forClass(List.class);
         verify(syncService).sync(synced.capture());
         assertThat(synced.getValue()).extracting(ExternalAnnouncement::getNoticeContent).containsExactly("전문 공고문", null);
+    }
+
+    @Test
+    @DisplayName("표 칸이 섞인 예전 형식 원문은 접수 전·중 공고만 다시 받는다 — 마감 공고는 그대로 (#42)")
+    void refetchesOutdatedFormatOnlyForCurrent() {
+        LhClient lh = Mockito.mock(LhClient.class);
+        when(lh.isEnabled()).thenReturn(true);
+        when(lh.sourceName()).thenReturn("LH");
+        when(lh.maxPages()).thenReturn(1);
+        ExternalAnnouncement open = listed("LH-20");
+        ExternalAnnouncement closed = listed("LH-21");
+        when(lh.fetchAnnouncements(1)).thenReturn(List.of(open, closed));
+        when(lh.fetchNoticeContent(open)).thenReturn(Optional.of("표를 편 공고문"));
+
+        LocalDate today = LocalDate.of(2026, 10, 14);
+        Announcement a20 = Announcement.builder().externalId("LH-20").noticePdfUrl("u").receptEndDate(today.plusDays(3)).build();
+        Announcement a21 = Announcement.builder().externalId("LH-21").noticePdfUrl("u").receptEndDate(today.minusDays(1)).build();
+        org.springframework.test.util.ReflectionTestUtils.setField(a20, "id", 20L);
+        org.springframework.test.util.ReflectionTestUtils.setField(a21, "id", 21L);
+        AnnouncementRepository repo = Mockito.mock(AnnouncementRepository.class);
+        when(repo.findByExternalId("LH-20")).thenReturn(Optional.of(a20));
+        when(repo.findByExternalId("LH-21")).thenReturn(Optional.of(a21));
+
+        AnnouncementDocument old20 = new AnnouncementDocument(20L, "LH", "위치순 원문", Instant.now());
+        AnnouncementDocument old21 = new AnnouncementDocument(21L, "LH", "위치순 원문", Instant.now());
+        org.springframework.test.util.ReflectionTestUtils.setField(old20, "textFormat", 1);
+        org.springframework.test.util.ReflectionTestUtils.setField(old21, "textFormat", 1);
+        AnnouncementDocumentRepository docs = Mockito.mock(AnnouncementDocumentRepository.class);
+        when(docs.findByAnnouncementId(20L)).thenReturn(Optional.of(old20));
+        when(docs.findByAnnouncementId(21L)).thenReturn(Optional.of(old21));
+        when(syncService.sync(any())).thenReturn(new AnnouncementSyncService.SyncStat(2, 0, 2, List.of()));
+
+        new AnnouncementSyncScheduler(List.of(lh), syncService, repo, new PublicDataProperties(), syncStatus,
+                Clock.fixed(Instant.parse("2026-10-14T04:00:00Z"), ZoneOffset.UTC),
+                Mockito.mock(NewAnnouncementAlertService.class), Mockito.mock(AnnouncementIndexer.class), docs).runSync();
+
+        verify(lh).fetchNoticeContent(open);
+        verify(lh, never()).fetchNoticeContent(closed);
     }
 
     @Test

@@ -43,9 +43,12 @@ public class AnnouncementDocument {
      * 제출 서류·소득 기준 같은 뒷부분이 검색되지 않았다. 전체 상한 {@link #MAX_LEN} 은 방어용이다.
      */
     public static final int PART_LEN = 15_000;
-    public static final int MAX_LEN = 200_000;
+    /** 표를 행 단위로 펴면(#42) 위치순보다 20~30% 길다 — 청약홈 2026000463 은 216,033자 */
+    public static final int MAX_LEN = 300_000;
     /** 예전 수집의 절단 길이 — 이 길이에 조각이 없으면 잘린 원문으로 보고 다시 받는다 */
     public static final int LEGACY_CAP = 15_500;
+    /** 지금 추출기가 만드는 원문 형식 — {@code PdfNoticeExtractor} 를 바꾸면 올린다 */
+    public static final int CURRENT_FORMAT = 2;
 
     /** 원문의 앞 {@link #PART_LEN} 자 (예전 수집분은 앞 15,500자) */
     @Column(name = "raw_text", nullable = false, length = 16_000)
@@ -58,6 +61,13 @@ public class AnnouncementDocument {
 
     @Column(name = "text_hash", nullable = false, length = 64)
     private String textHash;
+
+    /**
+     * 원문 추출 형식 (#42) — 1 = 위치순 추출(표 칸이 섞인다), 2 = 표를 행 단위 문장으로 편 추출.
+     * {@link #CURRENT_FORMAT} 보다 낮으면 접수 전·중 공고는 다음 수집에서 PDF 를 다시 받아 교체한다.
+     */
+    @Column(name = "text_format", nullable = false)
+    private int textFormat;
 
     @Column(name = "fetched_at", nullable = false)
     private Instant fetchedAt;
@@ -74,6 +84,11 @@ public class AnnouncementDocument {
         StringBuilder sb = new StringBuilder(firstPart);
         parts.forEach(p -> sb.append(p.getContent()));
         return sb.toString();
+    }
+
+    /** 지금 추출기보다 예전 형식의 원문인지 — 접수 전·중 공고면 다시 받는다(#42 백필) */
+    public boolean isOutdatedFormat() {
+        return textFormat < CURRENT_FORMAT;
     }
 
     /** 예전 수집(15,500자 절단)으로 잘린 원문인지 — 다시 받아야 한다(#29 백필) */
@@ -99,6 +114,7 @@ public class AnnouncementDocument {
         while (parts.size() > rest.size()) parts.remove(parts.size() - 1);
         this.textHash = sha256(text);
         this.fetchedAt = fetchedAt;
+        this.textFormat = CURRENT_FORMAT;   // 교체는 늘 지금 추출기가 만든 글로 한다
     }
 
     public static String sha256(String s) {

@@ -57,9 +57,9 @@ class AnnouncementDocumentTest {
     }
 
     @Test
-    @DisplayName("방어 상한 200,000자")
+    @DisplayName("방어 상한 300,000자 (#42 — 표를 펴면 20~30% 길어진다)")
     void capsAtMaxLen() {
-        AnnouncementDocument doc = new AnnouncementDocument(1L, "LH", text(250_000), NOW);
+        AnnouncementDocument doc = new AnnouncementDocument(1L, "LH", text(AnnouncementDocument.MAX_LEN + 50_000), NOW);
 
         assertThat(doc.getRawText()).hasSize(AnnouncementDocument.MAX_LEN);
     }
@@ -73,5 +73,16 @@ class AnnouncementDocumentTest {
         AnnouncementDocument legacy = new AnnouncementDocument(1L, "LH", text(100), NOW);
         ReflectionTestUtils.setField(legacy, "firstPart", text(AnnouncementDocument.LEGACY_CAP));
         assertThat(legacy.isLegacyTruncated()).isTrue();
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("새로 넣거나 교체한 원문은 지금 추출 형식 — 예전 형식(1)만 다시 받을 대상 (#42)")
+    void textFormat() {
+        AnnouncementDocument doc = new AnnouncementDocument(1L, "LH", "원문", java.time.Instant.EPOCH);
+        assertThat(doc.isOutdatedFormat()).isFalse();
+        ReflectionTestUtils.setField(doc, "textFormat", 1);
+        assertThat(doc.isOutdatedFormat()).isTrue();
+        doc.replaceText("표를 편 원문", java.time.Instant.EPOCH);
+        assertThat(doc.isOutdatedFormat()).isFalse();
     }
 }

@@ -2,6 +2,7 @@
 # 공고문 = src/test/resources/eval/notices/<이름>.txt.gz (청약홈·LH 공고문 PDF 원문 export, 2026-10-13)
 # 구조화 데이터로 답하는 질문(전매·재당첨·발표일·입주 예정·분양가 등 — FactAnswerer)은 넣지 않는다. LLM 경로로 가는 질문만.
 # 정답 근거가 여러 곳에 다른 문장으로 있으면 ' || ' 로 나열 — 하나라도 발췌에 있으면 적중.
+# 표를 행 단위로 편 추출(#42)과 예전 위치순 추출에서 같은 내용이 다르게 적히면 두 모양을 || 로 함께 둔다.
 # 의역 질문(일상어)도 섞는다 — 동의어 사전(QuerySynonyms)·검색 개선 효과를 본다.
 lh-2901-chungbuk-10yr-rental	신청 자격이 뭐예요?	무주택세대구성원인 성년자
 lh-2901-chungbuk-10yr-rental	외국인도 신청할 수 있나요?	외국인은 신청 불가
@@ -48,12 +49,12 @@ lh-2997-incheon-gyeyang-hope-town	예비신혼부부도 신청 가능한가요?	
 lh-2997-incheon-gyeyang-hope-town	소득 기준이 어떻게 되나요?	전년도 도시근로자 가구당 월평균소득의 130%
 lh-2997-incheon-gyeyang-hope-town	자산 기준은 얼마예요?	362,000천원
 lh-2997-incheon-gyeyang-hope-town	신혼희망타운 전용 대출 꼭 받아야 하나요?	신혼희망타운 전용 주택담보 장기대출상품 의무 가입 대상 || 장기대출상품”에 가입하고 입주시
-lh-2997-incheon-gyeyang-hope-town	계약금은 얼마 내요?	계약금 1차 중도금 2차 중도금 융자금
+lh-2997-incheon-gyeyang-hope-town	계약금은 얼마 내요?	계약금 1차 중도금 2차 중도금 융자금 || 계약금 10% | 1차 중도금 10% || 계약금 10% 계약시
 lh-2997-incheon-gyeyang-hope-town	당첨자는 어떻게 선정해요?	5. 입주자 선정방법
 lh-2997-incheon-gyeyang-hope-town	한부모 가족도 신청할 수 있나요?	4. 한부모가족 신청자격 || 6세 이하 자녀를 둔 부 또는 모 무주택세대구성원
 lh-3000-incheon-seoknam-happy-house	청년은 나이 제한이 어떻게 되나요?	19세 이상 39세 이하인
 lh-3000-incheon-seoknam-happy-house	대학생도 신청할 수 있어요?	대학생 : 대학에 재학 중이거나 다음 학기에 입·복학 예정인 사람
-lh-3000-incheon-seoknam-happy-house	최대 몇 년까지 살 수 있어요?	대학생, 청년 계층 10년
+lh-3000-incheon-seoknam-happy-house	최대 몇 년까지 살 수 있어요?	대학생, 청년 계층 10년 || 대학생, 청년 계층: 10년 || 대학생, 청년 계층 · 최대 거주기간: 10년
 lh-3000-incheon-seoknam-happy-house	소득 기준이 어떻게 돼요?	월평균소득의 100퍼센트 이하
 lh-3000-incheon-seoknam-happy-house	자동차 있으면 신청 못 하나요?	자동차가액 산출대상 자동차를 소유하고 있지 않을 것
 lh-3000-incheon-seoknam-happy-house	보증금을 올리고 월세를 줄일 수 있나요?	월임대료의 임대보증금 전환(임대보증금 증액)

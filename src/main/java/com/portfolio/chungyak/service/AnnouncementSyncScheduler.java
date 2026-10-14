@@ -165,7 +165,8 @@ public class AnnouncementSyncScheduler {
                 } else {
                     ExternalAnnouncement base = source.needsDetailBackfill(existing)
                             ? enrichSafely(source, announcement) : announcement;
-                    // 공고문 원문 백필 — (#29) 예전 수집에서 15,500자로 잘린 원문, (#38) 원문 기능이 생기기 전에 수집돼
+                    // 공고문 원문 백필 — (#29) 예전 수집에서 15,500자로 잘린 원문, (#42) 표 칸이 섞인 예전 형식 원문(접수 전·중만),
+                    // (#38) 원문 기능이 생기기 전에 수집돼
                     // 원문이 아예 없는 접수 전·중 공고. 한 번 받으면 조건이 풀려 다음 배치부터는 다시 받지 않는다.
                     if (needsNoticeBackfill(source, existing)) {
                         String content = fetchNoticeContentSafely(source, base);
@@ -187,9 +188,10 @@ public class AnnouncementSyncScheduler {
 
     private boolean needsNoticeBackfill(AnnouncementSource source, Announcement existing) {
         var doc = documentRepository.findByAnnouncementId(existing.getId());
-        if (doc.isPresent()) return doc.get().isLegacyTruncated();
         LocalDate today = LocalDate.now(clock);
         boolean current = existing.getReceptEndDate() == null || !existing.getReceptEndDate().isBefore(today);
+        // (#42) 표 칸이 섞인 예전 형식 원문 — 아직 신청할 수 있는 공고만 다시 받는다(지난 공고까지 받으면 수백 건 PDF)
+        if (doc.isPresent()) return doc.get().isLegacyTruncated() || (doc.get().isOutdatedFormat() && current);
         return source.backfillsMissingNotice() && current;
     }
 
