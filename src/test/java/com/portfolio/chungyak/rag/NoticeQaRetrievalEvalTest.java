@@ -170,6 +170,39 @@ class NoticeQaRetrievalEvalTest {
         assertThat(readable).as(report.toString()).isGreaterThanOrEqualTo(TABLE_BASELINE_READABLE);
     }
 
+    /** 표 값 결정론 답변(#42)이 답한 수 — 늘리면 올린다. 답한 것은 모두 정답 값을 담아야 한다(아래 검사). */
+    static final int TABLE_FACT_BASELINE_ANSWERED = 6;   // 2026-10-14: 9문항 중 6(자산 기준·최대전환 임대료만 있는 3000 은 넘긴다)
+
+    @Test
+    @DisplayName("표 값 결정론 답변 — 답하면 반드시 맞고, 일반 질문에는 끼어들지 않는다")
+    void tableFactAnswers() throws IOException {
+        StringBuilder report = new StringBuilder();
+        int answered = 0;
+        try (InputStream in = resource("/eval/notice-qa-table-cases.tsv")) {
+            for (String line : new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\n")) {
+                if (line.isBlank() || line.startsWith("#")) continue;
+                String[] f = line.strip().split("\t");
+                var fact = TableFactAnswerer.answer(TEXTS.get(IDS.get(f[0])), f[1]);
+                if (fact.isPresent()) {
+                    answered++;
+                    assertThat(fact.get().text()).as("결정론 답은 표 값을 담아야 한다 — %s", f[1]).contains(f[2]);
+                }
+                report.append(fact.isPresent() ? "답함 " : "넘김 ").append(f[1]).append('\n');
+            }
+        }
+        // 일반 질문(방법·자격·서류 …)에 표 행으로 답하면 안 된다 — 답했다면 정답 근거가 그 안에 있어야 한다
+        for (Case c : cases) {
+            var fact = TableFactAnswerer.answer(TEXTS.get(IDS.get(c.notice())), c.question());
+            if (fact.isEmpty()) continue;
+            String text = squash(fact.get().text());
+            report.append("일반 질문에 답함: ").append(c.question()).append('\n');
+            assertThat(c.answers()).as("일반 질문에 끼어든 결정론 답 — %s", c.question())
+                    .anyMatch(a -> text.contains(squash(a)));
+        }
+        System.out.println("[표 값 결정론 답변]\n" + report + "답함 " + answered);
+        assertThat(answered).as(report.toString()).isGreaterThanOrEqualTo(TABLE_FACT_BASELINE_ANSWERED);
+    }
+
     /** 정답 근거가 몇 번째 발췌에 있는지(1부터), 없으면 -1 */
     static int rankOf(List<Hit> hits, Case c) {
         for (int i = 0; i < hits.size(); i++) {

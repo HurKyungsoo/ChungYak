@@ -14,7 +14,8 @@ import java.util.Optional;
  * "이 공고에 물어보기"의 입구 (#39) — <b>결정론 답변을 먼저</b>, 아니면 AI 공고문 Q&A.
  *
  * 답이 구조화 데이터(청약홈·LH API, 공고문 요약표)에 있는 질문은 {@link FactAnswerer} 가 그 값으로 바로 답한다 —
- * LLM 을 부르지 않으니 틀릴 여지가 없고 무료 한도도 쓰지 않는다. 나머지는 {@link DocumentQaService}(검색 + LLM + 근거 검사).
+ * LLM 을 부르지 않으니 틀릴 여지가 없고 무료 한도도 쓰지 않는다. 그다음 공고문 표 값(계약금 비율·임대료·소득 기준)은
+ * {@link TableFactAnswerer} 가 표 행을 그대로 보여 준다(#42). 나머지는 {@link DocumentQaService}(검색 + LLM + 근거 검사).
  */
 @Slf4j
 @Service
@@ -53,14 +54,15 @@ public class NoticeQuestionService {
             return qaService.answer(announcementId, question);
         }
         Optional<Announcement> announcement = queryService.findDetail(announcementId);
-        Optional<NoticeSummaryTable> table = documentRepository.findByAnnouncementId(announcementId)
-                .flatMap(d -> NoticeSummaryTable.parse(d.getFirstPart()));
+        var document = documentRepository.findByAnnouncementId(announcementId);
+        Optional<NoticeSummaryTable> table = document.flatMap(d -> NoticeSummaryTable.parse(d.getFirstPart()));
         // 버튼 문구 확인 — via=quick 만 믿고 저장하면 아무 글이나 집계 표에 들어간다(원문 저장 금지)
         String quick = viaQuick ? announcement
                 .flatMap(a -> QuickQuestions.of(a, table).stream()
                         .map(QuickQuestions.QuickQuestion::text).filter(question::equals).findFirst())
                 .orElse(null) : null;
         Optional<FactAnswerer.Fact> fact = announcement.flatMap(a -> FactAnswerer.answer(a, table, question));
+        if (fact.isEmpty()) fact = document.flatMap(d -> TableFactAnswerer.answer(d.getRawText(), question));
         QaAnswer result;
         if (fact.isPresent()) {
             log.info("공고 #{} Q&A — 구조화 데이터로 답함({})", announcementId, fact.get().source());
