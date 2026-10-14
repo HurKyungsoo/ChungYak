@@ -333,7 +333,9 @@
                 if (cells.length < 2) return;
                 var values = cells.map(function (c) { return spec[1](c.getAttribute(spec[0])); });
                 var min = values.reduce(function (a, b) { return b < a ? b : a; });
-                if (values.every(function (v) { return v === min; })) return;
+                // 절반 넘게 같은 값이면 표시가 소음이다(예: 5개 중 4개가 같은 날 마감)
+                var holders = values.filter(function (v) { return v === min; }).length;
+                if (holders * 2 > values.length || holders === values.length) return;
                 cells.forEach(function (c, i) {
                     if (values[i] !== min) return;
                     var b = c.querySelector('.cmp-best'); if (b) b.hidden = false;
