@@ -94,6 +94,21 @@ class DocumentQaServiceTest {
     }
 
     @Test
+    @DisplayName("발췌에 없는 문장이 섞인 답 — 답은 보여 주고 그 문장을 표시한다 (#41)")
+    void marksWeakSentences() {
+        when(search.searchWithin(eq(1L), anyString(), anyInt())).thenReturn(List.of(
+                new Hit(1L, 2, "발코니 확장 비용은 세대당 별도 부과", 0.8, 0.9)));
+
+        QaAnswer a = service(Optional.of(answerer(
+                "발코니 확장 비용은 별도입니다 [1]. 확장하면 관리비가 매달 할인되고 입주 축하금도 지급됩니다 [1].")))
+                .answer(1L, "발코니 확장 비용");
+
+        assertThat(a.status()).isEqualTo(Status.ANSWERED);
+        assertThat(a.hasWeakSentences()).isTrue();
+        assertThat(a.weakSentences()).singleElement().asString().contains("관리비가 매달 할인");
+    }
+
+    @Test
     @DisplayName("BM25 모드(임베딩 없음) — 코사인은 늘 0 이라 키워드 겹침만으로 관련 여부를 가른다 (#22)")
     void bm25ModeGatesOnKeywordOnly() {
         when(search.isSemantic()).thenReturn(false);

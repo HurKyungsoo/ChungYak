@@ -437,6 +437,10 @@
         /* 긴 공고명이 rail 을 여러 줄로 채워 본문보다 눈에 띄었다 (#46) — 한 줄로 자르고 전체는 title 로 */
         .recent-chip a { max-width: 15em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         /* 주택형 표 설명 — 접어 두고 필요할 때만 (#46) */
+        /* 공고문 Q&A — 발췌에서 확인되지 않은 답 문장 (#41) */
+        .weak-sentences { margin: 10px 0 0; padding: 8px 12px; border-left: 3px solid var(--warn);
+                          background: color-mix(in srgb, var(--warn) 8%, transparent); font-size: .86rem; }
+        .weak-sentences ul { margin: 4px 0 0; padding-left: 18px; }
         .set-collapse > summary { cursor: pointer; font-weight: 600; padding: 2px 0; }
         .set-collapse[open] > summary { margin-bottom: 10px; }
         .table-help { margin: 0 0 10px; font-size: .88rem; }

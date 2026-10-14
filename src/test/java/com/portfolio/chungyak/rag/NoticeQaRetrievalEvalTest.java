@@ -203,6 +203,39 @@ class NoticeQaRetrievalEvalTest {
         assertThat(answered).as(report.toString()).isGreaterThanOrEqualTo(TABLE_FACT_BASELINE_ANSWERED);
     }
 
+    /** 답 문장 근거 검사(#41) — 근거 없는 문장을 잡은 수. 근거 있는 문장을 잘못 잡으면 바로 실패한다. */
+    static final int GROUNDING_BASELINE_CAUGHT = 7;   // 2026-10-14: 10 중 7 — 못 잡는 3개는 이어붙이기·부정 뒤집기·낱말이 다 있는 문장
+
+    @Test
+    @DisplayName("답 문장 근거 검사 — 근거 있는 문장은 잡지 않고, 근거 없는 문장을 기준선 이상 잡는다")
+    void sentenceGrounding() throws IOException {
+        int grounded = 0, falseFlags = 0, ungrounded = 0, caught = 0;
+        StringBuilder report = new StringBuilder();
+        try (InputStream in = resource("/eval/notice-qa-grounding-cases.tsv")) {
+            for (String line : new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\n")) {
+                if (line.isBlank() || line.startsWith("#")) continue;
+                String[] f = line.strip().split("\t");
+                List<String> excerpts = search.searchWithin(IDS.get(f[0]), f[1], CONTEXT_CHUNKS).stream()
+                        .map(Hit::content).toList();
+                boolean flagged = !SentenceGrounding.weakSentences(f[2], excerpts).isEmpty();
+                boolean expectGrounded = f[3].equals("G");
+                if (expectGrounded) {
+                    grounded++;
+                    if (flagged) falseFlags++;
+                } else {
+                    ungrounded++;
+                    if (flagged) caught++;
+                }
+                report.append(String.format("%s %s %s%n", f[3], flagged ? "걸림" : "통과", f[2]));
+            }
+        }
+        report.append(String.format("근거 있는 문장 %d 중 잘못 걸림 %d · 근거 없는 문장 %d 중 잡음 %d%n",
+                grounded, falseFlags, ungrounded, caught));
+        System.out.println("[답 문장 근거 검사]\n" + report);
+        assertThat(falseFlags).as(report.toString()).isZero();   // 멀쩡한 답에 "근거 없음"을 붙이면 신뢰를 잃는다
+        assertThat(caught).as(report.toString()).isGreaterThanOrEqualTo(GROUNDING_BASELINE_CAUGHT);
+    }
+
     /** 정답 근거가 몇 번째 발췌에 있는지(1부터), 없으면 -1 */
     static int rankOf(List<Hit> hits, Case c) {
         for (int i = 0; i < hits.size(); i++) {

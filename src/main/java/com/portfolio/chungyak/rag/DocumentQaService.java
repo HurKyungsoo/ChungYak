@@ -115,11 +115,25 @@ public class DocumentQaService {
     private static final java.util.regex.Pattern AMOUNT =
             java.util.regex.Pattern.compile("\\d{1,3}(?:,\\d{3})+|\\d+\\s*(?:만\\s*)?원");
 
-    /** @param source FACT 일 때 값의 출처(그 밖에는 null) */
-    public record QaAnswer(Status status, String answer, List<Citation> citations, String source) {
-        public QaAnswer(Status status, String answer, List<Citation> citations) {
-            this(status, answer, citations, null);
+    /**
+     * @param source        FACT 일 때 값의 출처(그 밖에는 null)
+     * @param weakSentences 발췌에서 근거를 찾지 못한 답 문장(#41, {@link SentenceGrounding}) — 화면이 "원문 확인"으로 표시
+     */
+    public record QaAnswer(Status status, String answer, List<Citation> citations, String source, List<String> weakSentences) {
+        public QaAnswer {
+            weakSentences = weakSentences == null ? List.of() : List.copyOf(weakSentences);
         }
+
+        public QaAnswer(Status status, String answer, List<Citation> citations) {
+            this(status, answer, citations, null, List.of());
+        }
+
+        public QaAnswer(Status status, String answer, List<Citation> citations, String source) {
+            this(status, answer, citations, source, List.of());
+        }
+
+        /** 근거가 약한 문장이 있는 AI 답인지 */
+        public boolean hasWeakSentences() { return status == Status.ANSWERED && !weakSentences.isEmpty(); }
 
         public boolean isShown() { return status != Status.DISABLED; }
         public boolean hasAnswer() { return status == Status.ANSWERED || status == Status.FACT; }
@@ -137,6 +151,7 @@ public class DocumentQaService {
         static QaAnswer noMatch(List<Citation> c) { return new QaAnswer(Status.NO_MATCH, null, c); }
         static QaAnswer answerFailed(List<Citation> c) { return new QaAnswer(Status.ANSWER_FAILED, null, c); }
         static QaAnswer answered(String a, List<Citation> c) { return new QaAnswer(Status.ANSWERED, a, c); }
+        static QaAnswer answered(String a, List<Citation> c, List<String> weak) { return new QaAnswer(Status.ANSWERED, a, c, null, weak); }
         static QaAnswer fact(String a, String source) { return new QaAnswer(Status.FACT, a, List.of(), source); }
         static QaAnswer ungrounded(List<Citation> c) { return new QaAnswer(Status.UNGROUNDED, null, c); }
     }
@@ -194,7 +209,15 @@ public class DocumentQaService {
             // 금액·날짜 근거 검사(#31) — 어긋나면 답을 숨기고 발췌만 보여준다. 다시 만들지 않는다: 같은 발췌면
             // 같은 표를 같은 식으로 잘못 읽어(실사용 2/2 재실패) 무료 등급 분당 한도(429)만 깎았다.
             Optional<String> problem = AnswerGrounding.check(text, numbered);
-            if (problem.isEmpty()) return QaAnswer.answered(text, citations);
+            if (problem.isEmpty()) {
+                // 서술 문장 근거(#41) — 답은 보여 주되 발췌에서 확인되지 않는 문장을 표시한다
+                List<String> weak = SentenceGrounding.weakSentences(text, numbered);
+                if (!weak.isEmpty()) {
+                    count("WEAK_SENTENCES");
+                    log.info("공고 #{} Q&A — 발췌에서 근거를 못 찾은 문장 {}개", announcementId, weak.size());
+                }
+                return QaAnswer.answered(text, citations, weak);
+            }
             log.warn("공고 #{} Q&A 답변 근거 불일치 — 답을 숨김: {}", announcementId, problem.get());
             return QaAnswer.ungrounded(citations);
         } catch (RuntimeException e) {

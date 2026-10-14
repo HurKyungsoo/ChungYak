@@ -330,6 +330,11 @@
                 <span th:unless="${qa.fact}" class="muted">아래 발췌만 근거로 정리했습니다</span>
             </div>
             <p style="margin:0;white-space:pre-wrap" th:text="${qa.answer}">답변</p>
+            <!--/* 서술 문장 근거 검사(#41) — 발췌 낱말과 거의 겹치지 않거나 숫자가 발췌에 없는 문장. 결정론 검사라 놓치는 것도 있다 */-->
+            <div th:if="${qa.hasWeakSentences()}" class="weak-sentences" role="note">
+                <strong>원문 확인 필요</strong> — 아래 문장은 근거 발췌에서 확인되지 않았습니다:
+                <ul><li th:each="w : ${qa.weakSentences}" th:text="${w}">문장</li></ul>
+            </div>
             <p class="muted" style="margin:8px 0 0;font-size:.85rem" th:if="${qa.mentionsAmount()}">
                 금액은 공고문 발췌에서 그 항목 바로 옆에 적힌 값만 옮겼습니다. 주택형마다 다를 수 있으니
                 원문에서 한 번 더 확인하세요.</p>
