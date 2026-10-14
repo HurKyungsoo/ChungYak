@@ -106,15 +106,36 @@ final class TableFactAnswerer {
                 SOURCE));
     }
 
-    /** 임대 조건 표 — 조건 없는 "임대료" 열이 금액인 행 */
+    /** 임대 조건 표 — 조건 없는 "임대료" 열이 금액인 행. 열이 합쳐져 짝이 어긋날 수 있는 행은 뺀다. */
     private static Optional<FactAnswerer.Fact> rentalRows(List<Row> rows) {
         List<String> hits = new ArrayList<>();
         for (Row r : rows) {
             boolean baseRent = r.parts().stream().anyMatch(p -> p.label().contains("임대료")
                     && !QUALIFIED.matcher(p.label()).find() && MONEY.matcher(p.value()).matches());
-            if (baseRent) hits.add(r.line());
+            if (baseRent && !mergedColumns(r)) hits.add(r.line());
         }
-        return listing(hits, "임대보증금·월임대료(주택형별, 공고문 표 그대로):");
+        return listing(hits, "임대보증금·월임대료(주택형별, 공고문 표 그대로):",
+                "금액 단위(원·천원)와 계층별 조건은 표마다 다릅니다 — 공고문 원문 표를 함께 확인하세요.");
+    }
+
+    private static final Pattern MONEY_WORD = Pattern.compile("보증금|임대료|계약금|잔금|한도|금액|합계|계$");
+    private static final Pattern AMOUNT = Pattern.compile("\\d{1,3}(?:,\\d{3})+");
+
+    /**
+     * 열 머리가 합쳐져 값의 짝이 어긋났을 수 있는 행 — 금액 말이 없는 열 이름 아래 금액이 여럿 붙은 칸, 이름 없는 금액 칸.
+     * 예) 영구임대 2970 "가군(…) 나군(…): 47,630 9,095,000" — 가군 월임대료와 나군 보증금이 한 칸에 붙어,
+     * 가군 보증금 옆에 나군 월임대료가 짝지어진 것처럼 읽혔다.
+     */
+    private static boolean mergedColumns(Row r) {
+        for (Part p : r.parts()) {
+            int amounts = 0;
+            Matcher m = AMOUNT.matcher(p.value());
+            while (m.find()) amounts++;
+            if (amounts == 0) continue;
+            if (p.label().isEmpty()) return true;
+            if (amounts >= 2 && !MONEY_WORD.matcher(p.label()).find()) return true;
+        }
+        return false;
     }
 
     /** 소득 기준 표 — 열 이름이 가구원 수(3인 이하·4인 …)인 행 */
@@ -129,6 +150,10 @@ final class TableFactAnswerer {
     }
 
     private static Optional<FactAnswerer.Fact> listing(List<String> lines, String head) {
+        return listing(lines, head, null);
+    }
+
+    private static Optional<FactAnswerer.Fact> listing(List<String> lines, String head, String note) {
         Set<String> distinct = new LinkedHashSet<>(lines);
         if (distinct.isEmpty()) return Optional.empty();
         StringBuilder sb = new StringBuilder(head);
@@ -138,6 +163,7 @@ final class TableFactAnswerer {
             sb.append("\n- ").append(l);
         }
         if (distinct.size() > MAX_ROWS) sb.append("\n(외 ").append(distinct.size() - MAX_ROWS).append("행 — 공고문 원문을 확인하세요)");
+        if (note != null) sb.append('\n').append(note);
         return Optional.of(new FactAnswerer.Fact(sb.toString(), SOURCE));
     }
 }

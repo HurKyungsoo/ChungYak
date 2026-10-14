@@ -55,6 +55,24 @@ class TableFactAnswererTest {
     }
 
     @Test
+    @DisplayName("열 머리가 합쳐져 짝이 어긋난 행은 넘긴다 — 영구임대 2970 가군·나군 (#30)")
+    void mergedGroupColumnsAreSkipped() {
+        String row = "공급형별 (㎡): 26A · 가군 (생계·의료급여수급자 등) 나군 (일반 등) 임대보증금(원) 계: 2,395,000"
+                + " · 가군 (생계·의료급여수급자 등) 나군 (일반 등): 47,630 9,095,000"
+                + " · 가군 (생계·의료급여수급자 등) 나군 (일반 등) 월 임대료 (원): 98,630\n";
+        assertThat(ask(row, "월 임대료가 얼마예요?")).isEmpty();
+        // 이름 없는 금액 칸이 있는 행도 — 기본 임대료가 이름 없이 있을 수 있다(3006)
+        assertThat(ask("구간: 1구간 · 임대보증금 계: 13,494,000 · 124,110 · 임대조건 월임대료: 108,590\n", "월 임대료가 얼마예요?")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("임대 답에는 단위·계층 안내가 붙는다 — 표마다 원·천원이 다르다(3478 보증금 18,551 은 천원)")
+    void rentNoteOnUnits() {
+        assertThat(ask(RENT_2901, "월 임대료가 얼마예요?")).get()
+                .extracting(FactAnswerer.Fact::text).asString().contains("금액 단위(원·천원)");
+    }
+
+    @Test
     @DisplayName("계약금 비율 — 분양 납부표 열 이름에서. 발코니 확장 납부표의 다른 비율은 세지 않는다")
     void downPaymentPercent() {
         var fact = ask(SALE_492, "계약금은 몇 퍼센트예요?");
