@@ -9,14 +9,12 @@
     <a th:href="@{/announcements}" class="backlink">← 공고 목록</a>
     <h1>내 조건으로 공고 찾기</h1>
 
+    <!-- 설명은 두 줄로 (#46) -->
     <p class="muted">
-        공고를 먼저 고르지 않아도 됩니다. 아래 조건을 한 번 입력하면 <b>지금 접수중·접수예정인 공고</b>
-        전체를 규칙 그대로 훑어서 신청 가능한 곳만 모아 보여드립니다.
-        모르거나 해당되지 않는 항목은 비워 두세요 — 공고마다 필요한 항목이 달라서, 여기서는 항목을
-        가리지 않고 전부 보여드립니다(예: 국민주택 납입 횟수 / 민영주택 예치금은 실제로는 둘 중
-        하나만 쓰입니다).<br>
-        <span class="req-badge">필수</span> 는 비워두면 판정을 보류하는 항목,
-        <span class="req-badge cond">국민주택 필수</span> 처럼 조건이 붙은 건 그런 공고에서만 필요한 항목입니다.
+        조건을 한 번 입력하면 <b>지금 접수중·접수예정인 공고</b> 전체에서 신청 가능한 곳을 모아 보여드립니다.
+        모르거나 해당 없는 항목은 비워 두세요.<br>
+        <span class="req-badge">필수</span> 는 비우면 판정을 보류하는 항목,
+        <span class="req-badge cond">국민주택 필수</span> 처럼 조건이 붙은 건 그런 공고에서만 필요합니다.
     </p>
 
     <!-- 상황 설명 입력 — LLM 은 폼을 채워주기만 하고 판정에는 관여하지 않습니다 -->
@@ -105,10 +103,7 @@
 
         <fieldset>
             <legend>소득 · 자산</legend>
-            <p class="muted" style="margin:2px 0 10px">
-                입력한 금액은 판정 결과를 보여주는 동안(30분)만 서버에 머문 뒤 지워지고,
-                다음에 다시 채워 드리기 위해 이 브라우저에도 저장됩니다.
-            </p>
+            <p class="muted" style="margin:2px 0 10px">금액은 서버에 30분만 머물고 지워집니다(다시 채우려고 이 브라우저에는 저장).</p>
             <div class="field-grid">
                 <label class="field"><span class="lbl">가구 월평균소득 (원, 세전) <span class="req-badge">필수</span></span>
                     <input type="text" inputmode="numeric" th:field="*{monthlyHouseholdIncome}" placeholder="예: 6,000,000" class="currency-input">
@@ -127,8 +122,13 @@
                 <span>맞벌이다 <span class="hint" style="display:inline">— 소득 기준이 완화됨</span></span></label>
         </fieldset>
 
+        <!-- 재당첨 제한은 해당자가 드물어 접어 둔다 (#46). 접혀 있어도 칸은 폼에 그대로 있고 기본값(당첨 이력 없음)으로
+             판정된다 — 규칙 엔진 입력의 뜻은 바뀌지 않는다. 값이 있으면(되돌아옴·저장된 조건·AI 채움) 펼친다. -->
         <fieldset>
             <legend>재당첨 제한</legend>
+            <details class="set-collapse" data-auto-open
+                     th:open="${form.everWonSpecialSupply or form.pastWinInSpeculationArea or form.monthsSinceLastWin != null}">
+            <summary>과거에 청약에 당첨된 적이 있으면 펼쳐 주세요 <span class="muted">— 없으면 그대로 두세요</span></summary>
             <label class="check"><input type="checkbox" th:field="*{everWonSpecialSupply}" id="everWonCheck">
                 <span>과거에 특별공급에 당첨된 적이 있다 (본인/세대원)
                     <span class="hint" style="display:inline">— 특별공급은 세대당 평생 1회</span></span></label>
@@ -137,8 +137,9 @@
                     <span class="hint" style="display:inline">— 제한 기간 10년</span></span></label>
             <label class="field" id="lastWinMonthsField" style="max-width:280px"><span class="lbl">마지막 당첨일로부터 경과 개월 <span class="req-badge cond">투기과열지구 체크 시 필수</span></span>
                 <input type="number" min="0" th:field="*{monthsSinceLastWin}" placeholder="예: 40">
-                <span class="hint">당첨 이력이 없으면 비워 두세요.</span>
+                <span class="hint">투기과열지구를 체크했다면 채워 주세요 — 비우면 판정 불가</span>
             </label>
+            </details>
         </fieldset>
 
         <!-- 하단에 붙는 제출 줄 — 긴 폼 어디서든 바로 제출, 지금 섹션 표시(formProgressScript) -->
@@ -189,6 +190,7 @@
 <script th:replace="~{fragments/common :: aiFilledScript}"></script>
 <script th:replace="~{fragments/common :: pendingSubmitScript}"></script>
 <script th:replace="~{fragments/common :: formProgressScript}"></script>
+<script th:replace="~{fragments/common :: autoOpenSetScript}"></script>
 <script th:replace="~{fragments/common :: requiredFieldsScript}"></script>
 </body>
 </html>

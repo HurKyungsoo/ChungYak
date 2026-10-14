@@ -116,7 +116,10 @@ class ScreenRenderTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/announcements/" + remainderId));
 
-        assertThat(render("/announcements")).contains("무순위·줍줍 1건 모아보기");   // 바로가기 칩
+        String home = render("/announcements");
+        assertThat(home).contains("무순위·줍줍 1건 모아보기");   // 바로가기 칩
+        // 히어로 버튼은 하나 (#46) — 캘린더·가점 계산은 머리 메뉴에만
+        assertThat(home).doesNotContain("class=\"btn btn-ghost\">청약 캘린더</a>");
         String list = render("/announcements?category=REMAINDER");
         assertThat(list).contains("렌더링 무순위 단지").contains("무순위·잔여").contains("공급 10세대")
                 .doesNotContain("특공 물량 없음").contains("← 전체 공고 보기");
@@ -144,7 +147,12 @@ class ScreenRenderTest {
                 .doesNotContain("렌더링 행복주택");   // 경기도 LH 는 지역 필터로 빠진다
         render("/announcements/calendar?day=잘못된날짜&category=없는값");          // 400 대신 그냥 무시
         render("/announcements/compare?ids=" + aptId + "," + lhId);
-        render("/match");
+        // 재당첨 제한은 접어 둔다 (#46) — 빈 폼이면 닫힌 채로, 칸은 폼 안에 그대로
+        for (String url : new String[]{"/match", "/announcements/" + aptId + "/eligibility"}) {
+            String form = render(url);
+            assertThat(form).as(url).contains("<details class=\"set-collapse\" data-auto-open>")
+                    .contains("name=\"monthsSinceLastWin\"");
+        }
         render("/general-supply");
         // 처리방침 — 위탁 절은 켜진 기능만 그린다(개발 PC 는 AI 키가 있을 수 있어 내용은 단정하지 않는다)
         assertThat(render("/my-profile")).contains("내 조건").contains("profileDraft");
@@ -158,9 +166,12 @@ class ScreenRenderTest {
     void detailScreens() throws Exception {
         String apt = render("/announcements/" + aptId);
         assertThat(apt).contains("특별공급 유형별 배정").contains("bento-card").contains("청약 일정");
-        assertThat(apt).contains("data-type=\"NEWLYWED\"")                        // 자격 표시를 칠할 타일
+        assertThat(apt).contains("data-type=\"NEWLYWED\"")                        // 유형별 합계 타일
                 .contains("이 공고에 없는 유형").contains("다자녀가구, 노부모부양, 청년");
         assertThat(apt).contains("/announcements/" + aptId + "/calendar.ics");   // 내 캘린더에 추가
+        // 화면 단순화 (#46) — 표 설명은 접고, 내 자격은 판정 요약 한 곳(조건이 없으면 빈 자리)
+        assertThat(apt).contains("주택형별 공급").contains("<summary>표 읽는 법</summary>")
+                .contains("id=\"verdictSummarySlot\"").doesNotContain("is-eligible");
         // 공고문 요약표(#38) — 원문 표 그대로
         assertThat(apt).contains("공고문 요약표").contains("<dd>6개월</dd>").contains("<dd>민간택지</dd>");
         // 비규제 민영은 가점제 비율을 몰라 전 행이 "-" — 빈 열은 그리지 않는다(안내 문단은 남는다)
@@ -240,8 +251,7 @@ class ScreenRenderTest {
                 .andExpect(status().isOk()).andReturn();
         String body = r.getResponse().getContentAsString();
         assertThat(body).contains("내 판정 요약").contains("verdict-mini");
-        // 타일 자격 표시용 — 신혼부부는 충족, 다자녀(자녀 0명)는 미충족으로 엔진 결과가 실린다
-        assertThat(body).containsPattern("data-eligible=\"[^\"]*NEWLYWED")
-                .containsPattern("data-ineligible=\"[^\"]*MULTI_CHILD");
+        // 내 자격은 이 카드 한 곳에서만 (#46) — 신혼부부는 넣을 수 있는 유형으로 엔진 결과가 실린다
+        assertThat(body).contains("자격 충족").contains("미충족").containsPattern("<strong>[^<]*신혼부부[^<]*</strong>");
     }
 }

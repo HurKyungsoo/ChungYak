@@ -37,7 +37,7 @@ public record DetailHighlights(
 
     /**
      * 특별공급 유형 하나의 공고 전체 배정(주택형 합계) — "특별공급 유형별 배정" 카드 (목업 Main).
-     * {@code type} 은 enum 이름 — 화면이 "내 판정 요약" 결과로 타일에 자격 표시를 칠할 때 쓴다.
+     * {@code type} 은 enum 이름 — 이 공고에 없는 유형을 고를 때 대조한다.
      */
     public record TypeTotal(String type, String label, int count, int sharePercent, String note) {}
 

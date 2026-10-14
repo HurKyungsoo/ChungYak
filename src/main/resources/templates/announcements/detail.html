@@ -86,6 +86,8 @@
            target="_blank" rel="noopener" class="btn btn-lg"
            th:classappend="${announcement.remainder} ? 'btn-primary' : 'btn-ghost'">청약홈 공고문</a>
         <!-- LH 의 공고문 PDF·LH 페이지 버튼은 아래 "공고문에서 확인하세요" 묶음에 있다 (목업 LhDetail) -->
+        <!-- Q&A 는 맨 아래(3화면째)라 못 보고 지나갔다 (#46) — 위에서 바로 내려가는 길 -->
+        <a th:if="${qaEnabled and qaIndexed}" href="#noticeQa" class="btn btn-ghost btn-lg">이 공고에 물어보기 ↓</a>
         <button type="button" class="btn btn-ghost btn-lg scrap-btn scrap-btn-lg" th:attr="data-ann-id=${announcement.id}"
                 aria-label="찜하기"></button>
     </div>
@@ -171,19 +173,17 @@
     <div th:replace="~{announcements/type-totals :: card(${highlights}, ${announcement})}"></div>
     </th:block>
 
-    <!-- 내 판정 요약 (목업 Main) — 저장된 조건이 있으면 verdictSummaryScript 가 POST 로 판정해
-         이 자리를 요약 카드로 바꾼다. 없으면 아래 안내 카드가 그대로 남는다. -->
-    <div id="verdictSummarySlot" th:unless="${announcement.remainder}" th:attr="data-ann-id=${announcement.id}">
-        <section class="card verdict-mini" aria-label="내 판정 요약">
-            <h2 style="margin:0 0 6px">내 판정 요약</h2>
-            <p class="vm-text">내 조건을 한 번 입력해 두면, 공고를 열 때마다 넣을 수 있는 특별공급 유형을 여기서 바로 보여 드려요.</p>
-            <a class="vm-link" th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}">내 조건으로 자격 판정 →</a>
-        </section>
-    </div>
+    <!-- 내 판정 요약 (목업 Main) — 저장된 조건이 있을 때만 verdictSummaryScript 가 POST 로 판정해 채운다.
+         내 자격을 보여 주는 곳은 여기 하나다 (#46 — 예전엔 위 타일에도 ✓ 를 칠해 두 곳이었다).
+         조건이 없으면 비워 둔다 — 예전 안내 카드는 맨 위 판정 버튼과 같은 말이었다. -->
+    <div id="verdictSummarySlot" th:unless="${announcement.remainder}" th:attr="data-ann-id=${announcement.id}"></div>
 
-    <h2>주택형</h2>
+    <!-- 역할 나누기 (#46): 위 타일 = 공고 전체 유형별 합계, 이 표 = 주택형별. 설명은 "표 읽는 법"으로 접는다. -->
+    <h2>주택형별 공급</h2>
     <p class="muted" th:if="${announcement.remainder}">무순위 공고는 주택형별 공급 세대와 분양가(최고)만 있습니다.</p>
-    <p class="muted" th:unless="${announcement.remainder}">특별공급 배정은 공고가 아니라 <strong>주택형마다</strong> 다릅니다. 0 세대는 그 유형 물량이 없다는 뜻입니다.
+    <details class="table-help" th:unless="${announcement.remainder}">
+    <summary>표 읽는 법</summary>
+    <p class="muted">특별공급 배정은 공고가 아니라 <strong>주택형마다</strong> 다릅니다. 0 세대는 그 유형 물량이 없다는 뜻입니다.
         <span th:if="${!announcement.unitTypes.isEmpty()}">이 공고에 아예 없는 유형(예: 청년은 공공주택에만 배정)은 표에서 뺐습니다.</span>
         분양가는 공고에 실린 주택형별 <strong>최고 공급금액</strong>이라, 같은 주택형이라도 층·향에 따라 실제 금액은 더 낮을 수 있습니다.
     </p>
@@ -201,6 +201,7 @@
         가점이 낮아도 추첨 물량엔 지원할 수 있습니다.
         <a th:href="@{/general-supply}">내 가점 계산하기 →</a>
     </p>
+    </details>
 
     <th:block th:with="visibleTypes=${announcement.visibleSupplyTypes()}">
 
@@ -211,7 +212,7 @@
     <div class="supply-table" id="supplyTable">
     <div class="btn-row" style="margin:0 0 8px" th:if="${!visibleTypes.isEmpty()}">
         <button type="button" class="chip type-cols-toggle" data-type-cols-toggle aria-expanded="false"
-                aria-controls="supplyTable">특별공급 유형별 세대 보기</button>
+                aria-controls="supplyTable">주택형마다 유형별로 나눠 보기</button>
     </div>
     <div id="supplyColPicker" class="chips" hidden style="margin-bottom:10px">
         <span class="muted" style="font-size:.8rem;margin-right:2px">유형 열</span>
@@ -295,7 +296,7 @@
     </th:block><!-- /청약홈 공고 -->
 
     <!-- ── 공고문 Q&A (RAG) ── 판정이 아니라 공고문 내용 검색이다. 답은 발췌 근거와 함께 표시된다. -->
-    <section th:if="${qaEnabled and qaIndexed}" style="margin-top:24px">
+    <section id="noticeQa" th:if="${qaEnabled and qaIndexed}" style="margin-top:24px">
         <h2>이 공고에 물어보기 <span class="ai-chip">AI</span></h2>
         <p class="muted">AI 가 공고문 원문에서 관련 부분을 찾아 근거와 함께 답합니다. 자격 판정은 하지 않습니다<span
                 th:unless="${announcement.remainder}"> —

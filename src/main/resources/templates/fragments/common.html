@@ -195,9 +195,8 @@
         a.card:hover { text-decoration: none; border-color: var(--border-strong); box-shadow: var(--shadow); transform: translateY(-1px); }
 
         /* ── hero actions / stat strip ─────────────────────────────── */
-        /* 위계 원칙: 한 화면에 파란(primary) 버튼은 하나만("내 조건으로 공고 찾기").
-           캘린더·가점 계산은 다른 화면으로 가는 기능이라 회색 테두리(ghost) 보조 버튼 —
-           텍스트 링크로는 눈에 띄지 않았다. 아래 목록으로 가는 앵커는 숫자 줄(.stat-link)이 맡는다. */
+        /* 위계 원칙: 히어로 버튼은 "내 조건으로 공고 찾기" 하나 (#46). 캘린더·가점 계산은 머리 메뉴·아래 탭바에
+           이미 있다 — 예전엔 여기 회색 버튼으로도 두어 입구가 겹쳤다. 아래 목록 앵커는 숫자 줄(.stat-link)이 맡는다. */
         .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 20px; }
         .stat-strip { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 18px;
                       font-size: .85rem; color: var(--text-muted); }
@@ -435,6 +434,14 @@
         .tl-ics { margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
                   font-size: .82rem; font-weight: 600; white-space: nowrap; }
         .recent-chip[hidden] { display: none; }
+        /* 긴 공고명이 rail 을 여러 줄로 채워 본문보다 눈에 띄었다 (#46) — 한 줄로 자르고 전체는 title 로 */
+        .recent-chip a { max-width: 15em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* 주택형 표 설명 — 접어 두고 필요할 때만 (#46) */
+        .set-collapse > summary { cursor: pointer; font-weight: 600; padding: 2px 0; }
+        .set-collapse[open] > summary { margin-bottom: 10px; }
+        .table-help { margin: 0 0 10px; font-size: .88rem; }
+        .table-help > summary { cursor: pointer; color: var(--text-muted); font-weight: 600; }
+        .table-help > p { margin: 8px 0 0; }
         /* 목록 카드 "내 자격" 배지 (listBadgesScript · ListBadge.State) */
         .my-badge { margin-top: 10px; padding: 6px 10px; border-radius: 8px; font-size: .8rem; font-weight: 650;
                     line-height: 1.4; }
@@ -802,12 +809,6 @@
         .type-total .tt-figure { display: flex; align-items: baseline; gap: 6px; }
         .type-total .tt-share { font-size: .78rem; color: var(--text-subtle); font-weight: 600; }
         .type-total .tt-note { font-size: .72rem; color: var(--text-subtle); }
-        /* 저장된 조건으로 판정한 결과 — 자격 충족 ✓ 강조, 미충족 흐림 */
-        .type-total.is-eligible { background: var(--ok-weak); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
-        .type-total.is-eligible .tt-label { color: var(--ok); font-weight: 700; }
-        .type-total.is-eligible .tt-mark::before { content: " ✓"; }
-        .type-total.is-ineligible { opacity: .5; }
-        .tt-legend { color: var(--ok); font-weight: 600; }
         .type-totals .tt-absent { margin: 10px 0 0; font-size: .82rem; color: var(--text-muted); }
         .type-totals .tt-unknown-total { margin: 0 0 8px; font-size: 1rem; }
         .type-totals .tt-unknown-note { margin: 8px 0 0; font-size: .85rem; }
@@ -1396,6 +1397,26 @@
 <!-- ── 긴 입력 폼의 제출 줄 + 진행 표시 — form[data-progress-form] 안의 .form-submit-bar 가
      화면 하단(좁은 화면은 탭바 위)에 붙어 있고, 지금 보고 있는 fieldset 을 "3/6 · 청약통장"으로 알려 준다.
      버튼을 복제하지 않는다 — 원래 제출 줄을 sticky 로 붙일 뿐이라 폼 끝에 오면 제자리로 돌아간다. ── -->
+<!-- ── 접어 둔 폼 섹션(details[data-auto-open]) — 안의 칸에 값이 들어오면 펼친다 (#46).
+     저장된 조건 복원(profileDraftScript)·AI 채움은 change/input 이벤트를 내므로 그걸 듣는다.
+     접혀 있어도 칸은 폼에 남아 그대로 제출된다 — 판정 입력의 뜻은 바뀌지 않는다. ── -->
+<script th:fragment="autoOpenSetScript">
+    (function () {
+        document.querySelectorAll('details[data-auto-open]').forEach(function (d) {
+            var check = function () {
+                // th:field 체크박스 옆의 hidden "_필드=on" 은 늘 값이 있어 빼야 한다
+                var filled = Array.prototype.some.call(d.querySelectorAll('input:not([type=hidden])'), function (el) {
+                    return el.type === 'checkbox' ? el.checked : el.value.trim() !== '';
+                });
+                if (filled) d.open = true;
+            };
+            d.addEventListener('change', check);
+            d.addEventListener('input', check);
+            check();
+            window.addEventListener('load', check);   // 저장된 조건은 다 그린 뒤 채워질 수 있다
+        });
+    })();
+</script>
 <script th:fragment="formProgressScript">
     (function () {
         document.querySelectorAll('form[data-progress-form]').forEach(function (form) {
@@ -1472,9 +1493,10 @@
             body.append(name, v === true ? 'true' : v);
         });
 
+        // 유형 이름을 다 늘어놓으면 거의 모든 카드에서 두 줄로 반복된다 (#46) — 개수만 쓰고 이름은 툴팁으로
         var TEXT = {
-            ELIGIBLE: function (b) { return '✓ 내 조건으로 신청 가능 · ' + b.types.join(', '); },
-            FIXABLE: function (b) { return '조건을 채우면 가능 · ' + b.types.join(', '); },
+            ELIGIBLE: function (b) { return '✓ ' + b.types.length + '개 유형 신청 가능'; },
+            FIXABLE: function (b) { return '조건을 채우면 ' + b.types.length + '개 유형 가능'; },
             NEEDS_INFO: function () { return '판정에 정보가 더 필요해요'; },
             NONE: function () { return '내 조건 해당 유형 없음'; }
         };
@@ -1490,12 +1512,16 @@
                     var el = document.createElement('div');
                     el.className = 'my-badge ' + b.state.toLowerCase();
                     el.textContent = TEXT[b.state](b);   // 서버 값이라도 textContent 로만
-                    if (b.hints && b.hints.length) el.title = b.hints.join('\n');
+                    var tip = (b.types && b.types.length ? [b.types.join(', ')] : []).concat(b.hints || []);
+                    if (tip.length) el.title = tip.join('\n');
                     card.appendChild(el);
                     shown++;
                     if (b.state === 'ELIGIBLE') eligible++;
                     if (b.state === 'NEEDS_INFO') needsInfo++;
                 });
+                // 저장된 조건으로 배지를 붙였으면 "30초 빠른 진단"은 같은 입구의 반복이다 (#46)
+                var quick = document.querySelector('.quick-check');
+                if (quick && shown) quick.hidden = true;
                 var note = document.getElementById('myBadgeNote');
                 if (note && shown) {
                     // 가능 0곳인데 정보 부족이 섞여 있으면 "0곳"은 틀린 결론처럼 읽힌다 — 채울 것을 먼저 말한다
@@ -1520,23 +1546,6 @@
         var slot = document.getElementById('verdictSummarySlot');
         if (!slot || !window.fetch) return;
 
-        /* 유형별 배정 타일에 판정 결과를 칠한다 — 자격 충족 ✓ 강조, 미충족 흐림, 정보 필요는 그대로.
-           판정은 엔진이 한 것을 조각의 data-eligible/data-ineligible 로 받아 옮길 뿐이다. */
-        function markTypeTiles(src) {
-            if (!src) return;
-            var split = function (v) { return (v || '').split(',').filter(Boolean); };
-            var ok = split(src.getAttribute('data-eligible'));
-            var no = split(src.getAttribute('data-ineligible'));
-            var marked = 0;
-            document.querySelectorAll('.type-total[data-type]').forEach(function (tile) {
-                var t = tile.getAttribute('data-type');
-                tile.classList.toggle('is-eligible', ok.indexOf(t) >= 0);
-                tile.classList.toggle('is-ineligible', no.indexOf(t) >= 0);
-                if (ok.indexOf(t) >= 0) marked++;
-            });
-            var legend = document.getElementById('typeTotalsLegend');
-            if (legend) legend.hidden = marked === 0;
-        }
         var draft;
         try { draft = JSON.parse(localStorage.getItem('chungyak:profileDraft') || 'null'); } catch (e) { return; }
         if (!draft) return;
@@ -1557,10 +1566,8 @@
           .then(function (html) {
               if (!html) return;
               slot.innerHTML = html;   // 우리 서버가 그린 조각(값은 Thymeleaf 가 이스케이프)
-              // 목록이 비면 Thymeleaf 가 속성을 아예 빼므로 카드 자체를 찾고, 없는 속성은 빈 목록으로 본다
-              markTypeTiles(slot.querySelector('.verdict-mini'));
           })
-          .catch(function () { /* 기본 안내 카드 그대로 */ });
+          .catch(function () { /* 요약 없이 그대로 */ });
     })();
 </script>
 
@@ -1896,7 +1903,7 @@
         if (!host) return;
 
         var currentId = marker ? marker.dataset.annId : null;
-        var SHOWN = 5;
+        var SHOWN = 3;   // #46 — 다섯 줄도 본문 옆에서 시선을 끌었다
         var expanded = false;   // 한 번 펼치면 이 화면에선 펼친 채로(하나 빼도 다시 접히지 않게)
 
         /** 하나 빼기 — 저장분에서 아예 지운다("오늘 목록에서만 숨김"이면 내일 되살아나 혼란스럽다) */
@@ -1938,6 +1945,7 @@
                 var a = document.createElement('a');
                 a.href = '/announcements/' + encodeURIComponent(v.id);
                 a.textContent = v.name || ('공고 ' + v.id);   // DB 값이라 textContent 로만
+                a.title = a.textContent;   // 한 줄로 잘리니 전체 이름은 툴팁으로
 
                 var x = document.createElement('button');
                 x.type = 'button';
@@ -2077,7 +2085,7 @@
         var set = function (on) {
             box.classList.toggle('show-types', on);
             btn.setAttribute('aria-expanded', String(on));
-            btn.textContent = on ? '특별공급 유형별 세대 접기' : '특별공급 유형별 세대 보기';
+            btn.textContent = on ? '유형별 열 접기' : '주택형마다 유형별로 나눠 보기';
             window.dispatchEvent(new Event('resize'));   // 표 폭이 바뀐다 — 스크롤 안내 갱신
         };
         var saved = false;
