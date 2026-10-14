@@ -129,6 +129,12 @@ rag:
   search:
     top-k: 5
     hybrid-weight: ${RAG_HYBRID_WEIGHT:0.4}   # RRF 벡터(의미) 쪽 가중치, 나머지는 BM25. 0.4: 69문항 eval 49(0.6: 48, BM25 43) — NoticeQaSemanticEvalTest
+  rerank:
+    # 공고문 Q&A 재정렬(Voyage rerank-2.5, 키는 rag.voyage.api-key). 하이브리드 상위 candidates 개를 다시 매겨 앞쪽만 LLM 에.
+    # 69문항 eval: 하이브리드 49 → 후보 8: 56, 12: 59, 20: 61. 질문당 약 1.4만 토큰(무료 2억). 실패하면 하이브리드 순서로 답한다
+    enabled: ${RAG_RERANK_ENABLED:true}
+    model: ${RAG_RERANK_MODEL:rerank-2.5}
+    candidates: ${RAG_RERANK_CANDIDATES:20}
   qa:
     # 답변에 넣을 발췌 개수. 4→2 로 Q&A 토큰 ~3,200→~1,800(#32). 2→3 은 검색 eval(#39, 39문항)에서 정답 발췌가
     # LLM 까지 가는 비율 23→28 — 토큰 ~2,500. 무료 한도(분당 8K·하루 200K)가 빠듯하면 RAG_QA_CONTEXT_CHUNKS=2

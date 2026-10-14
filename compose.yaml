@@ -56,6 +56,8 @@ services:
       # 공고문 Q&A 의미 검색(Voyage 임베딩) — 비우면 BM25(키워드)만. 켜면 /privacy 에 Voyage 위탁이 표시된다
       VOYAGE_API_KEY: ${VOYAGE_API_KEY:-REPLACE_ME}
       RAG_HYBRID_WEIGHT: ${RAG_HYBRID_WEIGHT:-0.4}
+      RAG_RERANK_ENABLED: ${RAG_RERANK_ENABLED:-true}
+      RAG_RERANK_CANDIDATES: ${RAG_RERANK_CANDIDATES:-20}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
       # 새 공고 알림 메일 — MAIL_HOST 가 비면 발송을 끄고 화면의 구독 입구도 숨긴다

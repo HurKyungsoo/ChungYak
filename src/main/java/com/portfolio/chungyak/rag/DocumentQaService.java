@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.portfolio.chungyak.llm.LlmRateLimitedException;
 import com.portfolio.chungyak.llm.LlmUsageStats;
 import com.portfolio.chungyak.rag.VectorSearch.Hit;
+import com.portfolio.chungyak.rag.embedding.Reranker;
 import com.portfolio.chungyak.repository.DocumentChunkRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,8 @@ public class DocumentQaService {
     private final VectorSearch vectorSearch;
     private final DocumentChunkRepository chunkRepository;
     private final Optional<DocumentAnswerer> answerer;
+    /** 재정렬(Voyage rerank) — 있으면 하이브리드 상위 후보를 다시 매겨 앞쪽만 LLM 에 넘긴다 */
+    private final Optional<Reranker> reranker;
     private final int contextChunks;
     private final double minScore;
     private final double keywordMinScore;
@@ -52,7 +55,7 @@ public class DocumentQaService {
                              DocumentChunkRepository chunkRepository,
                              Optional<DocumentAnswerer> answerer,
                              RagProperties properties) {
-        this(vectorSearch, chunkRepository, answerer, properties, Optional.empty());
+        this(vectorSearch, chunkRepository, answerer, properties, Optional.empty(), Optional.empty());
     }
 
     @Autowired
@@ -60,8 +63,10 @@ public class DocumentQaService {
                              DocumentChunkRepository chunkRepository,
                              Optional<DocumentAnswerer> answerer,
                              RagProperties properties,
-                             Optional<LlmUsageStats> stats) {
+                             Optional<LlmUsageStats> stats,
+                             Optional<Reranker> reranker) {
         this.stats = stats;
+        this.reranker = reranker;
         this.vectorSearch = vectorSearch;
         this.chunkRepository = chunkRepository;
         this.answerer = answerer;
@@ -157,7 +162,9 @@ public class DocumentQaService {
     }
 
     private QaAnswer answerUncached(Long announcementId, String question) {
-        List<Hit> hits = vectorSearch.searchWithin(announcementId, question.strip(), contextChunks);
+        int fetch = reranker.map(r -> Math.max(contextChunks, r.candidates())).orElse(contextChunks);
+        List<Hit> hits = rerank(question.strip(), vectorSearch.searchWithin(announcementId, question.strip(), fetch));
+        hits = hits.subList(0, Math.min(contextChunks, hits.size()));
         if (hits.isEmpty()) {
             // BM25 모드는 키워드가 하나도 안 걸린 청크를 빼므로, 인덱스가 있어도 결과가 빌 수 있다 — 그건 "관련 없음"이다
             return hasIndex(announcementId) ? QaAnswer.noMatch(List.of()) : QaAnswer.noIndex();
@@ -194,6 +201,21 @@ public class DocumentQaService {
             if (LlmRateLimitedException.isRateLimit(e)) count("RATE_LIMITED");
             log.warn("공고 #{} Q&A 응답 생성 실패 — {}", announcementId, e.toString());
             return QaAnswer.answerFailed(citations);
+        }
+    }
+
+    /** 재정렬 — 실패하면 하이브리드 순서 그대로(답을 막지 않는다) */
+    private List<Hit> rerank(String question, List<Hit> hits) {
+        if (reranker.isEmpty() || hits.size() <= 1) return hits;
+        try {
+            List<Integer> order = reranker.get().order(question, hits.stream().map(Hit::content).toList());
+            if (order.size() != hits.size()) throw new IllegalStateException("rerank 결과 개수 불일치");
+            count("RERANKED");
+            return order.stream().map(hits::get).toList();
+        } catch (RuntimeException e) {
+            count("RERANK_FAILED");
+            log.warn("Q&A 재정렬 실패 — 하이브리드 순서로 답함: {}", e.getClass().getSimpleName());
+            return hits;
         }
     }
 

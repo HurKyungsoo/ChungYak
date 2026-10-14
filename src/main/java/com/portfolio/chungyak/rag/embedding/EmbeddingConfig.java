@@ -19,7 +19,7 @@ import java.time.Duration;
  */
 @Slf4j
 @Configuration
-@EnableConfigurationProperties(VoyageProperties.class)
+@EnableConfigurationProperties({VoyageProperties.class, RerankProperties.class})
 public class EmbeddingConfig {
 
     @Bean
@@ -33,5 +33,18 @@ public class EmbeddingConfig {
         factory.setReadTimeout(Duration.ofSeconds(30));
         RestClient restClient = RestClient.builder().requestFactory(factory).build();
         return new VoyageEmbeddingClient(restClient, properties);
+    }
+
+    /** 공고문 Q&A 재정렬 — 임베딩과 같은 키, {@code rag.rerank.enabled=false} 로 끈다 */
+    @Bean
+    @ConditionalOnExpression(
+            "'${rag.voyage.api-key:REPLACE_ME}' != 'REPLACE_ME' "
+            + "&& '${rag.voyage.api-key:}'.length() > 0 && ${rag.rerank.enabled:true}")
+    public Reranker voyageReranker(RerankProperties rerank, VoyageProperties voyage) {
+        log.warn("유료 API 키 로드됨 — Voyage rerank 활성화(질문마다 과금), model={}, 후보 {}개", rerank.model(), rerank.candidates());
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofSeconds(3));
+        factory.setReadTimeout(Duration.ofSeconds(10));
+        return new VoyageReranker(RestClient.builder().requestFactory(factory).build(), rerank, voyage.apiKey());
     }
 }

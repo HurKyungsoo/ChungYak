@@ -296,6 +296,118 @@ class NoticeQaSemanticEvalTest {
         return java.util.Arrays.stream(order).map(hits::get).toList();
     }
 
+    /**
+     * 남은 실패 다루기(2026-10-14) — LLM 에 넘기는 발췌 수(3)는 그대로 두고 순서만 바꾼다.
+     * <ul>
+     *   <li>heads: BM25 1위·벡터 1위를 반드시 넣고 나머지는 하이브리드 순서(무료) — 융합이 BM25 1위를 밀어내는 문제</li>
+     *   <li>rerank-N: 하이브리드 상위 N 개를 Voyage rerank-2.5 로 다시 매긴다 — 4·5위에 걸린 정답(near-miss)</li>
+     * </ul>
+     */
+    @Test
+    @DisplayName("남은 실패 — BM25·벡터 1위 고정 / Voyage rerank 로 하이브리드 상위 N 재정렬")
+    void rerankAndHeads() {
+        VectorSearch hybrid = search(Optional.of(embeddings), 0.4);
+        VectorSearch bm25 = search(Optional.empty(), 0.4);
+        VectorSearch vector = search(Optional.of(embeddings), 1.0);
+        Map<String, java.util.function.Function<Case, List<Hit>>> modes = new LinkedHashMap<>();
+        modes.put("hybrid0.4", c -> hybrid.searchWithin(IDS.get(c.notice()), c.question(), 5));
+        modes.put("heads", c -> {
+            long id = IDS.get(c.notice());
+            List<Hit> out = new ArrayList<>();
+            java.util.function.Consumer<Hit> add = h -> {
+                if (h != null && out.stream().noneMatch(o -> o.chunkIndex() == h.chunkIndex())) out.add(h);
+            };
+            bm25.searchWithin(id, c.question(), 1).stream().findFirst().ifPresent(add);
+            vector.searchWithin(id, c.question(), 1).stream().findFirst().ifPresent(add);
+            hybrid.searchWithin(id, c.question(), 5).forEach(add);
+            return out;
+        });
+        for (int n : new int[]{8, 12, 20}) {
+            modes.put("rerank-" + n, c -> rerank(c.question(), hybrid.searchWithin(IDS.get(c.notice()), c.question(), n)));
+        }
+
+        StringBuilder table = new StringBuilder(String.format("%-34s", "질문"));
+        modes.keySet().forEach(m -> table.append(String.format("%-11s", m)));
+        table.append('\n');
+        Map<String, int[]> totals = new LinkedHashMap<>();   // [전체, hold-out]
+        modes.keySet().forEach(m -> totals.put(m, new int[2]));
+        for (Case c : cases) {
+            table.append(String.format("%-34s", c.question().length() > 32 ? c.question().substring(0, 32) : c.question()));
+            for (var e : modes.entrySet()) {
+                List<Hit> ranked = e.getValue().apply(c);
+                int rank = NoticeQaRetrievalEvalTest.rankOf(ranked.subList(0, Math.min(5, ranked.size())), c);
+                boolean gate = !ranked.isEmpty() && (ranked.get(0).keywordScore() >= KEYWORD_MIN || ranked.get(0).score() >= COS_MIN);
+                boolean ok = rank >= 1 && rank <= CONTEXT_CHUNKS && gate;
+                if (ok) {
+                    totals.get(e.getKey())[0]++;
+                    if (!SEEN.contains(c.notice())) totals.get(e.getKey())[1]++;
+                }
+                table.append(String.format("%-11s", (ok ? "O" : rank >= 1 && rank <= CONTEXT_CHUNKS ? "G" : "X")
+                        + (rank < 1 ? " -" : " #" + rank)));
+            }
+            table.append('\n');
+        }
+        long heldN = cases.stream().filter(c -> !SEEN.contains(c.notice())).count();
+        table.append("\nLLM 까지(게이트 통과):");
+        totals.forEach((m, t) -> table.append(String.format("  %s %d/%d(hold-out %d/%d)", m, t[0], cases.size(), t[1], heldN)));
+        table.append("\nrerank 호출(이번 실행): ").append(rerankCalls).append("회, 토큰 ").append(rerankTokens).append('\n');
+        System.out.println("[공고문 Q&A rerank eval]\n" + table);
+    }
+
+    private static final String RERANK_MODEL = "rerank-2.5";
+    private static final Path RERANK_CACHE = Path.of("build", "eval-cache", RERANK_MODEL);
+    private static int rerankCalls;
+    private static long rerankTokens;
+
+    /** 질문 + 후보 청크를 rerank-2.5 로 다시 매긴다. 점수는 (질문, 후보 집합) 해시로 디스크 캐시 */
+    static List<Hit> rerank(String query, List<Hit> candidates) {
+        if (candidates.size() <= 1) return candidates;
+        List<String> docs = candidates.stream().map(Hit::content).toList();
+        double[] scores = rerankScores(query, docs);
+        Integer[] order = new Integer[candidates.size()];
+        for (int i = 0; i < order.length; i++) order[i] = i;
+        java.util.Arrays.sort(order, (a, b) -> Double.compare(scores[b], scores[a]));
+        return java.util.Arrays.stream(order).map(candidates::get).toList();
+    }
+
+    private static double[] rerankScores(String query, List<String> docs) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update((RERANK_MODEL + "|" + query).getBytes(StandardCharsets.UTF_8));
+            for (String d : docs) md.update(("\u0000" + d).getBytes(StandardCharsets.UTF_8));
+            Path file = RERANK_CACHE.resolve(HexFormat.of().formatHex(md.digest()) + ".scores");
+            if (Files.exists(file)) {
+                try (DataInputStream in = new DataInputStream(Files.newInputStream(file))) {
+                    double[] v = new double[in.readInt()];
+                    for (int i = 0; i < v.length; i++) v[i] = in.readDouble();
+                    return v;
+                }
+            }
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("query", query);
+            body.put("documents", docs);
+            body.put("model", RERANK_MODEL);
+            body.put("truncation", true);
+            String json = RestClient.create().post().uri("https://api.voyageai.com/v1/rerank")
+                    .header("Authorization", "Bearer " + apiKey())
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                    .body(body).retrieve().body(String.class);
+            com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(json);
+            double[] v = new double[docs.size()];
+            for (com.fasterxml.jackson.databind.JsonNode d : root.path("data")) v[d.path("index").asInt()] = d.path("relevance_score").asDouble();
+            rerankCalls++;
+            rerankTokens += root.path("usage").path("total_tokens").asLong();
+            Files.createDirectories(file.getParent());
+            try (DataOutputStream out = new DataOutputStream(Files.newOutputStream(file))) {
+                out.writeInt(v.length);
+                for (double x : v) out.writeDouble(x);
+            }
+            return v;
+        } catch (Exception e) {
+            throw new IllegalStateException("rerank 실패: " + e.getClass().getSimpleName());   // 키가 메시지에 섞이지 않게 원인 문구는 뺀다
+        }
+    }
+
     /** 텍스트 해시 → 벡터 파일 캐시. 없는 것만 묶어서 Voyage 에 보낸다 */
     static final class CachingEmbeddings implements EmbeddingClient {
         private final EmbeddingClient delegate;

@@ -241,4 +241,44 @@ class DocumentQaServiceTest {
         when(chunkRepo.existsByAnnouncementId(9L)).thenReturn(true);
         assertThat(service(Optional.of(answerer("x"))).hasIndex(9L)).isTrue();
     }
+
+    private static com.portfolio.chungyak.rag.embedding.Reranker reranker(java.util.function.Function<List<String>, List<Integer>> f) {
+        return new com.portfolio.chungyak.rag.embedding.Reranker() {
+            @Override public List<Integer> order(String query, List<String> documents) { return f.apply(documents); }
+            @Override public int candidates() { return 20; }
+            @Override public String model() { return "fake-rerank"; }
+        };
+    }
+
+    @Test
+    @DisplayName("재정렬 — 후보 20개를 받아 다시 매긴 뒤 앞쪽 발췌만 LLM 에 넘긴다")
+    void rerankReordersBeforeTakingContext() {
+        when(search.searchWithin(eq(1L), anyString(), eq(20))).thenReturn(List.of(
+                new Hit(1L, 0, "첫째 후보", 0.5, 0.6), new Hit(1L, 1, "둘째 후보", 0.5, 0.6),
+                new Hit(1L, 2, "셋째 후보", 0.5, 0.6), new Hit(1L, 3, "넷째 후보", 0.5, 0.6),
+                new Hit(1L, 4, "다섯째 후보 — 정답", 0.5, 0.6)));
+        DocumentQaService s = new DocumentQaService(search, chunkRepo, Optional.of(answerer("답 [1]")), props,
+                Optional.empty(), Optional.of(reranker(docs -> List.of(4, 0, 1, 2, 3))));
+
+        QaAnswer a = s.answer(1L, "질문");
+
+        assertThat(a.status()).isEqualTo(Status.ANSWERED);
+        assertThat(lastExcerpts.get()).hasSize(4)   // props 의 context-chunks = 4
+                .first().isEqualTo("[1] 다섯째 후보 — 정답");
+        assertThat(a.citations()).extracting(DocumentQaService.Citation::chunkIndex).containsExactly(4, 0, 1, 2);
+    }
+
+    @Test
+    @DisplayName("재정렬 실패 → 하이브리드 순서 그대로 답한다 (답을 막지 않는다)")
+    void rerankFailureFallsBack() {
+        when(search.searchWithin(eq(1L), anyString(), eq(20))).thenReturn(List.of(
+                new Hit(1L, 0, "첫째 후보", 0.5, 0.6), new Hit(1L, 1, "둘째 후보", 0.5, 0.6)));
+        DocumentQaService s = new DocumentQaService(search, chunkRepo, Optional.of(answerer("답 [1]")), props,
+                Optional.empty(), Optional.of(reranker(docs -> { throw new IllegalStateException("timeout"); })));
+
+        QaAnswer a = s.answer(1L, "질문");
+
+        assertThat(a.status()).isEqualTo(Status.ANSWERED);
+        assertThat(lastExcerpts.get()).containsExactly("[1] 첫째 후보", "[2] 둘째 후보");
+    }
 }
