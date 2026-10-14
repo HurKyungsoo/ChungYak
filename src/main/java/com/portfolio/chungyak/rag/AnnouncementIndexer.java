@@ -56,14 +56,12 @@ public class AnnouncementIndexer {
     }
 
     /**
-     * 수집 직후 자동 인덱싱 — <b>BM25 모드일 때만</b>(무료). 임베딩 모드는 호출마다 과금이라
-     * 지금처럼 관리자 API({@code /api/admin/rag/reindex})로만 돌린다.
+     * 수집 직후 자동 인덱싱 — 두 모드 모두. 새 공고에 인덱스가 없으면 "이 공고에 물어보기"가 아예 뜨지 않는다.
+     * 임베딩 모드의 비용은 실측했다(2026-10-14): 새 공고문 월 ≈ 1,400만 토큰(한글 글자당 0.72 토큰), voyage-4-lite
+     * 무료 2억 토큰 안이고 넘어도 월 ≈ $0.3. 원문이 바뀐 공고만 다시 임베딩한다({@link #isUpToDate}).
+     * 단, 임베딩 모델을 바꾸면 전체가 낡은 것이 되어 다음 수집 때 전부 다시 임베딩한다(≈ 1,400만 토큰).
      */
     public void indexAfterSync() {
-        if (isSemantic()) {
-            log.info("임베딩 모드 — 수집 후 자동 인덱싱은 하지 않음(과금). 필요하면 /api/admin/rag/reindex");
-            return;
-        }
         indexPending();
     }
 

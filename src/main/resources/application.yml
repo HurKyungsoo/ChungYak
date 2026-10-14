@@ -128,7 +128,7 @@ rag:
     overlap: 150     # 청크 간 겹침(문자) — 경계 문장 유실 방지
   search:
     top-k: 5
-    hybrid-weight: 0.6   # RRF 융합에서 벡터(의미) 쪽 가중치. 나머지는 BM25(키워드)
+    hybrid-weight: ${RAG_HYBRID_WEIGHT:0.4}   # RRF 벡터(의미) 쪽 가중치, 나머지는 BM25. 0.4: 69문항 eval 49(0.6: 48, BM25 43) — NoticeQaSemanticEvalTest
   qa:
     # 답변에 넣을 발췌 개수. 4→2 로 Q&A 토큰 ~3,200→~1,800(#32). 2→3 은 검색 eval(#39, 39문항)에서 정답 발췌가
     # LLM 까지 가는 비율 23→28 — 토큰 ~2,500. 무료 한도(분당 8K·하루 200K)가 빠듯하면 RAG_QA_CONTEXT_CHUNKS=2

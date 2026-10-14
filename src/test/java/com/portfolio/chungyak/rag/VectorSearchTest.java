@@ -176,4 +176,26 @@ class VectorSearchTest {
         org.mockito.Mockito.verify(chunkRepo, org.mockito.Mockito.times(2)).findAllContents();
         assertThat(hits).extracting(VectorSearch.Hit::content).containsExactly("계약금 정액제 안내");
     }
+
+    @Test
+    @DisplayName("청크에 벡터가 없으면(Voyage 를 켠 직후 재인덱싱 전) BM25 로 — 질의 임베딩도 부르지 않는다")
+    void fallsBackToBm25WhenChunksHaveNoVectors() {
+        stub(List.of(
+                chunk(1, 0, new float[0], "앞쪽 청크 관련 없는 내용"),
+                chunk(1, 1, new float[0], "견본주택 주소 안내")));
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        EmbeddingClient counting = new EmbeddingClient() {
+            @Override public List<float[]> embed(List<String> texts, InputType type) {
+                calls.incrementAndGet();
+                return texts.stream().map(t -> new float[]{1f, 0f}).toList();
+            }
+            @Override public String model() { return "fake"; }
+        };
+
+        List<VectorSearch.Hit> hits = new VectorSearch(chunkRepo, Optional.of(counting), props(0.4))
+                .searchWithin(1L, "견본주택 주소", 2);
+
+        assertThat(hits).extracting(VectorSearch.Hit::chunkIndex).containsExactly(1);   // 키워드 안 걸린 청크는 빠진다
+        assertThat(calls).hasValue(0);
+    }
 }

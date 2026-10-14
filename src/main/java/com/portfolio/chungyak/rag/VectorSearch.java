@@ -89,7 +89,11 @@ public class VectorSearch {
             return List.of();
         }
         String q = query.strip();
-        float[] qVec = embeddingClient.map(e -> e.embed(List.of(q), InputType.QUERY).get(0)).orElse(null);
+        // 청크에 벡터가 없으면(BM25 모드로 만든 인덱스 — Voyage 를 켠 직후 재인덱싱이 끝나기 전) 이 공고는 BM25 로만 찾는다.
+        // 코사인이 전부 0 이라 벡터 순위가 청크 순서가 되어 앞쪽 청크를 끌어올리는 잡음이 된다. 질의 임베딩 호출도 아낀다.
+        boolean chunksHaveVectors = chunks.stream().allMatch(c -> c.getEmbedding() != null && c.getEmbedding().length > 0);
+        float[] qVec = chunksHaveVectors
+                ? embeddingClient.map(e -> e.embed(List.of(q), InputType.QUERY).get(0)).orElse(null) : null;
 
         // BM25 IDF 는 전체 코퍼스 통계로 (공고 하나로 좁히면 IDF 가 의미 없다), 단어 빈도는 청크마다 즉석으로
         Bm25Index bm25 = corpus().bm25();

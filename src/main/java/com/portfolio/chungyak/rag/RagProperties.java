@@ -26,7 +26,7 @@ public record RagProperties(Chunk chunk, Search search, Qa qa) {
     public record Search(int topK, double hybridWeight) {
         public Search {
             if (topK <= 0) topK = 5;
-            if (hybridWeight <= 0 || hybridWeight > 1) hybridWeight = 0.6;
+            if (hybridWeight <= 0 || hybridWeight > 1) hybridWeight = 0.4;
         }
     }
 
