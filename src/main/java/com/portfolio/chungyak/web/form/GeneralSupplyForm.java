@@ -15,6 +15,9 @@ public class GeneralSupplyForm {
     private Integer houselessMonths;
     private Integer dependents;
     private Integer accountMonths;
+    /** 지역 최근 당첨 기록과 비교(선택, #34) — 계산에는 쓰지 않는다 */
+    private String region;
+    private String band;
 
     public GeneralSupplyInput toInput() {
         return new GeneralSupplyInput(age, married, houselessMonths, dependents, accountMonths);
@@ -34,4 +37,10 @@ public class GeneralSupplyForm {
 
     public Integer getAccountMonths() { return accountMonths; }
     public void setAccountMonths(Integer accountMonths) { this.accountMonths = accountMonths; }
+
+    public String getRegion() { return region; }
+    public void setRegion(String region) { this.region = region; }
+
+    public String getBand() { return band; }
+    public void setBand(String band) { this.band = band; }
 }

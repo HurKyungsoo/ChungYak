@@ -275,6 +275,21 @@ class ScreenRenderTest {
                 .contains("41~63점").contains("중앙값 55점 · 가점 있는 3건").contains("미달 1건 / 3건").contains("경쟁 있던 1건 해당지역 중앙값 12.0 : 1")
                 .contains("비슷한 최근 공고 (60~85㎡)").contains("지난 공고 0").contains("강서구").contains("12.0 : 1")
                 .contains("당첨 가능성을 뜻하지 않습니다");
+
+        // 가점 계산 결과의 지역 비교 — 같은 기록(서울 60~85㎡, 공고별 최저가점 41·55·63)과 내 가점 55점
+        assertThat(render("/general-supply")).contains("지역 기록과 비교").contains("<option value=\"서울\">서울</option>");
+        MvcResult r = mvc.perform(post("/general-supply")
+                        .param("age", "40").param("married", "true").param("houselessMonths", "120")
+                        .param("dependents", "1").param("accountMonths", "120")
+                        .param("region", "서울").param("band", "60~85㎡"))
+                .andExpect(status().isOk()).andReturn();
+        String result = r.getResponse().getContentAsString();
+        java.util.regex.Matcher total = java.util.regex.Pattern.compile("내 가점\\(<span>(\\d+)점</span>\\)").matcher(result);
+        assertThat(total.find()).as("가점 비교 카드").isTrue();
+        int mine = Integer.parseInt(total.group(1));
+        long expected = java.util.stream.IntStream.of(lows).filter(v -> v <= mine).count();
+        assertThat(result).contains("서울 60~85㎡ 최근 당첨 기록과 비교 (참고)").contains("<strong>3건</strong>")
+                .contains("<strong>" + expected + "건</strong>입니다").contains("41~63점 (중앙값 55점)");
     }
 
     @Test

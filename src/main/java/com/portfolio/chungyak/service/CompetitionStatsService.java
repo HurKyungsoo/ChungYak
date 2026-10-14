@@ -133,6 +133,51 @@ public class CompetitionStatsService {
         return area <= 60 ? "60㎡ 이하" : area <= 85 ? "60~85㎡" : "85㎡ 초과";
     }
 
+    /** 가점 비교에 고를 수 있는 시도 — announcement.region_name(청약홈 SUBSCRPT_AREA_CODE_NM) 값 그대로 */
+    public static final List<String> REGIONS = List.of("서울", "경기", "인천", "부산", "대구", "광주", "대전", "울산", "세종",
+            "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주");
+    public static final List<String> BANDS = List.of("60㎡ 이하", "60~85㎡", "85㎡ 초과");
+
+    /**
+     * 가점 계산 결과의 지역 비교 (#34) — 최근 가점제 공고 중 해당지역 최저 당첨가점이 내 가점 이하였던 공고 수.
+     * 과거 기록일 뿐 당첨 가능성이 아니다(같은 점수라도 거주 요건·주택형·그때의 경쟁에 따라 다르다). 확률처럼 읽히지 않게
+     * 화면은 퍼센트가 아니라 "N건 중 M건"으로 쓴다.
+     * @param atOrBelow 최저 당첨가점이 내 가점 이하였던 공고 수
+     */
+    public record ScoreComparison(String region, String band, int months, int notices, int atOrBelow,
+                                  int minLowest, int medianLowest, int maxLowest) {}
+
+    public java.util.Optional<ScoreComparison> compareScore(String region, String band, Integer score, LocalDate today) {
+        if (score == null || region == null || band == null || !REGIONS.contains(region) || !BANDS.contains(band)) {
+            return java.util.Optional.empty();
+        }
+        List<PastUnit> past = mapper.pastUnits(region, today.minusMonths(FALLBACK_MONTHS), today.plusDays(1));
+        return compare(region, band, score, past, today);
+    }
+
+    /** 순수 함수 — 테스트가 직접 부른다 */
+    static java.util.Optional<ScoreComparison> compare(String region, String band, int score, List<PastUnit> past, LocalDate today) {
+        for (int months : new int[]{MONTHS, FALLBACK_MONTHS}) {
+            List<Integer> lows = lowsByNotice(band, past, today.minusMonths(months));
+            if (lows.size() < MIN_NOTICES) continue;
+            lows.sort(Integer::compare);
+            int atOrBelow = (int) lows.stream().filter(v -> v <= score).count();
+            return java.util.Optional.of(new ScoreComparison(region, band, months, lows.size(), atOrBelow, lows.get(0),
+                    (int) Math.round(median(lows.stream().map(Integer::doubleValue).toList())), lows.get(lows.size() - 1)));
+        }
+        return java.util.Optional.empty();
+    }
+
+    /** 공고마다 그 면적대 주택형 중 해당지역 최저가점(0 제외)의 최솟값 */
+    private static List<Integer> lowsByNotice(String band, List<PastUnit> past, LocalDate from) {
+        Map<String, Integer> low = new LinkedHashMap<>();
+        for (PastUnit u : past) {
+            if (u.noticeDate() == null || u.noticeDate().isBefore(from) || u.lowest() <= 0 || !band.equals(band(u.houseType()))) continue;
+            low.merge(u.houseManageNo(), u.lowest(), Math::min);
+        }
+        return new ArrayList<>(low.values());
+    }
+
     /** 순수 함수 — 테스트가 직접 부른다 */
     static Summary summarize(String region, Set<String> bands, List<PastUnit> past, LocalDate noticeDate) {
         List<BandStat> out = new ArrayList<>();

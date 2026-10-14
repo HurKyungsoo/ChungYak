@@ -132,6 +132,29 @@ class CompetitionStatsServiceTest {
     }
 
     @Test
+    @DisplayName("가점 비교 — 공고별 최저가점 중 내 가점 이하인 공고 수, 0(미달·추첨)은 빼고, 3건 미만이면 24개월로")
+    void compareScore() {
+        List<PastUnit> past = List.of(
+                unit("A", NOTICE.minusMonths(1), "084.9A", 48, "5"),
+                unit("A", NOTICE.minusMonths(1), "084.9B", 52, "5"),     // A 의 최저 = 48
+                unit("B", NOTICE.minusMonths(4), "084.9A", 61, "5"),
+                unit("C", NOTICE.minusMonths(6), "084.9A", 33, "5"),
+                unit("D", NOTICE.minusMonths(2), "084.9A", 0, "(△1)"),   // 가점 없음 — 빠진다
+                unit("E", NOTICE.minusMonths(3), "059.9A", 20, "5"));    // 다른 면적대
+
+        var c = CompetitionStatsService.compare("경기", "60~85㎡", 48, past, NOTICE).orElseThrow();
+
+        assertThat(c.months()).isEqualTo(12);
+        assertThat(c.notices()).isEqualTo(3);
+        assertThat(c.atOrBelow()).isEqualTo(2);   // 33, 48
+        assertThat(c.minLowest()).isEqualTo(33);
+        assertThat(c.medianLowest()).isEqualTo(48);
+        assertThat(c.maxLowest()).isEqualTo(61);
+
+        assertThat(CompetitionStatsService.compare("경기", "85㎡ 초과", 48, past, NOTICE)).isEmpty();
+    }
+
+    @Test
     @DisplayName("표본이 하나도 안 되면 비어 있다 — 화면은 카드를 그리지 않는다")
     void emptyWhenNoSample() {
         assertThat(CompetitionStatsService.summarize("서울", Set.of("60~85㎡"), List.of(), NOTICE).isEmpty()).isTrue();

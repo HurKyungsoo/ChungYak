@@ -22,7 +22,10 @@ class GeneralSupplyControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new GeneralSupplyController(new GeneralSupplyScoreCalculator()))
+                .standaloneSetup(new GeneralSupplyController(new GeneralSupplyScoreCalculator(),
+                        new com.portfolio.chungyak.service.CompetitionStatsService(
+                                org.mockito.Mockito.mock(com.portfolio.chungyak.mapper.CompetitionMapper.class)),
+                        java.time.Clock.systemDefaultZone()))
                 .build();
     }
 

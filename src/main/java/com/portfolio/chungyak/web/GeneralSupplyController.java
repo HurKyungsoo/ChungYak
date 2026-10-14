@@ -2,6 +2,7 @@ package com.portfolio.chungyak.web;
 
 import com.portfolio.chungyak.rule.GeneralSupplyScore;
 import com.portfolio.chungyak.rule.GeneralSupplyScoreCalculator;
+import com.portfolio.chungyak.service.CompetitionStatsService;
 import com.portfolio.chungyak.web.form.GeneralSupplyForm;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,12 +24,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 public class GeneralSupplyController {
 
     private final GeneralSupplyScoreCalculator calculator;
+    /** 지역 최근 당첨 기록과 비교(#34) — 참고 정보. 가점 계산(rule)과 따로 돈다 */
+    private final CompetitionStatsService competitionStats;
+    private final java.time.Clock clock;
 
     @GetMapping("/general-supply")
     public String form(Model model) {
         if (!model.containsAttribute("form")) {
             model.addAttribute("form", new GeneralSupplyForm());
         }
+        model.addAttribute("regions", CompetitionStatsService.REGIONS);
+        model.addAttribute("bands", CompetitionStatsService.BANDS);
         return "general-supply/form";
     }
 
@@ -40,6 +46,12 @@ public class GeneralSupplyController {
                 score.total(), score.missingInputs().size());
 
         model.addAttribute("score", score);
+        if (score.isComplete()) {
+            model.addAttribute("comparison", competitionStats
+                    .compareScore(form.getRegion(), form.getBand(), score.total(), java.time.LocalDate.now(clock))
+                    .orElse(null));
+        }
+        model.addAttribute("comparisonAsked", form.getRegion() != null && !form.getRegion().isBlank());
         return "general-supply/result";
     }
 }
