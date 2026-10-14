@@ -85,6 +85,24 @@ public final class NoticeLineage {
         return SPACES.matcher(sb).replaceAll("");
     }
 
+    /**
+     * 화면용 제목 — 정정·취소 태그만 뗀다. 정정 여부는 배지로 따로 보여 주므로 제목에 "[정정공고]"를 남기면
+     * 목록·캘린더에서 같은 말이 두 번 나오고 단지 이름이 뒤로 밀린다. 다른 태그("[조기접수마감]")는 정보라 둔다.
+     */
+    public static String displayTitle(String title) {
+        if (title == null) return null;
+        StringBuilder sb = new StringBuilder();
+        Matcher m = TAG.matcher(title);
+        while (m.find()) {
+            String tag = tagText(m);
+            boolean revisionTag = tag.length() <= MAX_TAG_LENGTH && (tag.contains("정정") || tag.contains("취소"));
+            m.appendReplacement(sb, revisionTag ? "" : Matcher.quoteReplacement(m.group()));
+        }
+        m.appendTail(sb);
+        String cleaned = SPACES.matcher(sb).replaceAll(" ").trim();
+        return cleaned.isEmpty() ? title : cleaned;
+    }
+
     private static String tagText(Matcher m) {
         return (m.group(1) != null ? m.group(1) : m.group(2)).trim();
     }

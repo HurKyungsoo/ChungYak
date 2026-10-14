@@ -58,7 +58,7 @@ public class NoticeQuestionService {
         Optional<NoticeSummaryTable> table = document.flatMap(d -> NoticeSummaryTable.parse(d.getFirstPart()));
         // 버튼 문구 확인 — via=quick 만 믿고 저장하면 아무 글이나 집계 표에 들어간다(원문 저장 금지)
         String quick = viaQuick ? announcement
-                .flatMap(a -> QuickQuestions.of(a, table).stream()
+                .flatMap(a -> QuickQuestions.of(a, table, document.map(d -> d.getRawText()).orElse(null)).stream()
                         .map(QuickQuestions.QuickQuestion::text).filter(question::equals).findFirst())
                 .orElse(null) : null;
         Optional<FactAnswerer.Fact> fact = announcement.flatMap(a -> FactAnswerer.answer(a, table, question));

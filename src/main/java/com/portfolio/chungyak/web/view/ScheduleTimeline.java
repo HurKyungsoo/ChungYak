@@ -50,12 +50,15 @@ public record ScheduleTimeline(List<Step> steps) {
         raws.add(new Raw("계약", null, null));
 
         List<Step> steps = new ArrayList<>();
-        boolean nextMarked = false;
-        boolean anyCurrent = raws.stream().anyMatch(r -> r.isCurrent(today));
+        // 취소·정정 전 공고(#47)는 이 일정으로 진행되지 않는다 — "진행 중"·"다음" 표시를 하지 않는다
+        // (취소 안내 위에 "청약 접수 중" 배지가 뜨던 모순)
+        boolean live = a.isCurrentRevision();
+        boolean nextMarked = !live;
+        boolean anyCurrent = live && raws.stream().anyMatch(r -> r.isCurrent(today));
         for (Raw r : raws) {
             State state;
             if (r.start == null && r.end == null) state = State.UNKNOWN;
-            else if (r.isCurrent(today)) state = State.CURRENT;
+            else if (live && r.isCurrent(today)) state = State.CURRENT;
             else if (r.lastDay().isBefore(today)) state = State.DONE;
             else if (!anyCurrent && !nextMarked) { state = State.NEXT; nextMarked = true; }
             else state = State.UPCOMING;

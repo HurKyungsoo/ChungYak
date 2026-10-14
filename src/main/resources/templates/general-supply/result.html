@@ -66,6 +66,21 @@
         <p class="muted" style="margin:0 0 6px;font-size:.86rem"
            th:text="|그 공고들의 최저 당첨가점: ${comparison.minLowest()}~${comparison.maxLowest()}점 (중앙값 ${comparison.medianLowest()}점)|">
             그 공고들의 최저 당첨가점: 19~69점 (중앙값 37점)</p>
+        <!--/* 범위 막대 — 0~84점 위에 최저 당첨가점 범위(띠)·중앙값(눈금)·내 가점(점). 숫자는 바로 위 문장과 같다 */-->
+        <div class="score-range" role="img"
+             th:attr="aria-label=|최저 당첨가점 ${comparison.minLowest()}~${comparison.maxLowest()}점, 중앙값 ${comparison.medianLowest()}점, 내 가점 ${score.total}점|">
+            <div class="sr-track">
+                <span class="sr-band" th:style="|left:${comparison.minLowest() * 100.0 / 84}%;width:${(comparison.maxLowest() - comparison.minLowest()) * 100.0 / 84}%|"></span>
+                <span class="sr-median" th:style="|left:${comparison.medianLowest() * 100.0 / 84}%|"></span>
+                <span class="sr-me" th:style="|left:${score.total * 100.0 / 84}%|"></span>
+            </div>
+            <div class="sr-axis"><span>0</span><span>84점</span></div>
+            <div class="sr-legend">
+                <span><i class="sr-key band"></i>최저 당첨가점 범위</span>
+                <span><i class="sr-key median"></i>중앙값</span>
+                <span><i class="sr-key me"></i>내 가점 <strong th:text="|${score.total}점|">43점</strong></span>
+            </div>
+        </div>
         <p class="muted" style="margin:0;font-size:.82rem">
             과거 기록일 뿐 <strong>당첨 가능성을 뜻하지 않습니다</strong>. 해당지역 거주 요건·주택형·그때의 경쟁에 따라 같은 점수도 결과가 다릅니다.
             미달·추첨으로 끝난 공고는 가점이 없어 빠집니다.</p>

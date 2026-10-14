@@ -90,6 +90,24 @@ class QuickQuestionsTest {
     }
 
     @Test
+    @DisplayName("공고문 표로 답이 나오면 공식 버튼 — LH 임대 '월 임대료', 표가 없으면 버튼도 없다")
+    void tableButtons() {
+        String rentTable = """
+                ■ 임대주택 임대조건(임대보증금과 월 임대료) [금액단위: 원]
+                단지명 (블록): 충북혁신4 · 주택형 (타입): 059.9800A (59A) · 임대조건 임대보증금 합계: 33,148,000 · 임대조건 월 임대료: 292,150
+                """;
+        List<QuickQuestion> qs = QuickQuestions.of(lhRental(false), TABLE, rentTable);
+        assertThat(texts(qs, true)).contains(QuickQuestions.RENT);
+        for (QuickQuestion q : qs) {
+            boolean answered = FactAnswerer.answer(lhRental(false), TABLE, q.text()).isPresent()
+                    || TableFactAnswerer.answer(rentTable, q.text()).isPresent();
+            assertThat(answered).as(q.text()).isEqualTo(q.fact());
+        }
+        assertThat(texts(QuickQuestions.of(lhRental(false), TABLE, "표 없는 원문"), true))
+                .doesNotContain(QuickQuestions.RENT);
+    }
+
+    @Test
     @DisplayName("AI 버튼 문구는 검색 eval 질문과 같다 — 검색이 정답 발췌를 찾는지 매 빌드에서 잰다")
     void aiButtonsAreEvalCases() throws IOException {
         Set<String> evalQuestions = NoticeQaRetrievalEvalTest.readCases().stream()

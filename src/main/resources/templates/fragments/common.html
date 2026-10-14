@@ -292,6 +292,25 @@
             font-size: 1.05rem; font-weight: 650; letter-spacing: -0.015em;
             line-height: 1.42; margin-bottom: 12px; color: var(--text);
         }
+        /* 가점 비교 범위 막대 (#34) */
+        .score-range { margin: 10px 0 12px; }
+        .sr-track { position: relative; height: 10px; border-radius: var(--r-pill); background: var(--surface-2); }
+        .sr-band { position: absolute; top: 0; bottom: 0; border-radius: var(--r-pill); background: color-mix(in srgb, var(--brand) 32%, transparent); }
+        .sr-median { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--text-muted); }
+        .sr-me { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+            background: var(--brand); border: 2px solid var(--surface, #fff); box-shadow: 0 0 0 1px var(--brand); }
+        .sr-axis { display: flex; justify-content: space-between; font-size: .74rem; color: var(--text-subtle); margin-top: 4px; }
+        .sr-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8rem; color: var(--text-muted); margin-top: 4px; }
+        .sr-key { display: inline-block; width: 12px; height: 8px; margin-right: 5px; vertical-align: 1px; border-radius: 3px; }
+        .sr-key.band { background: color-mix(in srgb, var(--brand) 32%, transparent); }
+        .sr-key.median { width: 2px; height: 12px; vertical-align: -1px; background: var(--text-muted); border-radius: 0; }
+        .sr-key.me { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); }
+        /* 정정공고 배지 (#47) — 제목의 "[정정공고]" 태그 대신 */
+        .tag-revision { display: inline-block; vertical-align: 2px; margin-right: 6px;
+            font-size: .72rem; font-weight: 700; padding: 1px 7px; border-radius: var(--r-pill);
+            background: var(--warn-weak); color: var(--warn); }
+        /* 주택형 원래 표기(084.9730A) — 줄인 이름 옆에 작게 */
+        .type-raw { display: block; font-size: .74rem; color: var(--text-subtle, var(--text-muted)); font-weight: 400; }
         .notice-card .facts { display: flex; flex-wrap: wrap; gap: 6px; }
         .notice-card .fact {
             font-size: .8rem; font-weight: 550; color: var(--text-muted);
@@ -2274,7 +2293,8 @@
             try {
                 var data = loadDraft() || {};
                 Array.prototype.forEach.call(form.elements, function (el) {
-                    if (!el.name) return;
+                    // "_married" 같은 이름은 Spring 체크박스 표식(hidden)이라 값이 아니다
+                    if (!el.name || el.name.charAt(0) === '_') return;
                     data[el.name] = el.type === 'checkbox' ? el.checked : el.value;
                 });
                 localStorage.setItem(KEY, JSON.stringify(data));
@@ -2285,10 +2305,11 @@
         var filled = false;
         if (draft) {
             Array.prototype.forEach.call(form.elements, function (el) {
-                if (!el.name || !(el.name in draft)) return;
+                if (!el.name || el.name.charAt(0) === '_' || !(el.name in draft)) return;
                 var value = draft[el.name];
                 if (el.type === 'checkbox') {
-                    if (!el.checked && value) {
+                    // 켜기만 한다 — 자연어 추출·빠른 진단이 미리 채운 값을 지난 임시 저장이 끄면 안 된다
+                    if (!el.checked && value === true) {
                         el.checked = true;
                         filled = true;
                         el.dispatchEvent(new Event('change'));

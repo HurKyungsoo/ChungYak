@@ -92,7 +92,7 @@ public record AnnouncementCompareRow(
 
         return new AnnouncementCompareRow(
                 a.getId(),
-                a.getHouseName(),
+                a.getDisplayName(),
                 a.getRegionName(),
                 a.getHouseDetailType() == null ? "-" : a.getHouseDetailType().getLabel(),
                 a.getHouseType() == null ? "-" : a.getHouseType().getLabel(),

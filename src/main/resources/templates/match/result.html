@@ -58,11 +58,11 @@
                       th:classappend="${row.ddayUrgent} ? 'soon' : ''"
                       th:text="${row.ddayLabel}">D-2</span>
             </div>
-            <div class="title" th:text="${row.houseName}">공고명</div>
+            <div class="title"><span class="tag-revision" th:if="${row.corrected}">정정</span><span th:text="${row.houseName}">공고명</span></div>
             <div class="facts">
                 <span class="fact hl" th:each="label : ${row.matchedTypeLabels}" th:text="${label}">신혼부부</span>
                 <span class="fact" th:if="${row.bestUnitTypeName != null}"
-                      th:text="|가장 유리한 주택형: ${row.bestUnitTypeName}|">가장 유리한 주택형: 084A</span>
+                      th:text="|가장 유리한 주택형: ${T(com.portfolio.chungyak.web.view.UnitTypeLabels).shortName(row.bestUnitTypeName)}|">가장 유리한 주택형: 084A</span>
                 <span class="fact" th:if="${row.allocationCountKnown}"
                       th:text="|배정 ${#numbers.formatInteger(row.totalAllocated, 1, 'COMMA')}세대|">배정 35세대</span>
                 <span class="fact" th:if="${row.bestUnitTypeName != null and !row.allocationCountKnown}">배정 세대수 미상(LH)</span>

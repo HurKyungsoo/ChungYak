@@ -53,8 +53,7 @@
                 </label>
                 <label class="field"><span class="lbl">전용면적</span>
                     <select th:field="*{band}">
-                        <option th:each="b : ${bands}" th:value="${b}" th:text="${b}"
-                                th:selected="${b == '60~85㎡' and form.band == null}">60~85㎡</option>
+                        <option th:each="b : ${bands}" th:value="${b}" th:text="${b}">60~85㎡</option>
                     </select>
                 </label>
             </div>

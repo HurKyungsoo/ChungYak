@@ -76,6 +76,6 @@ public record CalendarView(YearMonth month, String label, List<List<CalendarDay>
                                   Announcement a, CalendarEvent.Kind kind) {
         if (date == null) return;
         byDate.computeIfAbsent(date, d -> new ArrayList<>())
-                .add(new CalendarEvent(a.getId(), a.getHouseName(), kind));
+                .add(new CalendarEvent(a.getId(), a.getDisplayName(), kind));
     }
 }

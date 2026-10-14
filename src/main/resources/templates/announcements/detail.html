@@ -234,8 +234,11 @@
             </thead>
             <tbody>
             <tr th:each="u : ${announcement.unitTypes}">
-                <td th:text="${u.typeName}">084.9730A</td>
-                <td class="num" th:attr="data-m2=${u.supplyArea}" th:text="${u.supplyArea} ?: '-'">84.97</td>
+                <td th:with="L=${T(com.portfolio.chungyak.web.view.UnitTypeLabels)}">
+                    <strong th:text="${L.shortName(u.typeName)}">84A</strong>
+                    <span class="type-raw" th:if="${L.shortened(u.typeName)}" th:text="${u.typeName}">084.9730A</span></td>
+                <td class="num" th:with="area=${T(com.portfolio.chungyak.web.view.UnitTypeLabels).area(u.supplyArea)}"
+                    th:attr="data-m2=${area}" th:text="${area} ?: '-'">109.57</td>
                 <td class="num" th:with="price=${priceByUnitType.get(u.id)},
                                          perPyeong=${perPyeongByUnitType.get(u.id)}">
                     <span th:if="${price != null}" th:text="${price}">8억 9,300만원</span>

@@ -17,7 +17,7 @@ public class GeneralSupplyForm {
     private Integer accountMonths;
     /** 지역 최근 당첨 기록과 비교(선택, #34) — 계산에는 쓰지 않는다 */
     private String region;
-    private String band;
+    private String band = "60~85㎡";   // 가장 흔한 면적대 — th:field 가 option 의 th:selected 를 덮어쓰므로 여기서 정한다
 
     public GeneralSupplyInput toInput() {
         return new GeneralSupplyInput(age, married, houselessMonths, dependents, accountMonths);

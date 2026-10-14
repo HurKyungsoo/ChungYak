@@ -57,8 +57,10 @@ public record ResultSummaryCard(
         Fix nearest = fixable.isEmpty() ? null : new Fix(fixable.get(0).typeName(), fixable.get(0).typeLabel(),
                 List.copyOf(new LinkedHashSet<>(fixable.get(0).improvementHints())));
 
+        // 이 공고에 배정이 없다고 알려진 유형(세대수 0)은 "정보 필요"·"어려움"에서 뺀다 — 입력을 채워도 이 공고에선
+        // 신청할 수 없는데 입력을 재촉했다(민영 단지에 신혼희망타운 "정보 필요"). 근거 카드는 그대로 남는다.
         List<TypeDecision> undetermined = view.allDecisions().stream()
-                .filter(d -> !d.eligible() && d.undetermined())
+                .filter(d -> !d.eligible() && d.undetermined() && offered(d))
                 .toList();
         LinkedHashSet<String> missing = new LinkedHashSet<>();
         undetermined.forEach(d -> missing.addAll(d.missingInputs()));
@@ -69,10 +71,15 @@ public record ResultSummaryCard(
                 nearest,
                 fixable.stream().skip(1).map(ResultSummaryCard::ref).toList(),
                 view.allDecisions().stream()
-                        .filter(d -> !d.eligible() && !d.undetermined() && !d.fixable())
+                        .filter(d -> !d.eligible() && !d.undetermined() && !d.fixable() && offered(d))
                         .map(ResultSummaryCard::ref).toList(),
                 undetermined.stream().map(ResultSummaryCard::ref).toList(),
                 List.copyOf(missing));
+    }
+
+    /** 이 공고에 이 유형 배정이 있거나 모르는지(LH) — 0 으로 알려진 경우만 false */
+    private static boolean offered(TypeDecision d) {
+        return d.allocatedInAnnouncement() == null || d.allocatedInAnnouncement() > 0;
     }
 
     /** 주택형마다 갈린 배정을 유형별로 합산 — 처음 나온 순서 유지 */

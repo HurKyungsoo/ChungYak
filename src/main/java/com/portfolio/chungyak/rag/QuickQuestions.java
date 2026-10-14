@@ -19,6 +19,8 @@ import java.util.Optional;
  * <ul>
  *   <li>공식 데이터 버튼: 후보 문장을 {@link FactAnswerer} 에 실제로 넣어 보고 <b>답이 나오는 것만</b> 보여준다 —
  *       누르면 반드시 FACT 경로(AI 비용 0·오답 여지 없음). 값이 없는 공고에는 버튼이 생기지 않는다.</li>
+ *   <li>공고문 표 버튼: 원문 표({@link TableFactAnswerer})로 답이 나오면 AI 후보라도 공식 데이터로 표시하고,
+ *       LH 임대는 "월 임대료" 버튼을 하나 더 띄운다 — 표가 없거나 열이 애매한 공고에는 생기지 않는다.</li>
  *   <li>AI 버튼: 결정론으로 못 답하는 질문(계약금 비율·견본주택 위치·자격 등). 문구는 검색 eval
  *       ({@code eval/notice-qa-cases.tsv})에 있는 질문 그대로라 검색이 정답 발췌를 찾는지 매 빌드에서 잰다.</li>
  * </ul>
@@ -48,14 +50,23 @@ public final class QuickQuestions {
     static final String QUALIFY = "신청 자격이 뭐예요?";
     static final String DOCS_WHEN = "서류 제출 기간은 언제예요?";
     static final String WAITLIST = "예비입주자는 어떻게 뽑나요?";
+    // 공고문 표 후보 — TableFactAnswerer 가 답할 때만 버튼이 된다
+    static final String RENT = "월 임대료는 얼마예요?";
 
     public static List<QuickQuestion> of(Announcement a, Optional<NoticeSummaryTable> table) {
+        return of(a, table, null);
+    }
+
+    /** @param documentText 공고문 원문(없으면 null) — 표 값으로 답할 수 있는 질문을 고른다 */
+    public static List<QuickQuestion> of(Announcement a, Optional<NoticeSummaryTable> table, String documentText) {
         if (a == null) return List.of();
         List<String> factCandidates = new ArrayList<>();
         List<String> ai = new ArrayList<>();
+        List<String> tableCandidates = new ArrayList<>();
 
         if (a.isLh() && a.getSupplyCategory() == SupplyCategory.RENTAL) {
             factCandidates.addAll(List.of(RECEPT, WINNER, TOTAL, MOVE_IN));
+            tableCandidates.add(RENT);
             ai.add(QUALIFY);
             ai.add(a.isWaitlist() ? WAITLIST : DOCS_WHEN);
         } else if (a.isRemainder()) {
@@ -73,7 +84,10 @@ public final class QuickQuestions {
             if (out.size() >= MAX_FACT) break;
             if (FactAnswerer.answer(a, table, q).isPresent()) out.add(new QuickQuestion(q, true));
         }
-        ai.forEach(q -> out.add(new QuickQuestion(q, false)));
+        for (String q : tableCandidates) {
+            if (TableFactAnswerer.answer(documentText, q).isPresent()) out.add(new QuickQuestion(q, true));
+        }
+        ai.forEach(q -> out.add(new QuickQuestion(q, TableFactAnswerer.answer(documentText, q).isPresent())));
         return out;
     }
 

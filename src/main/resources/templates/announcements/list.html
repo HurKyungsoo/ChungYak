@@ -109,7 +109,7 @@
                       th:classappend="${row.ddayUrgent} ? 'soon' : ''"
                       th:text="${row.ddayLabel}">D-2</span>
             </div>
-            <div class="title" th:text="${row.houseName}">공고명</div>
+            <div class="title"><span class="tag-revision" th:if="${row.corrected}">정정</span><span th:text="${row.houseName}">공고명</span></div>
             <!-- 시작일을 모르면 "? ~"가 오류처럼 보인다 — 마감일만 적는다.
                  LH 는 특공 유형별 세대수를 원천이 주지 않아 합계 0 이 "물량 없음"이 아니다 —
                  특공 대신 구분·대기자 모집 여부·모집 세대수를 보여 준다. -->

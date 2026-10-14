@@ -26,7 +26,9 @@ public record MatchRow(
         List<String> matchedTypeLabels,
         String bestUnitTypeName,
         boolean allocationCountKnown,
-        int totalAllocated) {
+        int totalAllocated,
+        /** 정정공고 — 제목 태그 대신 배지 (#47) */
+        boolean corrected) {
 
     public static MatchRow of(MatchResult result, String status, LocalDate today) {
         Announcement a = result.announcement();
@@ -40,7 +42,7 @@ public record MatchRow(
 
         return new MatchRow(
                 a.getId(),
-                a.getHouseName(),
+                a.getDisplayName(),
                 a.getRegionName(),
                 a.getHouseDetailType() == null ? "-" : a.getHouseDetailType().getLabel(),
                 a.getReceptBeginDate(),
@@ -51,6 +53,7 @@ public record MatchRow(
                 types,
                 best == null ? null : best.unitType().getTypeName(),
                 best != null && best.allocationCountKnown(),
-                best == null ? 0 : best.totalAllocated());
+                best == null ? 0 : best.totalAllocated(),
+                a.isCorrection());
     }
 }

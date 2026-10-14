@@ -174,4 +174,15 @@ class NoticeLineageTest {
             assertThat(plain.getRevisionState()).isEqualTo(RevisionState.CURRENT);
         }
     }
+
+    @Test
+    @DisplayName("화면 제목 — 정정·취소 태그만 떼고 다른 태그는 남긴다")
+    void displayTitle() {
+        assertThat(NoticeLineage.displayTitle("[정정공고][조기접수마감]양산 삼성파크빌"))
+                .isEqualTo("[조기접수마감]양산 삼성파크빌");
+        assertThat(NoticeLineage.displayTitle("대구연호 A-2BL 공공분양 (정정)")).isEqualTo("대구연호 A-2BL 공공분양");
+        assertThat(NoticeLineage.displayTitle("단지 (소득, 자산, 무주택 요건 완화 정정)"))
+                .isEqualTo("단지 (소득, 자산, 무주택 요건 완화 정정)");   // 긴 괄호는 본문
+        assertThat(NoticeLineage.displayTitle("[정정공고]")).isEqualTo("[정정공고]");   // 다 떼면 빈 제목 — 원래대로
+    }
 }

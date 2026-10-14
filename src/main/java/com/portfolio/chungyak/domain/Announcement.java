@@ -224,6 +224,15 @@ public class Announcement {
         return revisionState == null || revisionState == RevisionState.CURRENT;
     }
 
+    /** 목록·캘린더에 쓰는 제목 — 정정·취소 태그를 뗀다(배지로 대신 보여 준다) */
+    public String getDisplayName() {
+        return NoticeLineage.displayTitle(houseName);
+    }
+
+    public boolean isCorrection() {
+        return noticeKind == NoticeKind.CORRECTION;
+    }
+
     public boolean isCancelled() {
         return revisionState == RevisionState.CANCELLED;
     }

@@ -36,6 +36,13 @@
 
     <div class="empty" th:if="${rows.size() < 2}">
         <span th:if="${requestedCount == 0}">비교할 공고가 없습니다. 공고를 2개 이상 찜(♥)하거나 열어본 뒤 다시 와주세요.</span>
+        <!--/* 주소를 직접 열면 ids 가 없다 — 머리 메뉴의 "비교"(찜 + 오늘 본 공고, 헤더 스크립트가 채움)가 2개 이상이면 그리로 */-->
+        <script th:if="${requestedCount == 0}">
+            (function () {
+                var nav = document.getElementById('navCompare');
+                if (nav && !nav.hidden && nav.href.indexOf('ids=') > 0) location.replace(nav.href);
+            })();
+        </script>
         <span th:unless="${requestedCount == 0}">
             비교하려면 공고가 2개 이상 있어야 하는데 지금은 <strong th:text="${rows.size()}">0</strong>개만 확인됩니다
             (고른 공고가 1개뿐이거나, 다른 공고는 정보를 더 이상 찾을 수 없습니다).

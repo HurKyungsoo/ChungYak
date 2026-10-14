@@ -325,11 +325,12 @@ public class AnnouncementController {
         model.addAttribute("qaIndexed", qaService.hasIndex(id));
         model.addAttribute("qaSemantic", qaService.isSemantic());   // BM25 모드면 '의미' 점수(늘 0)를 숨긴다
         // 공고문 첫 페이지 "단지 주요정보" 표(#38) — 원문 표 그대로, 표가 없거나 칸이 어긋나면 null
-        Optional<NoticeSummaryTable> noticeSummary = documentRepository.findByAnnouncementId(id)
-                .flatMap(d -> NoticeSummaryTable.parse(d.getFirstPart()));
+        var document = documentRepository.findByAnnouncementId(id);
+        Optional<NoticeSummaryTable> noticeSummary = document.flatMap(d -> NoticeSummaryTable.parse(d.getFirstPart()));
         model.addAttribute("noticeSummary", noticeSummary.orElse(null));
         // 자주 묻는 질문 버튼(#40) — 공식 데이터 버튼은 이 공고 값으로 답이 나오는 것만
-        model.addAttribute("quickQuestions", quickQuestionOrder.sortByClicks(QuickQuestions.of(announcement, noticeSummary)));
+        model.addAttribute("quickQuestions", quickQuestionOrder.sortByClicks(QuickQuestions.of(announcement, noticeSummary,
+                document.map(d -> d.getRawText()).orElse(null))));
         // 문의처는 하이픈 없는 숫자로 들어온다 — 읽을 수 있게 끊어서 보여주고,
         // 거는 건 원본 그대로 tel: 로 넘긴다(다이얼러가 하이픈도 알아서 처리한다).
         model.addAttribute("inquiryTelDisplay", PhoneNumbers.format(announcement.getInquiryTel()));

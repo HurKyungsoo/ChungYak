@@ -71,30 +71,33 @@
     <!-- 분양가는 분양 공고에만 의미가 있다 — 임대 공고의 금액 필드를 분양가로 그리지 않는다. -->
     <div class="table-scroll" data-scroll-hint
          th:with="showPrice=${announcement.supplyCategory != null and announcement.supplyCategory.name() == 'SALE'
-                              and !priceByUnitType.isEmpty()}">
+                              and !priceByUnitType.isEmpty()},
+                    showCount=${!announcement.unitTypes.?[generalSupplyCount > 0].isEmpty()}">
         <table>
             <thead>
             <tr>
                 <th>주택형</th><th class="num">공급면적 <button type="button" class="area-toggle" data-area-toggle aria-label="면적 단위 바꾸기 (㎡/평)">㎡</button></th>
                 <th class="num" th:if="${showPrice}">분양가(최고)</th>
-                <th class="num">금회 공급</th>
+                <!--/* 모든 주택형이 "-"면 열을 감춘다 — 빈 열은 "0 세대"로 읽힌다 */-->
+                <th class="num" th:if="${showCount}">금회 공급</th>
             </tr>
             </thead>
             <tbody>
             <tr th:each="u : ${announcement.unitTypes}">
-                <td th:text="${u.typeName}">26A</td>
-                <td class="num" th:attr="data-m2=${u.supplyArea}" th:text="${u.supplyArea} ?: '-'">38.50</td>
+                <td th:text="${T(com.portfolio.chungyak.web.view.UnitTypeLabels).shortName(u.typeName)}">26A</td>
+                <td class="num" th:with="area=${T(com.portfolio.chungyak.web.view.UnitTypeLabels).area(u.supplyArea)}"
+                    th:attr="data-m2=${area}" th:text="${area} ?: '-'">38.5</td>
                 <td class="num" th:if="${showPrice}">
                     <span th:if="${priceByUnitType.get(u.id) != null}" th:text="${priceByUnitType.get(u.id)}">3억 5,369만원</span>
                     <span th:unless="${priceByUnitType.get(u.id) != null}" class="subtle">-</span>
                 </td>
-                <td class="num">
+                <td class="num" th:if="${showCount}">
                     <span th:if="${u.generalSupplyCount > 0}" th:text="${u.generalSupplyCount}">48</span>
                     <span th:unless="${u.generalSupplyCount > 0}" class="subtle">-</span>
                 </td>
             </tr>
             <tr th:if="${announcement.unitTypes.isEmpty()}">
-                <td th:attr="colspan=${showPrice ? 4 : 3}" class="muted">
+                <td th:attr="colspan=${2 + (showPrice ? 1 : 0) + (showCount ? 1 : 0)}" class="muted">
                     주택형 정보가 없습니다 — 공고문에서 확인하세요.</td>
             </tr>
             </tbody>

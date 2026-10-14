@@ -19,7 +19,7 @@ class MatchRowFilterTest {
 
     private static MatchRow row(String name, String region, String type, LocalDate end, int allocated) {
         return new MatchRow(1L, name, region, type, LocalDate.of(2026, 9, 1), end,
-                "접수중", null, false, List.of("신혼부부"), "084A", true, allocated);
+                "접수중", null, false, List.of("신혼부부"), "084A", true, allocated, false);
     }
 
     private static final MatchRow 경기_민영_마감빠름 =

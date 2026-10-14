@@ -31,7 +31,9 @@ public record AnnouncementListRow(
         boolean waitlist,
         Integer totalSupplyCount,
         /** 무순위·잔여세대 — 특별공급이 없어 "특공 물량 없음"으로 그리면 오해다. 공급 세대만 보여준다 */
-        boolean remainder) {
+        boolean remainder,
+        /** 정정공고 — 제목의 "[정정공고]" 태그는 떼고 배지로 보여 준다 (#47) */
+        boolean corrected) {
 
     public static AnnouncementListRow of(Announcement a, String status, LocalDate today) {
         int specialSum = a.getUnitTypes().stream()
@@ -40,7 +42,7 @@ public record AnnouncementListRow(
         Dday dday = Dday.of(status, a.getReceptBeginDate(), a.getReceptEndDate(), today);
         return new AnnouncementListRow(
                 a.getId(),
-                a.getHouseName(),
+                a.getDisplayName(),
                 a.getRegionName(),
                 // 무순위는 민영/국민 구분이 없어 "미상" 대신 공고 종류(무순위·불법행위 재공급)를 보여준다
                 a.isRemainder() ? a.getHouseType().getLabel()
@@ -57,6 +59,7 @@ public record AnnouncementListRow(
                 a.isLh(),
                 a.isWaitlist(),
                 a.getTotalSupplyCount(),
-                a.isRemainder());
+                a.isRemainder(),
+                a.isCorrection());
     }
 }
