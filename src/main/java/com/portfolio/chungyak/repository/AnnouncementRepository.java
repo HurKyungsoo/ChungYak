@@ -15,6 +15,11 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
 
     Optional<Announcement> findByExternalId(String externalId);
 
+    /** 같은 공고 계보(원래 공고 + 정정본 + 취소공고) — #47 */
+    List<Announcement> findByLineageKey(String lineageKey);
+
+    boolean existsByLineageKey(String lineageKey);
+
     /** 접수 진행 중 또는 예정인 공고 */
     Page<Announcement> findByReceptEndDateGreaterThanEqualOrderByReceptBeginDateAsc(
             LocalDate today, Pageable pageable);

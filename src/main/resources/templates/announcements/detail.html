@@ -62,8 +62,26 @@
     </p>
     </th:block>
 
+    <!-- 정정·취소 (#47) — LH 는 정정·취소를 새 공고로 올린다. 낡은 본·취소된 공고도 열리지만 무엇인지 먼저 밝힌다. -->
+    <section class="card tint" th:if="${announcement.cancelled or announcement.superseded}" aria-label="공고 상태 안내"
+             th:with="current=${revisions.?[currentRevision]}">
+        <h2 style="margin:0 0 6px" th:text="${announcement.cancelled} ? '취소된 공고입니다' : '정정 전 공고입니다'">취소된 공고입니다</h2>
+        <p style="margin:0 0 6px" th:if="${announcement.cancelled}">LH 가 이 공고를 취소했습니다. 이 공고로는 신청할 수 없습니다 —
+            다시 낸 공고가 있는지 LH 청약플러스에서 확인하세요.</p>
+        <p style="margin:0 0 6px" th:if="${announcement.superseded}">정정공고가 나와 이 내용은 바뀌었을 수 있습니다. 신청은 최신 공고 기준입니다.</p>
+        <p style="margin:0" th:unless="${current.isEmpty()}">
+            <a th:href="@{/announcements/{id}(id=${current[0].id})}" class="btn btn-primary">최신 공고 보기 →</a>
+        </p>
+    </section>
+    <p class="muted" th:if="${announcement.currentRevision and !revisions.isEmpty()}" style="margin:8px 0 0">
+        정정된 공고입니다. 이전 공고:
+        <th:block th:each="r, st : ${revisions}"><a th:href="@{/announcements/{id}(id=${r.id})}"
+            th:text="${r.noticeDate != null ? #temporals.format(r.noticeDate, 'yyyy.MM.dd') : '공고일 미상'}
+                     + (${r.cancelled} ? ' (취소)' : '')">2026.09.30</a><span th:unless="${st.last}">, </span></th:block>
+    </p>
+
     <div class="btn-row" id="ctaAnchor" style="margin:16px 0 4px">
-        <a th:unless="${announcement.remainder}" th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="btn btn-primary btn-lg">내 조건으로 자격 판정 →</a>
+        <a th:unless="${announcement.remainder or announcement.cancelled}" th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="btn btn-primary btn-lg">내 조건으로 자격 판정 →</a>
         <a th:if="${announcement.noticeUrl != null and !announcement.lh}" th:href="${announcement.noticeUrl}"
            target="_blank" rel="noopener" class="btn btn-lg"
            th:classappend="${announcement.remainder} ? 'btn-primary' : 'btn-ghost'">청약홈 공고문</a>

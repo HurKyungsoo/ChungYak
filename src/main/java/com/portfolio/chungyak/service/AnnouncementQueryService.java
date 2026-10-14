@@ -44,6 +44,7 @@ public class AnnouncementQueryService {
         LocalDate today = LocalDate.now(clock);
         String normalizedKeyword = keyword == null ? null : keyword.trim().toLowerCase();
         return announcementRepository.findOpenWithUnitTypes(today).stream()
+                .filter(Announcement::isCurrentRevision)   // 정정 전 본·취소된 공고는 목록에 두지 않는다 (#47)
                 .filter(a -> region == null || region.isBlank()
                         || region.equals(a.getRegionName()))
                 .filter(a -> detailType == null || detailType == a.getHouseDetailType())
@@ -66,6 +67,7 @@ public class AnnouncementQueryService {
     public List<String> availableRegions() {
         LocalDate today = LocalDate.now(clock);
         return announcementRepository.findOpenWithUnitTypes(today).stream()
+                .filter(Announcement::isCurrentRevision)
                 .map(Announcement::getRegionName)
                 .filter(r -> r != null && !r.isBlank())
                 .distinct()
@@ -78,6 +80,21 @@ public class AnnouncementQueryService {
         return announcementRepository.findByIdWithUnitTypes(id);
     }
 
+    /**
+     * 같은 계보의 다른 공고(정정 전 본·정정본·취소공고), 최근 공고일 순 (#47).
+     * 계보 키가 없으면 빈 목록.
+     */
+    @Transactional(readOnly = true)
+    public List<Announcement> findRevisions(Announcement announcement) {
+        if (announcement.getLineageKey() == null) return List.of();
+        return announcementRepository.findByLineageKey(announcement.getLineageKey()).stream()
+                .filter(a -> !a.getId().equals(announcement.getId()))
+                .sorted(Comparator.comparing(Announcement::getNoticeDate,
+                                Comparator.nullsLast(Comparator.<LocalDate>naturalOrder())).reversed()
+                        .thenComparing(Announcement::getId, Comparator.reverseOrder()))
+                .toList();
+    }
+
     /** 오늘 (Clock 기준) — 목록 뷰 모델의 D-day 계산에 넘긴다 */
     public LocalDate today() {
         return LocalDate.now(clock);
@@ -86,6 +103,8 @@ public class AnnouncementQueryService {
     /** 오늘 기준 공고 상태 — 화면 표시용 */
     public String statusOf(Announcement a) {
         LocalDate today = LocalDate.now(clock);
+        if (a.isCancelled()) return "취소된 공고";
+        if (a.isSuperseded()) return "정정 전 공고";
         if (a.isOpen(today)) return "접수중";
         if (a.getReceptBeginDate() != null && today.isBefore(a.getReceptBeginDate())) return "접수예정";
         if (a.isClosed(today)) return "접수마감";

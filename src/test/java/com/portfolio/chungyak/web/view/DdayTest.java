@@ -38,6 +38,9 @@ class DdayTest {
     void noneWhenClosedOrUnknown() {
         assertThat(Dday.of("접수마감", null, TODAY.minusDays(1), TODAY).present()).isFalse();
         assertThat(Dday.of("-", null, null, TODAY).present()).isFalse();
+        // 취소·정정 전 공고는 마감일이 남아 있어도 "오늘 마감"을 붙이지 않는다 (#47 — 취소공고가 "접수중 · 오늘 마감"으로 보였다)
+        assertThat(Dday.of("취소된 공고", null, TODAY, TODAY).present()).isFalse();
+        assertThat(Dday.of("정정 전 공고", null, TODAY.plusDays(2), TODAY).present()).isFalse();
         assertThat(Dday.of("접수중", TODAY, null, TODAY).present()).isFalse();
     }
 }

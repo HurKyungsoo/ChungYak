@@ -311,6 +311,8 @@ public class AnnouncementController {
         String status = queryService.statusOf(announcement);
         model.addAttribute("announcement", announcement);
         model.addAttribute("status", status);
+        // 같은 공고의 정정 전 본·정정본·취소공고 (#47) — 낡은 본이면 최신본으로, 최신본이면 이전 본으로 잇는다
+        model.addAttribute("revisions", queryService.findRevisions(announcement));
         model.addAttribute("dday", Dday.of(status, announcement.getReceptBeginDate(),
                 announcement.getReceptEndDate(), queryService.today()));
         model.addAttribute("timeline", ScheduleTimeline.of(announcement, queryService.today()));

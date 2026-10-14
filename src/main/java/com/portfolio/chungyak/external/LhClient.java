@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.HouseType;
+import com.portfolio.chungyak.domain.NoticeLineage;
 import com.portfolio.chungyak.domain.RegulationFlags;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.domain.SupplyBreakdown;
@@ -655,6 +656,10 @@ public class LhClient implements AnnouncementSource {
                 .noticeDate(parser.date(item, "PAN_NT_ST_DT"))
                 .receptEndDate(parser.date(item, "CLSG_DT"))
                 .noticeUrl(parser.text(item, "DTL_URL"))
+                // 정정·취소공고는 새 PAN_ID 로 온다 — 최초 공고일(PAN_DT)·세부유형·태그 뗀 제목으로 원래 공고와 묶는다 (#47)
+                .noticeKind(NoticeLineage.kindOf(panNm))
+                .lineageKey(NoticeLineage.lineageKey(SOURCE_PREFIX, parser.text(item, "PAN_DT"), aisTpCd, panNm))
+                .providerStatus(truncate(parser.text(item, "PAN_SS"), 20))
                 .providerParams(providerParams)
                 .build();
     }

@@ -19,7 +19,8 @@ public record Dday(String label, boolean urgent) {
         if (today == null) return NONE;
         String s = status == null ? "" : status;
         if ("접수예정".equals(s)) return label(begin, today, "오늘 접수 시작", "접수 시작 D-");
-        if ("접수중".equals(s) || (begin == null && !"접수마감".equals(s))) {
+        // 시작일을 몰라 상태가 "-" 인 공고만 마감 D-day 를 센다 — 취소·정정 전 공고(#47)엔 세지 않는다
+        if ("접수중".equals(s) || (begin == null && ("-".equals(s) || s.isEmpty()))) {
             return label(end, today, "오늘 마감", "마감 D-");
         }
         return NONE;

@@ -2,6 +2,7 @@ package com.portfolio.chungyak.external;
 
 import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.HouseType;
+import com.portfolio.chungyak.domain.NoticeKind;
 import com.portfolio.chungyak.domain.RegulationFlags;
 import com.portfolio.chungyak.domain.SupplyCategory;
 import lombok.Builder;
@@ -53,6 +54,14 @@ public class ExternalAnnouncement {
     private SupplyCategory supplyCategory;
     private String supplyTypeName;
     private String noticePdfUrl;
+
+    /** 원래 공고 / 정정 / 취소 (#47) — LH 만 제목으로 가른다. 청약홈은 늘 ORIGINAL. */
+    @Builder.Default
+    private NoticeKind noticeKind = NoticeKind.ORIGINAL;
+    /** 정정·취소본을 원래 공고와 묶는 키 — {@code NoticeLineage.lineageKey}. 모르면 null. */
+    private String lineageKey;
+    /** 원천 공고 상태 (LH PAN_SS) */
+    private String providerStatus;
 
     /** LH 소스에서만 채워진다 — 벡터 검색 대상이 될 비정형 텍스트 */
     private String noticeContent;

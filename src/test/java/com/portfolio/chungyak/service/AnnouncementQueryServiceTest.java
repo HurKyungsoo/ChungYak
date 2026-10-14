@@ -3,6 +3,7 @@ package com.portfolio.chungyak.service;
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.HouseType;
+import com.portfolio.chungyak.domain.RevisionState;
 import com.portfolio.chungyak.repository.AnnouncementRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -83,5 +84,41 @@ class AnnouncementQueryServiceTest {
         List<Announcement> result = service.findOpenOrUpcoming("부산", null, "힐스테이트");
 
         assertThat(result).extracting(Announcement::getHouseName).containsExactly("힐스테이트 부산");
+    }
+
+    @Test
+    @DisplayName("정정 전 본·취소된 공고는 목록에서 빠지고, 상태 라벨로 밝힌다 (#47)")
+    void revisionsAreHiddenFromList() {
+        Announcement current = announcement("[정정공고]대구연호 통합공공임대", "대구");
+        Announcement superseded = announcement("대구연호 통합공공임대", "대구");
+        superseded.applyRevisionState(RevisionState.SUPERSEDED);
+        Announcement cancelled = announcement("[취소공고]태백철암1 국민임대", "강원");
+        cancelled.applyRevisionState(RevisionState.CANCELLED);
+        when(repository.findOpenWithUnitTypes(today)).thenReturn(List.of(current, superseded, cancelled));
+
+        assertThat(service.findOpenOrUpcoming(null, null, null))
+                .extracting(Announcement::getHouseName).containsExactly("[정정공고]대구연호 통합공공임대");
+        assertThat(service.availableRegions()).containsExactly("대구");
+        assertThat(service.statusOf(current)).isEqualTo("접수중");
+        assertThat(service.statusOf(superseded)).isEqualTo("정정 전 공고");
+        assertThat(service.statusOf(cancelled)).isEqualTo("취소된 공고");
+    }
+
+    @Test
+    @DisplayName("같은 계보의 다른 공고를 최근 공고일 순으로, 자신은 빼고")
+    void findRevisionsExcludesSelf() {
+        Announcement older = Announcement.builder().id(1L).externalId("LH-1").houseManageNo("H").pblancNo("1")
+                .houseName("원본").houseType(HouseType.UNKNOWN).houseDetailType(HouseDetailType.PUBLIC)
+                .noticeDate(today.minusDays(10)).lineageKey("k").build();
+        Announcement newer = Announcement.builder().id(2L).externalId("LH-2").houseManageNo("H").pblancNo("2")
+                .houseName("[정정공고]원본").houseType(HouseType.UNKNOWN).houseDetailType(HouseDetailType.PUBLIC)
+                .noticeDate(today.minusDays(1)).lineageKey("k").build();
+        Announcement self = Announcement.builder().id(3L).externalId("LH-3").houseManageNo("H").pblancNo("3")
+                .houseName("[정정공고]원본").houseType(HouseType.UNKNOWN).houseDetailType(HouseDetailType.PUBLIC)
+                .noticeDate(today).lineageKey("k").build();
+        when(repository.findByLineageKey("k")).thenReturn(List.of(older, self, newer));
+
+        assertThat(service.findRevisions(self)).extracting(Announcement::getId).containsExactly(2L, 1L);
+        assertThat(service.findRevisions(announcement("키 없음", "서울"))).isEmpty();
     }
 }

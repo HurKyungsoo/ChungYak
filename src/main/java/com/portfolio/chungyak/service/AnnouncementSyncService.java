@@ -2,6 +2,8 @@ package com.portfolio.chungyak.service;
 
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.AnnouncementDocument;
+import com.portfolio.chungyak.domain.NoticeKind;
+import com.portfolio.chungyak.domain.NoticeLineage;
 import com.portfolio.chungyak.domain.RegulationFlags;
 import com.portfolio.chungyak.domain.UnitType;
 import com.portfolio.chungyak.external.ExternalAnnouncement;
@@ -15,7 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 수집 -> 정규화 -> upsert.
@@ -37,19 +41,26 @@ public class AnnouncementSyncService {
         int created = 0;
         int updated = 0;
         List<Announcement> createdAnnouncements = new ArrayList<>();
+        Set<String> touchedLineages = new LinkedHashSet<>();
+        List<Announcement> unlinked = new ArrayList<>();
 
         for (ExternalAnnouncement external : externals) {
             Announcement existing = announcementRepository
                     .findByExternalId(external.getExternalId())
                     .orElse(null);
 
+            Announcement target;
             if (existing == null) {
+                // 이미 아는 공고의 정정·취소본이면 "새 공고" 알림을 다시 보내지 않는다 (#47)
+                boolean revisionOfKnown = external.getLineageKey() != null
+                        && announcementRepository.existsByLineageKey(external.getLineageKey());
                 Announcement saved = announcementRepository.save(toEntity(external));
                 attachUnitTypes(saved, external.getUnitTypes());
                 saved.fillTotalSupplyCountFromUnitTypes();
                 saveNoticeContent(saved, external);
                 created++;
-                createdAnnouncements.add(saved);
+                if (!revisionOfKnown) createdAnnouncements.add(saved);
+                target = saved;
             } else {
                 existing.updateFromExternal(
                         external.getHouseName(), external.getRegionName(), external.getAddress(),
@@ -60,9 +71,20 @@ public class AnnouncementSyncService {
                         external.getNoticePdfUrl());
                 // 기존 공고는 원문을 다시 받았을 때만(잘린 원문 백필, #29) 교체한다
                 if (external.getNoticeContent() != null) saveNoticeContent(existing, external);
+                existing.updateRevisionSource(external.getNoticeKind(), external.getLineageKey(),
+                        external.getProviderStatus());
                 updated++;
+                target = existing;
             }
+            if (target.getLineageKey() != null) touchedLineages.add(target.getLineageKey());
+            else unlinked.add(target);
         }
+
+        // 정정·취소 상태를 계보 단위로 다시 매긴다 — 원래 공고가 이전 배치에 있어도 키로 함께 불러온다.
+        for (String key : touchedLineages) {
+            NoticeLineage.resolve(announcementRepository.findByLineageKey(key));
+        }
+        unlinked.forEach(a -> NoticeLineage.resolve(List.of(a)));
 
         return new SyncStat(externals.size(), created, updated, createdAnnouncements);
     }
@@ -98,6 +120,9 @@ public class AnnouncementSyncService {
                 .supplyCategory(e.getSupplyCategory())
                 .supplyTypeName(e.getSupplyTypeName())
                 .noticePdfUrl(e.getNoticePdfUrl())
+                .noticeKind(e.getNoticeKind() != null ? e.getNoticeKind() : NoticeKind.ORIGINAL)
+                .lineageKey(e.getLineageKey())
+                .providerStatus(e.getProviderStatus())
                 .build();
     }
 

@@ -21,7 +21,8 @@ import java.util.List;
     uniqueConstraints = @UniqueConstraint(name = "uk_announcement_external", columnNames = "external_id"),
     indexes = {
         @Index(name = "idx_announcement_recept", columnList = "receptBeginDate, receptEndDate"),
-        @Index(name = "idx_announcement_region", columnList = "regionName")
+        @Index(name = "idx_announcement_region", columnList = "regionName"),
+        @Index(name = "idx_announcement_lineage", columnList = "lineage_key")
     }
 )
 @Getter
@@ -119,6 +120,26 @@ public class Announcement {
     @Column(length = 500)
     private String noticePdfUrl;
 
+    /** 원래 공고 / 정정공고 / 취소공고 (#47) — 제목 태그로 판별, {@link NoticeLineage#kindOf} */
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private NoticeKind noticeKind = NoticeKind.ORIGINAL;
+
+    /** 정정·취소본과 원래 공고를 묶는 키 (#47). 원천이 최초 공고일을 안 주면 null — 묶지 않는다. */
+    @Column(name = "lineage_key", length = 64)
+    private String lineageKey;
+
+    /** 원천이 준 공고 상태 그대로 (LH PAN_SS: 공고중·접수중·접수마감·정정공고중). 청약홈은 null. */
+    @Column(length = 20)
+    private String providerStatus;
+
+    /** 계보 안에서의 위치 — 목록·알림은 CURRENT 만. 수집 때마다 {@link NoticeLineage#resolve} 로 다시 매긴다. */
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private RevisionState revisionState = RevisionState.CURRENT;
+
     @Builder.Default
     @OneToMany(mappedBy = "announcement", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UnitType> unitTypes = new ArrayList<>();
@@ -185,6 +206,30 @@ public class Announcement {
         if (totalSupplyCount != null) return;
         int sum = unitTypes.stream().mapToInt(UnitType::totalSupplyCount).sum();
         if (sum > 0) this.totalSupplyCount = sum;
+    }
+
+    /** 재수집 때 종류·계보·원천 상태를 다시 받는다 — 원천 상태(PAN_SS)는 매일 바뀐다. */
+    public void updateRevisionSource(NoticeKind noticeKind, String lineageKey, String providerStatus) {
+        if (noticeKind != null) this.noticeKind = noticeKind;
+        this.lineageKey = lineageKey;
+        this.providerStatus = providerStatus;
+    }
+
+    public void applyRevisionState(RevisionState revisionState) {
+        this.revisionState = revisionState;
+    }
+
+    /** 목록·캘린더·매칭·알림에 보여 줄 공고인지 — 정정 전 본과 취소된 공고는 뺀다 (#47) */
+    public boolean isCurrentRevision() {
+        return revisionState == null || revisionState == RevisionState.CURRENT;
+    }
+
+    public boolean isCancelled() {
+        return revisionState == RevisionState.CANCELLED;
+    }
+
+    public boolean isSuperseded() {
+        return revisionState == RevisionState.SUPERSEDED;
     }
 
     /** 무순위·잔여세대 공고인지 — {@link SupplyCategory#REMAINDER} */

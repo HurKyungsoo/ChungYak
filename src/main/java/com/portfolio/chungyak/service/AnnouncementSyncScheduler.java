@@ -19,6 +19,8 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -101,7 +103,7 @@ public class AnnouncementSyncScheduler {
         // 새 공고 알림 — 이번 배치에서 새로 생긴 공고만 대상으로 한다("새 공고" 알림의 정의 그대로).
         // 여기서 실패해도 수집 자체는 이미 끝났으니 배치를 실패시키지 않는다.
         try {
-            alertService.notifyMatchingSubscribers(newAnnouncements);
+            alertService.notifyMatchingSubscribers(stillCurrent(newAnnouncements));
         } catch (RuntimeException e) {
             log.warn("새 공고 알림 발송 중 오류 — 다음 배치에서 다시 시도되지 않으니 원인 확인 필요. {}", e.toString());
         }
@@ -115,6 +117,20 @@ public class AnnouncementSyncScheduler {
         }
 
         return total;
+    }
+
+    /**
+     * 같은 수집에서 뒤 페이지의 정정·취소공고가 앞 페이지 신규 공고를 낡게 만들 수 있다 (#47).
+     * 손에 든 엔티티는 앞 트랜잭션의 것이라 상태가 옛것이다 — 저장된 상태로 다시 거른다.
+     */
+    private List<Announcement> stillCurrent(List<Announcement> announcements) {
+        if (announcements.isEmpty()) return announcements;
+        Set<Long> current = announcementRepository.findAllById(
+                        announcements.stream().map(Announcement::getId).toList()).stream()
+                .filter(Announcement::isCurrentRevision)
+                .map(Announcement::getId)
+                .collect(Collectors.toSet());
+        return announcements.stream().filter(a -> current.contains(a.getId())).toList();
     }
 
     private record SourceSyncResult(SyncReport report, List<Announcement> created) {}

@@ -3,6 +3,7 @@ package com.portfolio.chungyak.external;
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.HouseType;
+import com.portfolio.chungyak.domain.NoticeKind;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.domain.SupplyCategory;
 import org.junit.jupiter.api.DisplayName;
@@ -84,6 +85,41 @@ class LhClientTest {
                     .containsEntry("CCR_CNNT_SYS_DS_CD", "02")
                     .containsEntry("UPP_AIS_TP_CD", "05")
                     .containsEntry("AIS_TP_CD", "05");
+        }
+
+        @Test
+        @DisplayName("정정·취소공고 — 종류·원천 상태를 읽고, 원래 공고와 같은 계보 키를 준다 (#47, 2026-10-14 라이브 행)")
+        void correctionAndCancellation() throws Exception {
+            String json = """
+                [{"dsList":[
+                  {"PAN_ID":"2015122300020855","PAN_NM":"대구연호 A-2BL, A-3BL 통합공공임대주택 입주자 모집",
+                   "PAN_SS":"정정공고중","PAN_DT":"20260930","PAN_NT_ST_DT":"2026.09.30","CLSG_DT":"2026.10.16",
+                   "UPP_AIS_TP_CD":"06","AIS_TP_CD":"48","SPL_INF_TP_CD":"062","CCR_CNNT_SYS_DS_CD":"03"},
+                  {"PAN_ID":"2015122300020878","PAN_NM":"[정정공고]대구연호 A-2BL, A-3BL 통합공공임대주택 입주자 모집",
+                   "PAN_SS":"접수중","PAN_DT":"20260930","PAN_NT_ST_DT":"2026.10.06","CLSG_DT":"2026.10.16",
+                   "UPP_AIS_TP_CD":"06","AIS_TP_CD":"48","SPL_INF_TP_CD":"062","CCR_CNNT_SYS_DS_CD":"03"},
+                  {"PAN_ID":"2015122300020645","PAN_NM":"[취소공고]태백철암1 국민임대주택 예비입주자 모집 공고",
+                   "PAN_SS":"접수마감","PAN_DT":"20260831","PAN_NT_ST_DT":"2026.08.31","CLSG_DT":"2026.10.14",
+                   "UPP_AIS_TP_CD":"06","AIS_TP_CD":"07","SPL_INF_TP_CD":"062","CCR_CNNT_SYS_DS_CD":"03"},
+                  {"PAN_ID":"2015122300020638","PAN_NM":"태백철암1 국민임대주택 예비입주자 모집 공고",
+                   "PAN_SS":"접수마감","PAN_DT":"20260831","PAN_NT_ST_DT":"2026.08.31","CLSG_DT":"2026.10.14",
+                   "UPP_AIS_TP_CD":"06","AIS_TP_CD":"07","SPL_INF_TP_CD":"062","CCR_CNNT_SYS_DS_CD":"03"},
+                  {"PAN_ID":"2015122300020735","PAN_NM":"태백철암1 국민임대주택 예비입주자 모집 공고",
+                   "PAN_SS":"공고중","PAN_DT":"20260914","PAN_NT_ST_DT":"2026.09.11","CLSG_DT":"2026.10.28",
+                   "UPP_AIS_TP_CD":"06","AIS_TP_CD":"07","SPL_INF_TP_CD":"062","CCR_CNNT_SYS_DS_CD":"03"}
+                ]}]
+                """;
+            List<ExternalAnnouncement> r =
+                    client(props(true)).parseAnnouncements(json.getBytes(StandardCharsets.UTF_8));
+
+            assertThat(r).extracting(ExternalAnnouncement::getNoticeKind).containsExactly(
+                    NoticeKind.ORIGINAL, NoticeKind.CORRECTION, NoticeKind.CANCELLATION,
+                    NoticeKind.ORIGINAL, NoticeKind.ORIGINAL);
+            assertThat(r.get(0).getProviderStatus()).isEqualTo("정정공고중");
+            assertThat(r.get(0).getLineageKey()).isNotNull().isEqualTo(r.get(1).getLineageKey());
+            assertThat(r.get(2).getLineageKey()).isEqualTo(r.get(3).getLineageKey());
+            // 취소 뒤 다시 낸 공고는 최초 공고일이 달라 다른 계보
+            assertThat(r.get(4).getLineageKey()).isNotEqualTo(r.get(3).getLineageKey());
         }
 
         @Test
