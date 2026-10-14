@@ -76,6 +76,7 @@ public class AnnouncementController {
     private final AnnouncementDocumentRepository documentRepository;
     private final NoticeQuestionService questionService;
     private final QaTopicStats quickQuestionOrder;   // 버튼을 많이 눌린 순으로(#40 3단계)
+    private final com.portfolio.chungyak.service.CompetitionStatsService competitionStats;   // 지역 최근 당첨 기록(#34, 참고)
 
     @GetMapping("/announcements")
     public String list(@RequestParam(required = false) String region,
@@ -317,6 +318,8 @@ public class AnnouncementController {
                 announcement.getReceptEndDate(), queryService.today()));
         model.addAttribute("timeline", ScheduleTimeline.of(announcement, queryService.today()));
         model.addAttribute("highlights", DetailHighlights.of(announcement));
+        // 이 지역 최근 당첨 기록(#34) — 참고 정보. 판정과 무관하고, 표본이 적으면 비어 있다
+        model.addAttribute("competition", competitionStats.forAnnouncement(announcement));
         model.addAttribute("hasCalendarEvents", !AnnouncementIcs.events(announcement).isEmpty());
         model.addAttribute("qaEnabled", qaService.isEnabled());
         model.addAttribute("qaIndexed", qaService.hasIndex(id));

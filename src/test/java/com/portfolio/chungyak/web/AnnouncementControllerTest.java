@@ -60,7 +60,9 @@ class AnnouncementControllerTest {
                         mock(com.portfolio.chungyak.rag.NoticeQuestionService.class),
                         new com.portfolio.chungyak.rag.QaTopicStats(
                                 mock(com.portfolio.chungyak.repository.QaTopicStatRepository.class),
-                                java.time.Clock.systemDefaultZone()))).build();
+                                java.time.Clock.systemDefaultZone()),
+                        new com.portfolio.chungyak.service.CompetitionStatsService(
+                                mock(com.portfolio.chungyak.mapper.CompetitionMapper.class)))).build();
     }
 
     private static Announcement announcement(long id) {

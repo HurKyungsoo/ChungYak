@@ -240,6 +240,38 @@ class ScreenRenderTest {
         }
     }
 
+    @Autowired private com.portfolio.chungyak.mapper.CompetitionMapper competitionMapper;
+
+    @Test
+    @DisplayName("이 지역 최근 당첨 기록 (#34) — 같은 시도 지난 민영 공고 3건의 가점·경쟁률로 카드가 그려진다(H2 에서 매퍼 SQL)")
+    void competitionHistoryCard() throws Exception {
+        LocalDate today = LocalDate.now();
+        String[] houses = {"P-1", "P-2", "P-3"};
+        int[] lows = {41, 55, 63};
+        for (int i = 0; i < houses.length; i++) {
+            repository.save(Announcement.builder()
+                    .externalId("APT-PAST-" + i).houseManageNo(houses[i]).pblancNo(houses[i]).houseName("지난 공고 " + i)
+                    .houseType(HouseType.APT).houseDetailType(HouseDetailType.PRIVATE).regionName("서울")
+                    .supplyCategory(SupplyCategory.SALE).noticeDate(today.minusMonths(2 + i * 3))
+                    .receptBeginDate(today.minusMonths(2 + i * 3)).receptEndDate(today.minusMonths(2 + i * 3))
+                    .regulationFlags(RegulationFlags.builder().build()).build());
+        }
+        competitionMapper.insertScores(java.util.List.of(
+                new com.portfolio.chungyak.external.CompetitionRecords.Score("P-1", "01", "084.9A", "01", lows[0], 50, 60),
+                new com.portfolio.chungyak.external.CompetitionRecords.Score("P-2", "01", "084.9A", "01", lows[1], 58, 66),
+                new com.portfolio.chungyak.external.CompetitionRecords.Score("P-3", "01", "084.9A", "01", lows[2], 65, 70),
+                new com.portfolio.chungyak.external.CompetitionRecords.Score("P-3", "01", "084.9A", "02", 30, 35, 40)));   // 기타지역 — 안 쓴다
+        competitionMapper.insertRates(java.util.List.of(
+                new com.portfolio.chungyak.external.CompetitionRecords.Rate("P-1", "01", "084.9A", 1, "01", 10, 120, "12.00"),
+                new com.portfolio.chungyak.external.CompetitionRecords.Rate("P-2", "01", "084.9A", 1, "01", 10, 3, "(△7)")));
+
+        String apt = render("/announcements/" + aptId);
+
+        assertThat(apt).contains("서울 최근 당첨 기록 (참고)").contains("최근 12개월 3건")
+                .contains("41~63점").contains("중앙값 55점").contains("중앙값 12.0 : 1").contains("미달 1건")
+                .contains("당첨 가능성을 뜻하지 않습니다");
+    }
+
     @Test
     @DisplayName("공고 상세 '내 판정 요약' 조각")
     void verdictSummaryFragment() throws Exception {

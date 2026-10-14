@@ -41,6 +41,12 @@ public class PublicDataProperties {
         private long noticeRequestIntervalMs = 1000;
         /** 특별공급 신청현황 — ApplyhomeInfoCmpetRtSvc/v1/getAPTSpsplyReqstStus (#33, 별도 활용신청 필요) */
         private String specialSupplyStatusUrl;
+        /** 당첨가점·경쟁률 (#34, 같은 서비스·같은 키) — 비우면 수집하지 않는다 */
+        private String competitionScoreUrl;
+        private String competitionRateUrl;
+        /** 최신순 — 매일 앞 몇 페이지만 다시 받는다(표가 비어 있으면 전체). 페이지당 행 수 */
+        private int competitionSyncPages = 3;
+        private int competitionPerPage = 1000;
         private int perPage = 100;
         private int maxPages = 30;
     }
