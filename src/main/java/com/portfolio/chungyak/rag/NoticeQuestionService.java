@@ -4,8 +4,8 @@ import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.rag.DocumentQaService.QaAnswer;
 import com.portfolio.chungyak.repository.AnnouncementDocumentRepository;
 import com.portfolio.chungyak.service.AnnouncementQueryService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -18,27 +18,59 @@ import java.util.Optional;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class NoticeQuestionService {
 
     private final AnnouncementQueryService queryService;
     private final AnnouncementDocumentRepository documentRepository;
     private final DocumentQaService qaService;
+    /** 주제별 집계(#40) — 질문 원문은 넘기지 않고 주제·결과만 쌓는다 */
+    private final Optional<QaTopicStats> topicStats;
+
+    public NoticeQuestionService(AnnouncementQueryService queryService,
+                                 AnnouncementDocumentRepository documentRepository,
+                                 DocumentQaService qaService) {
+        this(queryService, documentRepository, qaService, Optional.empty());
+    }
+
+    @Autowired
+    public NoticeQuestionService(AnnouncementQueryService queryService,
+                                 AnnouncementDocumentRepository documentRepository,
+                                 DocumentQaService qaService,
+                                 Optional<QaTopicStats> topicStats) {
+        this.queryService = queryService;
+        this.documentRepository = documentRepository;
+        this.qaService = qaService;
+        this.topicStats = topicStats;
+    }
 
     public QaAnswer answer(Long announcementId, String question) {
+        return answer(announcementId, question, false);
+    }
+
+    /** @param viaQuick 자주 묻는 질문 버튼으로 왔다고 화면이 알림(#40) — 문구가 실제 버튼 목록에 있을 때만 버튼으로 센다 */
+    public QaAnswer answer(Long announcementId, String question, boolean viaQuick) {
         if (!qaService.isEnabled() || question == null || question.isBlank()) {
             return qaService.answer(announcementId, question);
         }
         Optional<Announcement> announcement = queryService.findDetail(announcementId);
         Optional<NoticeSummaryTable> table = documentRepository.findByAnnouncementId(announcementId)
                 .flatMap(d -> NoticeSummaryTable.parse(d.getFirstPart()));
+        // 버튼 문구 확인 — via=quick 만 믿고 저장하면 아무 글이나 집계 표에 들어간다(원문 저장 금지)
+        String quick = viaQuick ? announcement
+                .flatMap(a -> QuickQuestions.of(a, table).stream()
+                        .map(QuickQuestions.QuickQuestion::text).filter(question::equals).findFirst())
+                .orElse(null) : null;
         Optional<FactAnswerer.Fact> fact = announcement.flatMap(a -> FactAnswerer.answer(a, table, question));
+        QaAnswer result;
         if (fact.isPresent()) {
             log.info("공고 #{} Q&A — 구조화 데이터로 답함({})", announcementId, fact.get().source());
             qaService.count("FACT");
-            return QaAnswer.fact(fact.get().text(), fact.get().source());
+            result = QaAnswer.fact(fact.get().text(), fact.get().source());
+        } else {
+            result = qaService.answer(announcementId, question);
         }
-        return qaService.answer(announcementId, question);
+        topicStats.ifPresent(st -> st.record(question, result.status(), quick));
+        return result;
     }
 
     /** AI 답이 "확인할 수 없다"는 취지인지 — 이때도 다시 묻기를 권한다 */

@@ -36,6 +36,10 @@
   한도는 **조직(계정) 단위**다(429 메시지가 `in organization org_…` 로 지목) — 같은 계정이면 키를 새로 만들어도
   공유한다. 로컬 eval·실사용 시험을 많이 돌리면 운영이 429 로 막힌다(실제로 막혔다). 분리하려면 별도 Groq 계정.
   운영 관찰: `GET /api/admin/llm/stats`(추출·Q&A 결과 분포, 429 횟수, 모델별 호출·토큰 — 재배포 시 0 부터).
+  Q&A 주제별 집계(#40): `GET /api/admin/qa/topics?days=30` — 주제(`rag/QuestionTopic`) × 결과 × 버튼 문구 × 날짜 개수만
+  `qa_topic_stat`(V9)에 쌓는다. **질문 원문은 저장하지 않는다**(버튼 문구는 서버가 만든 문장이고, 실제 버튼 목록에 있을 때만 저장).
+  자주 묻는 질문 버튼(`rag/QuickQuestions`): 공식 데이터 버튼은 `FactAnswerer` 로 답이 나오는 것만 띄우고, AI 버튼 문구는
+  검색 eval(`notice-qa-cases.tsv`) 질문과 같게 둔다(`QuickQuestionsTest` 가 강제). 30일 클릭 순으로 정렬.
   외부 LLM 호출 코드는 `llm/`·`rag/` 의 구현체에만 두고, `rule/` 에는 어떤 경우에도 들이지 않는다(절대 규칙 1).
   AI 를 새로 켜거나 공급자를 바꾸면 `/privacy`(처리방침) 위탁 항목이 켜진 기능을 따라가므로 `LegalController` 도 함께 본다.
 

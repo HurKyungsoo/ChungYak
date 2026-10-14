@@ -66,4 +66,27 @@ class NoticeQuestionServiceTest {
         // 바꿀 말이 없으면 없다
         assertThat(service.rephraseSuggestion("견본주택 어디예요?", new QaAnswer(Status.NO_MATCH, null, List.of()))).isEmpty();
     }
+
+    @Test
+    @DisplayName("주제 집계(#40) — 버튼 문구일 때만 버튼으로 센다, via=quick 을 붙인 직접 입력은 문구 없이(원문 저장 금지)")
+    void recordsTopicWithoutRawText() {
+        AnnouncementQueryService queryService = mock(AnnouncementQueryService.class);
+        AnnouncementDocumentRepository docs = mock(AnnouncementDocumentRepository.class);
+        DocumentQaService qa = mock(DocumentQaService.class);
+        QaTopicStats topicStats = mock(QaTopicStats.class);
+        when(qa.isEnabled()).thenReturn(true);
+        when(queryService.findDetail(1L)).thenReturn(Optional.of(Announcement.builder().externalId("A").houseName("A")
+                .regulationFlags(RegulationFlags.builder().build()).build()));
+        when(docs.findByAnnouncementId(1L)).thenReturn(Optional.empty());
+        QaAnswer noMatch = new QaAnswer(Status.NO_MATCH, null, List.of());
+        when(qa.answer(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.anyString())).thenReturn(noMatch);
+        NoticeQuestionService service = new NoticeQuestionService(queryService, docs, qa, Optional.of(topicStats));
+
+        service.answer(1L, QuickQuestions.DEPOSIT, true);
+        verify(topicStats).record(QuickQuestions.DEPOSIT, Status.NO_MATCH, QuickQuestions.DEPOSIT);
+
+        String typed = "제 소득 800만원인데 계약금은?";
+        service.answer(1L, typed, true);
+        verify(topicStats).record(typed, Status.NO_MATCH, null);
+    }
 }

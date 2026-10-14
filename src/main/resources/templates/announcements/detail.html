@@ -293,6 +293,14 @@
             </div>
         </form>
 
+        <!--/* 자주 묻는 질문(#40) — '공식' 표시 버튼은 이 공고 데이터로 답이 나오는 것만(AI 안 거침), 나머지는 AI 경로 */-->
+        <form th:if="${!#lists.isEmpty(quickQuestions)}" th:action="@{/announcements/{id}/qa(id=${announcement.id},via='quick')}"
+              method="post" class="chips" style="margin-top:10px" data-pending="공고문에서 찾는 중…" aria-label="자주 묻는 질문">
+            <button th:each="q : ${quickQuestions}" type="submit" name="question" th:value="${q.text}" class="quick-q">
+                <span class="quick-tag" th:if="${q.fact}">공식</span><span th:text="${q.text}">당첨자 발표일은 언제예요?</span>
+            </button>
+        </form>
+
         <div th:if="${qa != null and qa.hasAnswer()}" class="card tint" style="margin-top:12px">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
                 <strong>답변</strong>

@@ -57,7 +57,10 @@ class AnnouncementControllerTest {
                 new AnnouncementController(queryService, qaService, lotteryCalculator,
                         new EligibilityEngine(RuleTestSupport.allRules()), new MatchResultStore(),
                         mock(com.portfolio.chungyak.repository.AnnouncementDocumentRepository.class),
-                        mock(com.portfolio.chungyak.rag.NoticeQuestionService.class))).build();
+                        mock(com.portfolio.chungyak.rag.NoticeQuestionService.class),
+                        new com.portfolio.chungyak.rag.QaTopicStats(
+                                mock(com.portfolio.chungyak.repository.QaTopicStatRepository.class),
+                                java.time.Clock.systemDefaultZone()))).build();
     }
 
     private static Announcement announcement(long id) {

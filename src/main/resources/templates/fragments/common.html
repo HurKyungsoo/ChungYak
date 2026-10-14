@@ -320,6 +320,12 @@
             background: var(--surface-2); border-radius: var(--r-sm); padding: 4px 9px;
         }
         .chip.hl   { background: var(--brand-weak); color: var(--brand); }
+        /* 자주 묻는 질문 버튼(#40) — 칩 모양 버튼, 터치 영역 36px 이상 */
+        .quick-q { font-family: inherit; font-size: .85rem; font-weight: 550; color: var(--text);
+                   background: var(--surface); border: 1px solid var(--border-strong); border-radius: 999px;
+                   padding: 8px 12px; min-height: 36px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+        .quick-q:hover { background: var(--surface-2); }
+        .quick-q .quick-tag { font-size: .72rem; font-weight: 700; color: var(--brand); }
         .chip.zero { color: var(--text-subtle); }
         .chip.dday { background: var(--surface-2); color: var(--text-muted); font-weight: 700;
                      border-radius: var(--r-pill); }
@@ -1310,7 +1316,7 @@
         });
         // 뒤로 가기로 돌아오면(bfcache) "읽는 중…" 상태가 그대로 남는다 — 새로 그려 다시 누를 수 있게
         window.addEventListener('pageshow', function (ev) {
-            if (ev.persisted && document.querySelector('.btn.is-pending')) location.reload();
+            if (ev.persisted && document.querySelector('.is-pending')) location.reload();
         });
     })();
 </script>

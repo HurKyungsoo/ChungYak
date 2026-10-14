@@ -6,6 +6,8 @@ import com.portfolio.chungyak.domain.SpecialSupplyType;
 import com.portfolio.chungyak.domain.SupplyCategory;
 import com.portfolio.chungyak.domain.UnitType;
 import com.portfolio.chungyak.rag.DocumentQaService;
+import com.portfolio.chungyak.rag.QaTopicStats;
+import com.portfolio.chungyak.rag.QuickQuestions;
 import com.portfolio.chungyak.rag.NoticeQuestionService;
 import com.portfolio.chungyak.rag.NoticeSummaryTable;
 import com.portfolio.chungyak.repository.AnnouncementDocumentRepository;
@@ -73,6 +75,7 @@ public class AnnouncementController {
     private final MatchResultStore matchResultStore;
     private final AnnouncementDocumentRepository documentRepository;
     private final NoticeQuestionService questionService;
+    private final QaTopicStats quickQuestionOrder;   // 버튼을 많이 눌린 순으로(#40 3단계)
 
     @GetMapping("/announcements")
     public String list(@RequestParam(required = false) String region,
@@ -291,8 +294,10 @@ public class AnnouncementController {
     @PostMapping("/announcements/{id}/qa")
     public String ask(@PathVariable Long id,
                       @RequestParam("question") String question,
+                      @RequestParam(value = "via", required = false) String via,
                       Model model) {
-        var qa = questionService.answer(id, question);   // 구조화 데이터 먼저, 아니면 AI(#39)
+        // 구조화 데이터 먼저, 아니면 AI(#39). via=quick = 자주 묻는 질문 버튼(#40 집계)
+        var qa = questionService.answer(id, question, "quick".equals(via));
         model.addAttribute("qa", qa);
         model.addAttribute("question", question);
         model.addAttribute("qaRephrase", questionService.rephraseSuggestion(question, qa).orElse(null));
@@ -315,8 +320,11 @@ public class AnnouncementController {
         model.addAttribute("qaIndexed", qaService.hasIndex(id));
         model.addAttribute("qaSemantic", qaService.isSemantic());   // BM25 모드면 '의미' 점수(늘 0)를 숨긴다
         // 공고문 첫 페이지 "단지 주요정보" 표(#38) — 원문 표 그대로, 표가 없거나 칸이 어긋나면 null
-        model.addAttribute("noticeSummary", documentRepository.findByAnnouncementId(id)
-                .flatMap(d -> NoticeSummaryTable.parse(d.getFirstPart())).orElse(null));
+        Optional<NoticeSummaryTable> noticeSummary = documentRepository.findByAnnouncementId(id)
+                .flatMap(d -> NoticeSummaryTable.parse(d.getFirstPart()));
+        model.addAttribute("noticeSummary", noticeSummary.orElse(null));
+        // 자주 묻는 질문 버튼(#40) — 공식 데이터 버튼은 이 공고 값으로 답이 나오는 것만
+        model.addAttribute("quickQuestions", quickQuestionOrder.sortByClicks(QuickQuestions.of(announcement, noticeSummary)));
         // 문의처는 하이픈 없는 숫자로 들어온다 — 읽을 수 있게 끊어서 보여주고,
         // 거는 건 원본 그대로 tel: 로 넘긴다(다이얼러가 하이픈도 알아서 처리한다).
         model.addAttribute("inquiryTelDisplay", PhoneNumbers.format(announcement.getInquiryTel()));
