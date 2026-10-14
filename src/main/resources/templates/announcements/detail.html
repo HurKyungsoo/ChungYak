@@ -289,7 +289,7 @@
                     </td>
                     <!--/* 미달을 먼저 — 숫자 경쟁률 중앙값만 쓰면 대부분 미달인 지역도 경쟁이 있는 것처럼 읽힌다 */-->
                     <td class="num">
-                        <strong th:text="|미달 ${b.undersubscribed()}건 / ${b.total()}건|">미달 2건 / 9건</strong>
+                        <strong th:text="|미달 ${b.undersubscribed()}건 / ${b.total()}건|" title="모든 주택형이 1순위 해당지역에서 미달인 공고">미달 2건 / 9건</strong>
                         <div class="subtle" style="font-size:.78rem" th:if="${b.medianRate() != null}"
                              th:text="|경쟁 있던 ${b.rateNotices()}건 중앙값 ${#numbers.formatDecimal(b.medianRate(), 1, 'COMMA', 1, 'POINT')} : 1|">경쟁 있던 7건 중앙값 12.3 : 1</div>
                     </td>
@@ -309,7 +309,7 @@
                     <tr th:each="n : ${competition.similar()}">
                         <td><span th:text="${n.name()}">○○ 아파트</span>
                             <div class="subtle" style="font-size:.78rem" th:if="${n.area() != null}" th:text="${n.area()}">화성시</div></td>
-                        <td th:text="|${n.month().year}.${n.month().monthValue}|">2026.7</td>
+                        <td th:text="${#strings.replace(n.month().toString(), '-', '.')}">2026.07</td>
                         <td class="num" th:text="${n.perPyeong() != null} ? |${#numbers.formatInteger(n.perPyeong(), 1, 'COMMA')}만원| : '-'">2,100만원</td>
                         <td class="num" th:text="${n.lowest() != null} ? |${n.lowest()}점| : '추첨·미달'">52점</td>
                         <td class="num" th:text="${n.rate()}">12.3 : 1</td>

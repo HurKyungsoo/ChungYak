@@ -40,10 +40,11 @@ class CompetitionStatsServiceTest {
         List<PastUnit> past = List.of(
                 unit("A", NOTICE.minusMonths(2), "084.9A", 52, "10.50"),
                 unit("A", NOTICE.minusMonths(2), "084.9B", 48, "8.00"),     // A 의 최저 = 48, 경쟁률 중앙값 9.25
-                unit("B", NOTICE.minusMonths(5), "084.9A", 0, "(△3)"),      // 가점 0(미달) — 가점 표본에서 빠지고 미달로 센다
+                unit("B", NOTICE.minusMonths(5), "084.9A", 0, "(△3)"),      // 미달 + 다른 주택형은 경쟁 → "경쟁 있던" 쪽에만
                 unit("B", NOTICE.minusMonths(5), "084.9B", 61, "1,234.50"),
                 unit("C", NOTICE.minusMonths(9), "075.1A", 33, "-"),
-                unit("D", NOTICE.minusMonths(3), "059.9A", 40, "3.00"));    // 다른 면적대
+                unit("D", NOTICE.minusMonths(3), "059.9A", 40, "3.00"),     // 다른 면적대
+                unit("E", NOTICE.minusMonths(4), "084.9A", 0, "(△2)"));      // 전부 미달 — 가점 표본에서 빠지고 미달로 센다
 
         Summary s = CompetitionStatsService.summarize("경기", Set.of("60~85㎡"), past, NOTICE);
 
@@ -51,13 +52,14 @@ class CompetitionStatsServiceTest {
         BandStat b = s.bands().get(0);
         assertThat(b.band()).isEqualTo("60~85㎡");
         assertThat(b.months()).isEqualTo(12);
-        assertThat(b.total()).isEqualTo(3);
+        assertThat(b.total()).isEqualTo(4);
         assertThat(b.notices()).isEqualTo(3);
         assertThat(b.minLowest()).isEqualTo(33);
         assertThat(b.medianLowest()).isEqualTo(48);
         assertThat(b.maxLowest()).isEqualTo(61);
         assertThat(b.medianRate()).isEqualTo((9.25 + 1234.5) / 2);   // 공고별 중앙값(A 9.25, B 1,234.5)의 중앙값
-        assertThat(b.undersubscribed()).isEqualTo(1);
+        assertThat(b.rateNotices()).isEqualTo(2);
+        assertThat(b.undersubscribed()).isEqualTo(1);   // E 만 — B 는 경쟁 있던 공고에 센다
     }
 
     @Test

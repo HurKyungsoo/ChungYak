@@ -60,7 +60,7 @@ public class CompetitionStatsService {
      * @param minLowest      공고별 최저가점(그 면적대 주택형 중 최솟값)의 최솟값 · 중앙값 · 최댓값
      * @param medianRate     1순위 해당지역 경쟁률(공고별 중앙값)의 중앙값 — 숫자 경쟁률이 하나도 없으면 null
      * @param rateNotices    숫자 경쟁률이 있는(경쟁이 있던) 공고 수 — medianRate 의 표본. 미달 공고는 빠진다
-     * @param undersubscribed 1순위 해당지역에서 미달("(△n)")이 난 공고 수
+     * @param undersubscribed 1순위 해당지역에서 주택형이 <b>모두</b> 미달("(△n)")인 공고 수 — rateNotices 와 겹치지 않는다
      */
     public record BandStat(String band, int months, int total, int notices, int minLowest, int medianLowest, int maxLowest,
                            Double medianRate, int rateNotices, int undersubscribed) {}
@@ -163,7 +163,8 @@ public class CompetitionStatsService {
                 else if (t.startsWith("(")) anyUnder = true;   // "(△1)" 미달
             }
             if (!noticeRates.isEmpty()) rates.add(median(noticeRates));
-            if (anyUnder) under++;
+            // 주택형마다 미달·경쟁이 섞인 공고는 "경쟁 있던" 쪽에만 센다 — 둘 다 세면 합이 전체를 넘어 읽기 어렵다
+            if (anyUnder && noticeRates.isEmpty()) under++;
         }
         if (lows.size() < MIN_NOTICES) return null;
         lows.sort(Integer::compare);
