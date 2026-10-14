@@ -331,6 +331,7 @@ class NoticeQaSemanticEvalTest {
         table.append('\n');
         Map<String, int[]> totals = new LinkedHashMap<>();   // [전체, hold-out]
         modes.keySet().forEach(m -> totals.put(m, new int[2]));
+        java.util.Set<Case> rerank20Ok = new java.util.HashSet<>();
         for (Case c : cases) {
             table.append(String.format("%-34s", c.question().length() > 32 ? c.question().substring(0, 32) : c.question()));
             for (var e : modes.entrySet()) {
@@ -338,6 +339,7 @@ class NoticeQaSemanticEvalTest {
                 int rank = NoticeQaRetrievalEvalTest.rankOf(ranked.subList(0, Math.min(5, ranked.size())), c);
                 boolean gate = !ranked.isEmpty() && (ranked.get(0).keywordScore() >= KEYWORD_MIN || ranked.get(0).score() >= COS_MIN);
                 boolean ok = rank >= 1 && rank <= CONTEXT_CHUNKS && gate;
+                if (ok && e.getKey().equals("rerank-20")) rerank20Ok.add(c);
                 if (ok) {
                     totals.get(e.getKey())[0]++;
                     if (!SEEN.contains(c.notice())) totals.get(e.getKey())[1]++;
@@ -350,8 +352,96 @@ class NoticeQaSemanticEvalTest {
         long heldN = cases.stream().filter(c -> !SEEN.contains(c.notice())).count();
         table.append("\nLLM 까지(게이트 통과):");
         totals.forEach((m, t) -> table.append(String.format("  %s %d/%d(hold-out %d/%d)", m, t[0], cases.size(), t[1], heldN)));
+        // 운영 경로(#42): 표 값 결정론 답변이 먼저 답하는 질문은 검색과 무관하게 답이 나간다 — 답에 정답 근거가 있어야 센다
+        int pipeline = 0, byFact = 0;
+        for (Case c : cases) {
+            boolean fact;
+            try {
+                String text = NoticeQaRetrievalEvalTest.readNotice(c.notice());
+                fact = TableFactAnswerer.answer(text, c.question())
+                        .filter(f -> c.answers().stream().anyMatch(a -> NoticeQaRetrievalEvalTest.squash(f.text())
+                                .contains(NoticeQaRetrievalEvalTest.squash(a))))
+                        .isPresent();
+            } catch (java.io.IOException ex) {
+                throw new java.io.UncheckedIOException(ex);
+            }
+            if (fact) byFact++;
+            if (fact || rerank20Ok.contains(c)) pipeline++;
+        }
+        table.append(String.format("%n운영 경로(표 값 결정론 → rerank-20): %d/%d (결정론으로 답한 %d)", pipeline, cases.size(), byFact));
         table.append("\nrerank 호출(이번 실행): ").append(rerankCalls).append("회, 토큰 ").append(rerankTokens).append('\n');
         System.out.println("[공고문 Q&A rerank eval]\n" + table);
+    }
+
+    /**
+     * 답변 단계 eval (#41) — 운영 경로(하이브리드 → rerank-20 → 앞 3개)로 고른 발췌를 운영과 같은 프롬프트·모델로 Groq 에 보내
+     * 답을 받고, 금액·날짜 검사(#31)·문장 근거 검사(#41)를 돌려 사람이 읽을 표로 낸다. 기준선은 강제하지 않는다.
+     * <b>EVAL_GROQ_ANSWERS=true 일 때만</b> 돈다 — Groq 무료 한도는 조직 단위라 운영 Q&A 와 나눠 쓴다. 분당 1회, 12문항,
+     * 답은 build/eval-cache/groq-qa 에 저장해 다시 돌리면 호출하지 않는다.
+     */
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "EVAL_GROQ_ANSWERS", matches = "true")
+    @DisplayName("답변 단계 — Groq 답에 근거 검사를 돌린다(사람이 판정)")
+    void groqAnswers() throws Exception {
+        String key = System.getenv("GROQ_API_KEY");
+        org.junit.jupiter.api.Assumptions.assumeTrue(key != null && !key.isBlank(), "GROQ_API_KEY 없음");
+        String model = System.getenv().getOrDefault("GROQ_QA_MODEL", "openai/gpt-oss-20b");
+        var props = new com.portfolio.chungyak.llm.GroqProperties(key, model, null, false, model, "low");
+        var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(java.time.Duration.ofSeconds(5));
+        factory.setReadTimeout(java.time.Duration.ofSeconds(60));
+        DocumentAnswerer answerer = new GroqDocumentAnswerer(new com.portfolio.chungyak.llm.GroqChatClient(
+                RestClient.builder().requestFactory(factory).build(), props));
+        VectorSearch hybrid = search(Optional.of(embeddings), 0.4);
+        Path cacheDir = Path.of("build", "eval-cache", "groq-qa", model.replace('/', '_'));
+        Files.createDirectories(cacheDir);
+
+        Map<String, Integer> perNotice = new LinkedHashMap<>();
+        StringBuilder report = new StringBuilder();
+        int asked = 0, hidden = 0, weakAnswers = 0, calls = 0;
+        for (Case c : cases) {
+            if (asked >= 12) break;
+            if (perNotice.getOrDefault(c.notice(), 0) >= 2) continue;
+            if (TableFactAnswerer.answer(NoticeQaRetrievalEvalTest.readNotice(c.notice()), c.question()).isPresent()) continue;
+            List<Hit> ranked = rerank(c.question(), hybrid.searchWithin(IDS.get(c.notice()), c.question(), 20));
+            List<Hit> top = ranked.subList(0, Math.min(CONTEXT_CHUNKS, ranked.size()));
+            int rank = NoticeQaRetrievalEvalTest.rankOf(top, c);
+            if (rank < 1) continue;   // 검색이 놓친 질문은 답변 단계를 볼 수 없다
+            perNotice.merge(c.notice(), 1, Integer::sum);
+            asked++;
+
+            List<String> numbered = new ArrayList<>();
+            for (int i = 0; i < top.size(); i++) numbered.add("[" + (i + 1) + "] " + top.get(i).content());
+            String q = c.question().strip() + QuerySynonyms.hintLine(c.question());
+            Path cached = cacheDir.resolve(com.portfolio.chungyak.domain.AnnouncementDocument.sha256(q + "\n" + String.join("\n", numbered)) + ".txt");
+            String answer;
+            if (Files.exists(cached)) {
+                answer = Files.readString(cached);
+            } else {
+                if (calls++ > 0) Thread.sleep(60_000);   // 분당 1회 — 운영 Q&A 와 분당 한도(8K TPM)를 나눠 쓴다
+                try {
+                    answer = answerer.answer(q, numbered);
+                } catch (RuntimeException e) {
+                    report.append("호출 실패 ").append(c.question()).append(": ").append(e.getClass().getSimpleName()).append('\n');
+                    Thread.sleep(60_000);
+                    continue;
+                }
+                Files.writeString(cached, answer);
+            }
+            Optional<String> problem = AnswerGrounding.check(answer, numbered);
+            List<String> weak = problem.isPresent() ? List.of() : SentenceGrounding.weakSentences(answer, numbered);
+            if (problem.isPresent()) hidden++;
+            if (!weak.isEmpty()) weakAnswers++;
+            report.append("──── ").append(c.notice()).append(" | ").append(c.question()).append('\n')
+                    .append("정답 근거: ").append(c.expected()).append('\n')
+                    .append("답: ").append(answer.replace('\n', ' ')).append('\n')
+                    .append(problem.map(p -> "숨김(#31): " + p).orElse(weak.isEmpty() ? "검사 통과" : "원문 확인 표시: " + weak))
+                    .append("\n\n");
+        }
+        report.append(String.format("답 %d개 — 금액·날짜로 숨김 %d · 원문 확인 표시 %d · Groq 호출 %d (나머지는 캐시)%n",
+                asked, hidden, weakAnswers, calls));
+        Files.writeString(Path.of("build", "eval-groq-answers.txt"), report.toString());
+        System.out.println("[답변 단계 eval]\n" + report);
     }
 
     private static final String RERANK_MODEL = "rerank-2.5";
