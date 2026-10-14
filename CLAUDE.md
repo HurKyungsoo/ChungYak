@@ -198,6 +198,12 @@
 2. ~~벡터 검색~~ 코드 완료 — `rag/` (BM25+벡터 하이브리드, 공고문 Q&A). `VOYAGE_API_KEY` 가 없으면 **BM25 모드**(#22):
    청크만 저장(`embedding="[]"`, 모델 `bm25`)하고 키워드로만 검색, 응답은 Groq. 수집 직후 자동 인덱싱은 BM25 모드에서만
    (임베딩은 과금이라 `/api/admin/rag/reindex` 수동). 키워드 검색이라 의역("돈 얼마 내야")은 못 찾는다 — 무료 임베딩은 후속.
+   **Voyage 를 켤지 eval 로 쟀다(2026-10-14, `NoticeQaSemanticEvalTest` — 키 있을 때만, 임베딩은 `build/eval-cache` 캐시)**:
+   질문 임베딩 하이브리드는 BM25 와 같다(28/38 → 0.4: 29, 0.6: 28, 벡터만 24) — 의역은 잡지만 공고문 단어 그대로인 질문을 잃는다.
+   질문을 보내지 않는 **주제 보정**(BM25 후보를 `QuestionTopic` 주제 설명문과 청크 임베딩의 코사인으로 RRF, w=0.2~0.3)은 30/38(+2, 잃은 문항 0),
+   w≥0.35 는 떨어진다. 키워드 꼬리표(무료 대조군)는 27. 표본이 작아(38문항) 운영 반영 전 eval 확장이 먼저.
+   한글 공고문은 Voyage 토크나이저로 **글자당 0.72 토큰**(실측) — 서버 전체 인덱싱 ≈ 1,400만 토큰(voyage-4-lite 무료 2억).
+   Voyage 대시보드의 Budget Limit 은 **알림 메일일 뿐 호출을 막지 않는다**.
 3. ~~신혼희망타운 — 별도 `SpecialSupplyType` + 규칙~~ 완료.
    `SpecialSupplyType.NEWLYWED_HOPE_TOWN` + `NewlywedHopeTownRule` + 두 클라이언트의
    `reclassifyForHopeTown` 까지 있다. 남은 건 코드가 아니라 **원본 데이터**다 —

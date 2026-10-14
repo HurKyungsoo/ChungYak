@@ -31,6 +31,11 @@ public enum QuestionTopic {
         return label;
     }
 
+    /** 주제 단어 정규식(OTHER 는 null) — 공고문 청크 주제 실험(eval)에서도 같은 사전을 쓴다 */
+    String wordsPattern() {
+        return words == null ? null : words.pattern();
+    }
+
     public static QuestionTopic classify(String question) {
         if (question == null) return OTHER;
         String q = question.replaceAll("\s+", "");
