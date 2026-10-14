@@ -229,8 +229,9 @@ public class Announcement {
         return NoticeLineage.displayTitle(houseName);
     }
 
+    /** 제목 태그로 본다 — noticeKind 는 수집 때 채워져 그 전에 들어온 행은 ORIGINAL 로 남아 있다(2026-10-14 운영 확인) */
     public boolean isCorrection() {
-        return noticeKind == NoticeKind.CORRECTION;
+        return noticeKind == NoticeKind.CORRECTION || NoticeLineage.kindOf(houseName) == NoticeKind.CORRECTION;
     }
 
     public boolean isCancelled() {
