@@ -51,6 +51,7 @@ class CompetitionStatsServiceTest {
         BandStat b = s.bands().get(0);
         assertThat(b.band()).isEqualTo("60~85㎡");
         assertThat(b.months()).isEqualTo(12);
+        assertThat(b.total()).isEqualTo(3);
         assertThat(b.notices()).isEqualTo(3);
         assertThat(b.minLowest()).isEqualTo(33);
         assertThat(b.medianLowest()).isEqualTo(48);

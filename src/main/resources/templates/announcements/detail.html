@@ -282,23 +282,24 @@
                 <tbody>
                 <tr th:each="b : ${competition.bands()}">
                     <td th:text="${b.band()}">60~85㎡</td>
-                    <td class="num" th:text="|최근 ${b.months()}개월 ${b.notices()}건|">최근 12개월 7건</td>
+                    <td class="num" th:text="|최근 ${b.months()}개월 ${b.total()}건|">최근 12개월 9건</td>
                     <td class="num">
                         <strong th:text="|${b.minLowest()}~${b.maxLowest()}점|">32~61점</strong>
-                        <div class="subtle" style="font-size:.78rem" th:text="|중앙값 ${b.medianLowest()}점|">중앙값 47점</div>
+                        <div class="subtle" style="font-size:.78rem" th:text="|중앙값 ${b.medianLowest()}점 · 가점 있는 ${b.notices()}건|">중앙값 47점 · 가점 있는 7건</div>
                     </td>
                     <td class="num">
                         <span th:if="${b.medianRate() != null}" th:text="|중앙값 ${#numbers.formatDecimal(b.medianRate(), 1, 'COMMA', 1, 'POINT')} : 1|">12.3 : 1</span>
                         <span th:unless="${b.medianRate() != null}" class="subtle">-</span>
                         <div class="subtle" style="font-size:.78rem" th:if="${b.undersubscribed() > 0}"
-                             th:text="|미달 ${b.undersubscribed()}건|">미달 2건</div>
+                             th:text="|미달 ${b.undersubscribed()}건 / ${b.total()}건|">미달 2건 / 9건</div>
                     </td>
                 </tr>
                 </tbody>
             </table>
         </div>
         <p class="muted" style="margin:8px 0 0;font-size:.82rem">
-            같은 시도에서 이 공고 전에 나온 민영 분양 공고의 청약홈 기록입니다. 최저 당첨가점은 공고마다 그 면적대 주택형 중 가장 낮은 값을 모았습니다.
+            같은 시도에서 이 공고 전에 나온 민영 분양 공고의 청약홈 기록입니다. 최저 당첨가점은 공고마다 그 면적대 주택형 중 가장 낮은 값을 모았습니다
+            (미달·추첨 공고는 가점이 없어 빠집니다).
             분양가·규제·단지 규모·시기에 따라 크게 달라 <strong>당첨 가능성을 뜻하지 않습니다</strong>.
             <a th:href="@{/general-supply}">내 가점 계산하기 →</a></p>
     </section>

@@ -268,7 +268,7 @@ class ScreenRenderTest {
         String apt = render("/announcements/" + aptId);
 
         assertThat(apt).contains("서울 최근 당첨 기록 (참고)").contains("최근 12개월 3건")
-                .contains("41~63점").contains("중앙값 55점").contains("중앙값 12.0 : 1").contains("미달 1건")
+                .contains("41~63점").contains("중앙값 55점 · 가점 있는 3건").contains("중앙값 12.0 : 1").contains("미달 1건 / 3건")
                 .contains("당첨 가능성을 뜻하지 않습니다");
     }
 

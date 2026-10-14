@@ -50,12 +50,13 @@ public class CompetitionStatsService {
     /**
      * 면적대 하나의 지역 최근 기록.
      * @param months         실제로 본 기간(12 또는 24)
-     * @param notices        최저가점이 있는 비교 공고 수(표본)
+     * @param total          그 면적대에 가점·경쟁률 기록이 하나라도 있는 비교 공고 수
+     * @param notices        그중 최저가점(0 아님)이 있는 공고 수 — 가점 범위의 표본. 미달 공고는 가점이 0 이라 빠진다
      * @param minLowest      공고별 최저가점(그 면적대 주택형 중 최솟값)의 최솟값 · 중앙값 · 최댓값
      * @param medianRate     1순위 해당지역 경쟁률(공고별 중앙값)의 중앙값 — 숫자 경쟁률이 하나도 없으면 null
      * @param undersubscribed 1순위 해당지역에서 미달("(△n)")이 난 공고 수
      */
-    public record BandStat(String band, int months, int notices, int minLowest, int medianLowest, int maxLowest,
+    public record BandStat(String band, int months, int total, int notices, int minLowest, int medianLowest, int maxLowest,
                            Double medianRate, int undersubscribed) {}
 
     public record Summary(String region, List<BandStat> bands) {
@@ -140,7 +141,7 @@ public class CompetitionStatsService {
         }
         if (lows.size() < MIN_NOTICES) return null;
         lows.sort(Integer::compare);
-        return new BandStat(band, months, lows.size(), lows.get(0), (int) Math.round(median(lows.stream().map(Integer::doubleValue).toList())),
+        return new BandStat(band, months, byNotice.size(), lows.size(), lows.get(0), (int) Math.round(median(lows.stream().map(Integer::doubleValue).toList())),
                 lows.get(lows.size() - 1), rates.isEmpty() ? null : median(rates), under);
     }
 
