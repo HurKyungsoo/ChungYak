@@ -49,6 +49,16 @@ class SentenceGroundingTest {
         assertThat(SentenceGrounding.weakSentences(
                 "공고문 발췌에서는 확인되지 않습니다. 원문을 확인하세요.", YOUTH)).isEmpty();
         assertThat(SentenceGrounding.weakSentences("외국인은 신청할 수 없습니다. [1]", YOUTH)).isEmpty();
+        // 운영 2901 — 못 찾았다는 답에 경고가 같은 말을 반복했다
+        assertThat(SentenceGrounding.weakSentences(
+                "공고문 발췌에서는 월 임대료 금액이 명확히 표시되지 않습니다. 원문을 확인하세요.", YOUTH)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("발췌를 주어로 삼지 않은 부정은 내용 주장이라 그대로 검사한다")
+    void contentNegationIsStillChecked() {
+        assertThat(SentenceGrounding.weakSentences(
+                "발코니 확장 비용은 분양가에 포함되어 있지 않으며 별도 계약으로 납부합니다.", YOUTH)).isNotEmpty();
     }
 
     @Test

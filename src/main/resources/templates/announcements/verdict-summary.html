@@ -11,7 +11,8 @@
                   canApply=${result.allDecisions.?[eligible and (allocatedInAnnouncement == null or allocatedInAnnouncement > 0)]}">
     <div class="sec-head" style="margin:0 0 10px">
         <h2 style="margin:0">내 판정 요약</h2>
-        <span class="count">저장된 조건 · 규칙 엔진 결과</span>
+        <span th:replace="~{fragments/common :: src('engine', '규칙 엔진 판정')}"></span>
+        <span class="count">저장된 조건으로</span>
     </div>
     <div class="vs-row">
         <span class="vs-head ok" th:text="|자격 충족 ${ok.size()}|">자격 충족 2</span>

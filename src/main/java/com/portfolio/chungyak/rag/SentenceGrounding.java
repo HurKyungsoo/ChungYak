@@ -44,6 +44,13 @@ final class SentenceGrounding {
             Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*(개월|년|세|%|퍼센트|회|세대|인|층)(?![가-힣]{0,1}\\d)");
     /** 안내 문장 — 근거를 말하는 문장이 아니다 */
     private static final Pattern GUIDANCE = Pattern.compile("원문|확인하세요|확인하시기|확인되지 않습니다|문의하세요|문의하시기");
+    /**
+     * "발췌에서는 금액이 명확히 표시되지 않습니다" — 못 찾았다는 말이지 주장이 아니다. 이런 답에 "원문 확인 필요"를 붙이면
+     * 운영에서 본 대로(2026-10-14, 공고 2901) 경고가 답과 같은 말을 반복한다. 발췌·공고문을 주어로 삼은 부정만 본다 —
+     * "확장비는 분양가에 포함되어 있지 않습니다" 같은 내용 주장은 그대로 검사한다.
+     */
+    private static final Pattern NOT_IN_EXCERPT = Pattern.compile(
+            "(발췌|공고문)[^.]{0,40}?(표시|명시|기재|언급|나와\\s*있|적혀\\s*있|확인|찾)[가-힣\\s]{0,6}?(않|없|못)");
 
     /** 뒤에서 떼는 조사·어미 — 긴 것부터. 한 번 뗀 뒤 한 번 더 본다("제외되며" → "제외되" → "제외") */
     private static final List<String> SUFFIXES = List.of(
@@ -66,7 +73,7 @@ final class SentenceGrounding {
         List<String> weak = new ArrayList<>();
         for (String raw : splitSentences(answer)) {
             String sentence = CITATION.matcher(raw).replaceAll(" ").strip();
-            if (sentence.isEmpty() || GUIDANCE.matcher(sentence).find()) continue;
+            if (sentence.isEmpty() || GUIDANCE.matcher(sentence).find() || NOT_IN_EXCERPT.matcher(sentence).find()) continue;
             if (!numbersGrounded(sentence, corpus) || !wordsGrounded(sentence, corpus)) weak.add(raw.strip());
         }
         return weak;

@@ -7,7 +7,7 @@
 
 <main>
     <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}" class="backlink">← 조건 다시 입력</a>
-    <h1>자격 판정 결과</h1>
+    <h1>자격 판정 결과 <span th:replace="~{fragments/common :: src('engine', '규칙 엔진 판정 · AI 아님')}"></span></h1>
 
     <div th:if="${alertMessage}" class="banner" th:classappend="${alertMessageBad} ? 'bad' : 'good'">
         <p style="margin:0" th:text="${alertMessage}">알림</p>

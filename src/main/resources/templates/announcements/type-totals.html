@@ -11,6 +11,7 @@
          th:if="${!highlights.typeTotals().isEmpty() or highlights.typeCountsUnknown()}">
     <div class="sec-head" style="margin:0 0 10px">
         <h2 style="margin:0">특별공급 유형별 배정</h2>
+        <span th:replace="~{fragments/common :: src('data', ${announcement.lh ? 'LH' : '청약홈'})}"></span>
         <span class="count" th:if="${!highlights.typeTotals().isEmpty()}"
               th:text="|주택형 ${announcement.unitTypes.size()}개 합계|">주택형 4개 합계</span>
     </div>
