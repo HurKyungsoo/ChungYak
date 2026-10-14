@@ -79,6 +79,43 @@ class CompetitionStatsServiceTest {
     }
 
     @Test
+    @DisplayName("비슷한 최근 공고 — 같은 시군구 먼저, 그다음 평당가가 가까운 순, 기록 없는 공고는 뺀다")
+    void similarNotices() {
+        Announcement current = Announcement.builder().id(9L).externalId("APT-9").houseManageNo("9").pblancNo("9")
+                .houseName("이 공고").houseType(HouseType.APT).houseDetailType(HouseDetailType.PRIVATE)
+                .regionName("경기").address("경기도 화성시 동탄").noticeDate(NOTICE).build();
+        // 공급면적 112.4㎡(34평) × 최고 분양가 68,000만원 → 평당 2,000만원
+        current.addUnitType(com.portfolio.chungyak.domain.UnitType.builder().modelNo("01").typeName("084.9A")
+                .supplyArea("112.4").topAmount(68_000).generalSupplyCount(100).specialSupplyCount(50).build());
+
+        List<PastUnit> past = List.of(
+                unit("A", NOTICE.minusMonths(1), "084.9A", 50, "12.00"),     // 수원시, 평당 ~2,000
+                unit("B", NOTICE.minusMonths(2), "084.9A", 0, "(△5)"),       // 화성시(같은 시군구), 평당 ~3,000
+                unit("C", NOTICE.minusMonths(3), "084.9A", 41, "3.50"),      // 평택시, 평당 ~1,500
+                unit("D", NOTICE.minusMonths(4), "084.9A", 60, "20.00"));    // 용인시, 평당 ~2,050
+        List<com.portfolio.chungyak.mapper.CompetitionMapper.PastNoticeUnit> units = List.of(
+                pnu("A", "수원 단지", "경기도 수원시 영통구", NOTICE.minusMonths(1), 68_000),
+                pnu("B", "화성 단지", "경기도 화성시 봉담읍", NOTICE.minusMonths(2), 102_000),
+                pnu("C", "평택 단지", "경기도 평택시 고덕", NOTICE.minusMonths(3), 51_000),
+                pnu("D", "용인 단지", "경기도 용인시 처인구", NOTICE.minusMonths(4), 69_700),
+                pnu("E", "기록 없는 단지", "경기도 화성시", NOTICE.minusMonths(1), 68_000));
+
+        var got = CompetitionStatsService.similar(current, "60~85㎡", past, units);
+
+        assertThat(got).extracting(CompetitionStatsService.SimilarNotice::name).containsExactly("화성 단지", "수원 단지", "용인 단지");
+        assertThat(got.get(0).lowest()).isNull();            // 가점 없음(미달) → 화면은 "추첨·미달"
+        assertThat(got.get(0).rate()).isEqualTo("미달");
+        assertThat(got.get(1).lowest()).isEqualTo(50);
+        assertThat(got.get(1).rate()).isEqualTo("12.0 : 1");
+        assertThat(got.get(1).area()).isEqualTo("수원시");
+    }
+
+    private static com.portfolio.chungyak.mapper.CompetitionMapper.PastNoticeUnit pnu(String house, String name, String address,
+                                                                                    LocalDate date, int topAmount) {
+        return new com.portfolio.chungyak.mapper.CompetitionMapper.PastNoticeUnit(house, name, address, date, "084.9A", "112.4", topAmount);
+    }
+
+    @Test
     @DisplayName("표본이 하나도 안 되면 비어 있다 — 화면은 카드를 그리지 않는다")
     void emptyWhenNoSample() {
         assertThat(CompetitionStatsService.summarize("서울", Set.of("60~85㎡"), List.of(), NOTICE).isEmpty()).isTrue();

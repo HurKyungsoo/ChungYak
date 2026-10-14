@@ -249,12 +249,16 @@ class ScreenRenderTest {
         String[] houses = {"P-1", "P-2", "P-3"};
         int[] lows = {41, 55, 63};
         for (int i = 0; i < houses.length; i++) {
-            repository.save(Announcement.builder()
+            Announcement pastNotice = Announcement.builder()
                     .externalId("APT-PAST-" + i).houseManageNo(houses[i]).pblancNo(houses[i]).houseName("지난 공고 " + i)
                     .houseType(HouseType.APT).houseDetailType(HouseDetailType.PRIVATE).regionName("서울")
-                    .supplyCategory(SupplyCategory.SALE).noticeDate(today.minusMonths(2 + i * 3))
+                    .address("서울특별시 강서구 " + i).supplyCategory(SupplyCategory.SALE).noticeDate(today.minusMonths(2 + i * 3))
                     .receptBeginDate(today.minusMonths(2 + i * 3)).receptEndDate(today.minusMonths(2 + i * 3))
-                    .regulationFlags(RegulationFlags.builder().build()).build());
+                    .regulationFlags(RegulationFlags.builder().build()).build();
+            pastNotice.addUnitType(UnitType.builder().modelNo("01").typeName("084.9A").supplyArea("112.34")
+                    .generalSupplyCount(50).specialSupplyCount(20).topAmount(80_000 + i * 5_000)
+                    .supplyBreakdown(SupplyBreakdown.builder().newlywed(20).build()).build());
+            repository.save(pastNotice);
         }
         competitionMapper.insertScores(java.util.List.of(
                 new com.portfolio.chungyak.external.CompetitionRecords.Score("P-1", "01", "084.9A", "01", lows[0], 50, 60),
@@ -268,7 +272,8 @@ class ScreenRenderTest {
         String apt = render("/announcements/" + aptId);
 
         assertThat(apt).contains("서울 최근 당첨 기록 (참고)").contains("최근 12개월 3건")
-                .contains("41~63점").contains("중앙값 55점 · 가점 있는 3건").contains("중앙값 12.0 : 1").contains("미달 1건 / 3건")
+                .contains("41~63점").contains("중앙값 55점 · 가점 있는 3건").contains("미달 1건 / 3건").contains("경쟁 있던 1건 중앙값 12.0 : 1")
+                .contains("비슷한 최근 공고 (60~85㎡)").contains("지난 공고 0").contains("강서구").contains("12.0 : 1")
                 .contains("당첨 가능성을 뜻하지 않습니다");
     }
 

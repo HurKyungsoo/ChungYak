@@ -287,16 +287,37 @@
                         <strong th:text="|${b.minLowest()}~${b.maxLowest()}점|">32~61점</strong>
                         <div class="subtle" style="font-size:.78rem" th:text="|중앙값 ${b.medianLowest()}점 · 가점 있는 ${b.notices()}건|">중앙값 47점 · 가점 있는 7건</div>
                     </td>
+                    <!--/* 미달을 먼저 — 숫자 경쟁률 중앙값만 쓰면 대부분 미달인 지역도 경쟁이 있는 것처럼 읽힌다 */-->
                     <td class="num">
-                        <span th:if="${b.medianRate() != null}" th:text="|중앙값 ${#numbers.formatDecimal(b.medianRate(), 1, 'COMMA', 1, 'POINT')} : 1|">12.3 : 1</span>
-                        <span th:unless="${b.medianRate() != null}" class="subtle">-</span>
-                        <div class="subtle" style="font-size:.78rem" th:if="${b.undersubscribed() > 0}"
-                             th:text="|미달 ${b.undersubscribed()}건 / ${b.total()}건|">미달 2건 / 9건</div>
+                        <strong th:text="|미달 ${b.undersubscribed()}건 / ${b.total()}건|">미달 2건 / 9건</strong>
+                        <div class="subtle" style="font-size:.78rem" th:if="${b.medianRate() != null}"
+                             th:text="|경쟁 있던 ${b.rateNotices()}건 중앙값 ${#numbers.formatDecimal(b.medianRate(), 1, 'COMMA', 1, 'POINT')} : 1|">경쟁 있던 7건 중앙값 12.3 : 1</div>
                     </td>
                 </tr>
                 </tbody>
             </table>
         </div>
+
+        <!-- 비슷한 최근 공고 — 시도 묶음은 넓다. 같은 시군구 먼저, 평당 분양가가 가까운 순(CompetitionStatsService.similar) -->
+        <th:block th:if="${!competition.similar().isEmpty()}">
+            <h3 style="margin:14px 0 6px;font-size:.92rem" th:text="|비슷한 최근 공고 (${competition.similarBand()})|">비슷한 최근 공고 (60~85㎡)</h3>
+            <div class="table-scroll">
+                <table>
+                    <thead><tr><th>단지</th><th>공고</th><th class="num">평당가 (최고가 기준)</th>
+                        <th class="num">최저 당첨가점</th><th class="num">1순위 경쟁률</th></tr></thead>
+                    <tbody>
+                    <tr th:each="n : ${competition.similar()}">
+                        <td><span th:text="${n.name()}">○○ 아파트</span>
+                            <div class="subtle" style="font-size:.78rem" th:if="${n.area() != null}" th:text="${n.area()}">화성시</div></td>
+                        <td th:text="|${n.month().year}.${n.month().monthValue}|">2026.7</td>
+                        <td class="num" th:text="${n.perPyeong() != null} ? |${#numbers.formatInteger(n.perPyeong(), 1, 'COMMA')}만원| : '-'">2,100만원</td>
+                        <td class="num" th:text="${n.lowest() != null} ? |${n.lowest()}점| : '추첨·미달'">52점</td>
+                        <td class="num" th:text="${n.rate()}">12.3 : 1</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </th:block>
         <p class="muted" style="margin:8px 0 0;font-size:.82rem">
             같은 시도에서 이 공고 전에 나온 민영 분양 공고의 청약홈 기록입니다. 최저 당첨가점은 공고마다 그 면적대 주택형 중 가장 낮은 값을 모았습니다
             (미달·추첨 공고는 가점이 없어 빠집니다).

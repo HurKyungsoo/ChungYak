@@ -80,4 +80,21 @@ public interface CompetitionMapper {
                AND a.notice_date >= #{from} AND a.notice_date < #{to}
              GROUP BY a.house_manage_no, a.notice_date, u.house_type""")
     List<PastUnit> pastUnits(@Param("region") String region, @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /** 비교 공고의 주택형별 이름·주소·분양가 — "비슷한 최근 공고"를 평당가로 고르려고(#34) */
+    record PastNoticeUnit(String houseManageNo, String houseName, String address, LocalDate noticeDate,
+                          String typeName, String supplyArea, Integer topAmount) {}
+
+    @Select("""
+            SELECT a.house_manage_no AS houseManageNo, a.house_name AS houseName, a.address AS address,
+                   a.notice_date AS noticeDate, u.type_name AS typeName, u.supply_area AS supplyArea, u.top_amount AS topAmount
+              FROM announcement a
+              JOIN unit_type u ON u.announcement_id = a.id
+             WHERE a.external_id NOT LIKE 'LH-%'
+               AND a.region_name = #{region}
+               AND a.house_detail_type = 'PRIVATE'
+               AND (a.supply_category IS NULL OR a.supply_category <> 'REMAINDER')
+               AND a.revision_state = 'CURRENT'
+               AND a.notice_date >= #{from} AND a.notice_date < #{to}""")
+    List<PastNoticeUnit> pastNoticeUnits(@Param("region") String region, @Param("from") LocalDate from, @Param("to") LocalDate to);
 }
