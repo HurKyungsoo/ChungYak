@@ -41,3 +41,36 @@ apt-2026000465-yeonje-gallery-xi	울산 사는데 신청할 수 있나요?	울�
 apt-2026000465-yeonje-gallery-xi	발코니 확장 계약금은 얼마나 내요?	계약금(10%) 중도금(10%) 잔금(80%)
 apt-2026000465-yeonje-gallery-xi	1순위 조건이 뭐예요?	1순위 : 입주자저축에 가입하여 가입기간이 6개월이
 apt-2026000465-yeonje-gallery-xi	부적격 당첨되면 청약 제한 기간은?	수도권외 6개월
+# ── 2026-10-14 추가: 공고문 4건·31문항. 공고문을 읽기 전에 질문을 먼저 썼다(주제 보정 실험의 과적합 확인용 hold-out).
+#    근거가 없던 질문 1개("반려동물 키워도 되나요?" — 행복주택)는 뺐다. 질문 문구는 근거를 찾은 뒤 고치지 않았다.
+lh-2997-incheon-gyeyang-hope-town	혼인 기간이 몇 년 이내여야 신청할 수 있나요?	혼인기간이 7년 이내
+lh-2997-incheon-gyeyang-hope-town	예비신혼부부도 신청 가능한가요?	혼인을 계획 중이며, 입주 전까지 혼인사실을 증명할 수 있는 자 || 3. 예비신혼부부 신청자격
+lh-2997-incheon-gyeyang-hope-town	소득 기준이 어떻게 되나요?	전년도 도시근로자 가구당 월평균소득의 130%
+lh-2997-incheon-gyeyang-hope-town	자산 기준은 얼마예요?	362,000천원
+lh-2997-incheon-gyeyang-hope-town	신혼희망타운 전용 대출 꼭 받아야 하나요?	신혼희망타운 전용 주택담보 장기대출상품 의무 가입 대상 || 장기대출상품”에 가입하고 입주시
+lh-2997-incheon-gyeyang-hope-town	계약금은 얼마 내요?	계약금 1차 중도금 2차 중도금 융자금
+lh-2997-incheon-gyeyang-hope-town	당첨자는 어떻게 선정해요?	5. 입주자 선정방법
+lh-2997-incheon-gyeyang-hope-town	한부모 가족도 신청할 수 있나요?	4. 한부모가족 신청자격 || 6세 이하 자녀를 둔 부 또는 모 무주택세대구성원
+lh-3000-incheon-seoknam-happy-house	청년은 나이 제한이 어떻게 되나요?	19세 이상 39세 이하인
+lh-3000-incheon-seoknam-happy-house	대학생도 신청할 수 있어요?	대학생 : 대학에 재학 중이거나 다음 학기에 입·복학 예정인 사람
+lh-3000-incheon-seoknam-happy-house	최대 몇 년까지 살 수 있어요?	대학생, 청년 계층 10년
+lh-3000-incheon-seoknam-happy-house	소득 기준이 어떻게 돼요?	월평균소득의 100퍼센트 이하
+lh-3000-incheon-seoknam-happy-house	자동차 있으면 신청 못 하나요?	자동차가액 산출대상 자동차를 소유하고 있지 않을 것
+lh-3000-incheon-seoknam-happy-house	보증금을 올리고 월세를 줄일 수 있나요?	월임대료의 임대보증금 전환(임대보증금 증액)
+lh-3000-incheon-seoknam-happy-house	계약할 때 필요한 서류는?	계약자 도장 (본인이 계약 시에는 서명가능)
+apt-2026000463-hyangnam-grove-sweetzen	1순위 자격이 어떻게 되나요?	1순위 : 입주자저축에 가입하여 가입기간이 12개월이 경과하고
+apt-2026000463-hyangnam-grove-sweetzen	다주택자도 청약할 수 있나요?	무주택자 우선공급 : 1순위 추첨제에서 경쟁이 있는 경우
+apt-2026000463-hyangnam-grove-sweetzen	중도금 대출 이자는 누가 내요?	중도금 무이자
+apt-2026000463-hyangnam-grove-sweetzen	견본주택은 어디 있어요?	향남읍 하길리 404-1번지
+apt-2026000463-hyangnam-grove-sweetzen	발코니 확장 비용이 얼마예요?	1) 발코니 확장 공사비 (단위 : 원, VAT 포함)
+apt-2026000463-hyangnam-grove-sweetzen	당첨되면 서류는 어디로 제출하나요?	당첨자 자격검증 서류 제출 일정 및 장소
+apt-2026000463-hyangnam-grove-sweetzen	특별공급 신청할 때도 청약통장이 필요해요?	철거주택 소유자(도시재생 부지제공자)는 청약통장 불필요
+apt-2026000463-hyangnam-grove-sweetzen	계약 해지하면 위약금 있나요?	계약을 해제하는 경우 분양계약서에서 규정한 위약금을 공제 || 계약자는 위약금과
+lh-3018-daegu-youth-purchase-rental	몇 살까지 신청할 수 있나요?	청년(19세~39세)
+lh-3018-daegu-youth-purchase-rental	부모님 소득도 보나요?	2순위는 본인과 부모 소득 합산 기준 || 본인과 부모의 월평균소득이 전년도 도시근로자
+lh-3018-daegu-youth-purchase-rental	최대 몇 년 살 수 있어요?	자격 충족 시 최장 10년 거주
+lh-3018-daegu-youth-purchase-rental	보증금이랑 월세는 어떻게 정해져요?	시중 시세 40∼50% 수준의 임대료 및 임대보증금으로 입주 순위에 따라 차등
+lh-3018-daegu-youth-purchase-rental	순위는 어떻게 나뉘어요?	■ 입주순위
+lh-3018-daegu-youth-purchase-rental	신청은 어디서 해요?	인터넷(https://apply.lh.or.kr) 또는 모바일 앱(LH청약플러스)
+lh-3018-daegu-youth-purchase-rental	집은 직접 보고 고를 수 있나요?	가능한 주택을 개방하고 순번에 따라 희망하는 주택을 지정
+lh-3018-daegu-youth-purchase-rental	대학생도 되나요?	대학생 또는 취업준비생으로 서류 제출 || 청년(19세~39세), 대학생 및 취업준비생

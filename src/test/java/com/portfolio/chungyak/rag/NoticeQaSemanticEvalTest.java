@@ -57,6 +57,10 @@ class NoticeQaSemanticEvalTest {
     private static final String MODEL = "voyage-4-lite";
     private static final Path CACHE = Path.of("build", "eval-cache", MODEL);
 
+    /** 주제 설명문을 쓸 때 이미 본 공고문 — 나머지(2026-10-14 추가)는 설명문을 쓴 뒤 질문을 먼저 정한 hold-out */
+    static final java.util.Set<String> SEEN = java.util.Set.of(
+            "lh-2901-chungbuk-10yr-rental", "apt-2026000492-cheongju-gagyeong8", "apt-2026000465-yeonje-gallery-xi");
+
     private static final Map<String, Long> IDS = new LinkedHashMap<>();
     private static final Map<Long, List<DocumentChunk>> CHUNKS = new LinkedHashMap<>();
     private static List<Case> cases;
@@ -136,6 +140,8 @@ class NoticeQaSemanticEvalTest {
         table.append('\n');
         Map<String, int[]> totals = new LinkedHashMap<>();   // [발췌 안, 상위5 안, LLM 까지]
         modes.keySet().forEach(m -> totals.put(m, new int[3]));
+        Map<String, Integer> heldOut = new LinkedHashMap<>();
+        modes.keySet().forEach(m -> heldOut.put(m, 0));
 
         for (Case c : cases) {
             table.append(String.format("%-36s", c.question().length() > 34 ? c.question().substring(0, 34) : c.question()));
@@ -150,6 +156,7 @@ class NoticeQaSemanticEvalTest {
                 if (inContext) t[0]++;
                 if (rank >= 1) t[1]++;
                 if (inContext && gate) t[2]++;
+                if (inContext && gate && !SEEN.contains(c.notice())) heldOut.merge(e.getKey(), 1, Integer::sum);
                 table.append(String.format("%-12s", (inContext ? (gate ? "O" : "G") : "X") + (rank < 1 ? " -" : " #" + rank)));
             }
             table.append('\n');
@@ -157,6 +164,10 @@ class NoticeQaSemanticEvalTest {
         int n = cases.size();
         table.append("\n모드            발췌3 안   상위5 안   LLM 까지(게이트 통과)\n");
         totals.forEach((m, t) -> table.append(String.format("%-14s %3d/%d    %3d/%d    %3d/%d%n", m, t[0], n, t[1], n, t[2], n)));
+        long heldN = cases.stream().filter(c -> !SEEN.contains(c.notice())).count();
+        table.append("hold-out(새 공고문 4건) LLM 까지:");
+        heldOut.forEach((m, k) -> table.append(String.format("  %s %d/%d", m, k, heldN)));
+        table.append('\n');
         table.append("Voyage API 호출(이번 실행): ").append(apiCalls).append("회 — 0 이면 전부 캐시\n");
         System.out.println("[공고문 Q&A 의미 검색 eval]\n" + table);
     }
@@ -188,6 +199,10 @@ class NoticeQaSemanticEvalTest {
         return best;
     }
 
+    /**
+     * 결과(2026-10-14): 설명문을 쓸 때 본 공고문 38문항에서만 +2(29→31), hold-out 31문항은 14→14 — 과적합으로 판단, 채택 안 함.
+     * 같은 hold-out 에서 질문 임베딩 하이브리드({@link #compare})는 14→20 이었다.
+     */
     @Test
     @DisplayName("주제 보정(질문은 보내지 않음) — BM25 후보를 질문 주제와 가까운 청크 순으로 다시 매긴다")
     void topicBoost() {
@@ -213,7 +228,9 @@ class NoticeQaSemanticEvalTest {
         modes.keySet().forEach(m -> table.append(String.format("%-11s", m)));
         table.append('\n');
         Map<String, Integer> answerable = new LinkedHashMap<>();
-        modes.keySet().forEach(m -> answerable.put(m, 0));
+        Map<String, Integer> seen = new LinkedHashMap<>();
+        Map<String, Integer> held = new LinkedHashMap<>();
+        modes.keySet().forEach(m -> { answerable.put(m, 0); seen.put(m, 0); held.put(m, 0); });
         for (Case c : cases) {
             QuestionTopic topic = QuestionTopic.classify(c.question());
             List<Hit> candidates = bm25.searchWithin(IDS.get(c.notice()), c.question(), 20);
@@ -226,6 +243,7 @@ class NoticeQaSemanticEvalTest {
                 boolean gate = !ranked.isEmpty() && ranked.get(0).keywordScore() >= KEYWORD_MIN;
                 boolean ok = rank >= 1 && rank <= CONTEXT_CHUNKS && gate;
                 if (ok) answerable.merge(e.getKey(), 1, Integer::sum);
+                if (ok) (SEEN.contains(c.notice()) ? seen : held).merge(e.getKey(), 1, Integer::sum);
                 table.append(String.format("%-11s", (ok ? "O" : rank >= 1 && rank <= CONTEXT_CHUNKS ? "G" : "X")
                         + (rank < 1 ? " -" : " #" + rank)));
             }
@@ -233,6 +251,11 @@ class NoticeQaSemanticEvalTest {
         }
         table.append("\nLLM 까지(게이트 통과):");
         answerable.forEach((m, n) -> table.append(String.format("  %s %d/%d", m, n, cases.size())));
+        long seenN = cases.stream().filter(c -> SEEN.contains(c.notice())).count();
+        table.append("\n  ├ 설명문 쓸 때 본 공고문:");
+        seen.forEach((m, n) -> table.append(String.format("  %s %d/%d", m, n, seenN)));
+        table.append("\n  └ hold-out(새 공고문 4건):");
+        held.forEach((m, n) -> table.append(String.format("  %s %d/%d", m, n, cases.size() - seenN)));
         table.append("\nVoyage API 호출(누적): ").append(apiCalls).append('\n');
         System.out.println("[공고문 Q&A 주제 보정 eval]\n" + table);
     }

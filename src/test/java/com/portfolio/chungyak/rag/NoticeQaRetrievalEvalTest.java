@@ -24,7 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * 공고문 Q&A <b>검색</b> eval (#39) — 실제 공고문 3건 원문으로, 질문의 정답 근거가 LLM 에 넘기는 발췌 안에 들어가는지 잰다.
+ * 공고문 Q&A <b>검색</b> eval (#39) — 실제 공고문 7건 원문으로, 질문의 정답 근거가 LLM 에 넘기는 발췌 안에 들어가는지 잰다.
  *
  * 운영과 같은 경로다: {@link ChunkSplitter}(운영 설정 900/150) → {@link VectorSearch#searchWithin}(BM25 모드 —
  * 운영 서버에 임베딩 키가 없다) → 상위 {@code context-chunks}(2)개. LLM 은 부르지 않는다(키·비용 없이 매 빌드에서 돈다).
@@ -93,8 +93,10 @@ class NoticeQaRetrievalEvalTest {
     /**
      * 기준선 (2026-10-13, 38문항): 처음(발췌 2개, 동의어·구어 보정 전) 17 → 구어 불용어·동의어 23 → 발췌 3개 28.
      * 청크 크기는 450·600·1200 모두 900 보다 나빴다.
+     * 2026-10-14 공고문 4건·31문항 추가(공고문을 읽기 전에 쓴 hold-out) → 69문항 중 43 (기존 38 중 29, 새 31 중 14).
+     * 기존 문항 수치가 28→29 로 바뀐 건 공고문이 늘어 BM25 IDF 가 달라졌기 때문이다.
      */
-    static final int BASELINE_ANSWERABLE = 28;
+    static final int BASELINE_ANSWERABLE = 43;
 
     @Test
     @DisplayName("정답 근거가 LLM 에 넘기는 발췌 안에 있다 — 기준선 이상")
