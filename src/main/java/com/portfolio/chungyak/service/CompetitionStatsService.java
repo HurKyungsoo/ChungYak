@@ -60,7 +60,8 @@ public class CompetitionStatsService {
      * @param minLowest      공고별 최저가점(그 면적대 주택형 중 최솟값)의 최솟값 · 중앙값 · 최댓값
      * @param medianRate     1순위 해당지역 경쟁률(공고별 중앙값)의 중앙값 — 숫자 경쟁률이 하나도 없으면 null
      * @param rateNotices    숫자 경쟁률이 있는(경쟁이 있던) 공고 수 — medianRate 의 표본. 미달 공고는 빠진다
-     * @param undersubscribed 1순위 해당지역에서 주택형이 <b>모두</b> 미달("(△n)")인 공고 수 — rateNotices 와 겹치지 않는다
+     * @param undersubscribed 1순위 <b>최종</b>(기타지역 신청까지 받고)에서도 못 채운 주택형이 있고, 해당지역 숫자 경쟁률은
+     *                        없는 공고 수 — rateNotices 와 겹치지 않는다. 해당지역만 미달이고 기타지역으로 다 채운 공고는 세지 않는다
      */
     public record BandStat(String band, int months, int total, int notices, int minLowest, int medianLowest, int maxLowest,
                            Double medianRate, int rateNotices, int undersubscribed) {}
@@ -155,16 +156,10 @@ public class CompetitionStatsService {
         int under = 0;
         for (List<PastUnit> units : byNotice.values()) {
             units.stream().mapToInt(PastUnit::lowest).filter(v -> v > 0).min().ifPresent(lows::add);
-            List<Double> noticeRates = new ArrayList<>();
-            boolean anyUnder = false;
-            for (PastUnit u : units) {
-                String t = u.rateText() == null ? "" : u.rateText().strip();
-                if (NUMERIC_RATE.matcher(t).matches()) noticeRates.add(Double.parseDouble(t.replace(",", "")));
-                else if (t.startsWith("(")) anyUnder = true;   // "(△1)" 미달
-            }
+            List<Double> noticeRates = localRates(units);
             if (!noticeRates.isEmpty()) rates.add(median(noticeRates));
             // 주택형마다 미달·경쟁이 섞인 공고는 "경쟁 있던" 쪽에만 센다 — 둘 다 세면 합이 전체를 넘어 읽기 어렵다
-            if (anyUnder && noticeRates.isEmpty()) under++;
+            if (noticeRates.isEmpty() && units.stream().anyMatch(CompetitionStatsService::finalUnder)) under++;
         }
         if (lows.size() < MIN_NOTICES) return null;
         lows.sort(Integer::compare);
@@ -225,17 +220,43 @@ public class CompetitionStatsService {
         return candidates.stream().limit(SIMILAR_COUNT).map(Candidate::notice).toList();
     }
 
-    /** 공고 하나의 1순위 해당지역 경쟁률 — 숫자면 주택형 중앙값, 숫자 없이 미달만 있으면 "미달" */
+    /**
+     * 공고 하나의 1순위 경쟁률 — 해당지역 숫자 경쟁률이 있으면 그 주택형 중앙값, 1순위 최종(기타지역까지)에서도 못 채웠으면
+     * "미달", 해당지역에선 모자랐지만 기타지역 신청으로 다 채웠으면 "기타지역으로 마감".
+     */
     private static String rateLabel(List<PastUnit> units) {
+        List<Double> rates = localRates(units);
+        if (!rates.isEmpty()) return String.format("%,.1f : 1", median(rates));
+        if (units.stream().anyMatch(CompetitionStatsService::finalUnder)) return "미달";
+        if (units.stream().anyMatch(u -> isUnder(u.rateText()))) return "기타지역으로 마감";
+        return "-";
+    }
+
+    /** 1순위 해당지역 숫자 경쟁률(주택형별) */
+    private static List<Double> localRates(List<PastUnit> units) {
         List<Double> rates = new ArrayList<>();
-        boolean under = false;
         for (PastUnit u : units) {
             String t = u.rateText() == null ? "" : u.rateText().strip();
             if (NUMERIC_RATE.matcher(t).matches()) rates.add(Double.parseDouble(t.replace(",", "")));
-            else if (t.startsWith("(")) under = true;
         }
-        if (!rates.isEmpty()) return String.format("%,.1f : 1", median(rates));
-        return under ? "미달" : "-";
+        return rates;
+    }
+
+    /**
+     * 1순위 <b>최종</b>에서 못 채웠나 — 해당지역에서 모자란 세대는 같은 1순위의 기타경기(경기만)·기타지역으로 넘어간다.
+     * 가장 뒤 단계(기타지역 → 기타경기 → 해당지역) 중 값이 있는("-" 아닌) 것으로 본다. 해당지역만 미달이고
+     * 기타지역이 경쟁이면 1순위에서 다 팔린 것이다(2026-10-14 전체 데이터에서 808 주택형).
+     */
+    static boolean finalUnder(PastUnit u) {
+        for (String t : new String[]{u.otherRateText(), u.gyeonggiRateText(), u.rateText()}) {
+            if (t == null || t.isBlank() || t.strip().equals("-")) continue;
+            return isUnder(t);
+        }
+        return false;
+    }
+
+    private static boolean isUnder(String rateText) {
+        return rateText != null && rateText.strip().startsWith("(");   // "(△1)" 미달
     }
 
     /** 주소 "경기도 화성시 …" → "화성시", 시군구가 없으면(세종 등) 시도 이름 */

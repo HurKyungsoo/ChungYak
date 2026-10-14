@@ -272,7 +272,7 @@ class ScreenRenderTest {
         String apt = render("/announcements/" + aptId);
 
         assertThat(apt).contains("서울 최근 당첨 기록 (참고)").contains("최근 12개월 3건")
-                .contains("41~63점").contains("중앙값 55점 · 가점 있는 3건").contains("미달 1건 / 3건").contains("경쟁 있던 1건 중앙값 12.0 : 1")
+                .contains("41~63점").contains("중앙값 55점 · 가점 있는 3건").contains("미달 1건 / 3건").contains("경쟁 있던 1건 해당지역 중앙값 12.0 : 1")
                 .contains("비슷한 최근 공고 (60~85㎡)").contains("지난 공고 0").contains("강서구").contains("12.0 : 1")
                 .contains("당첨 가능성을 뜻하지 않습니다");
     }

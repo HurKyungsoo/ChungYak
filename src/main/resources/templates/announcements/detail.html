@@ -278,7 +278,7 @@
         <div class="table-scroll">
             <table>
                 <thead><tr><th>전용면적</th><th class="num">비교 공고</th><th class="num">최저 당첨가점 (해당지역)</th>
-                    <th class="num">1순위 경쟁률 (해당지역)</th></tr></thead>
+                    <th class="num">1순위 결과</th></tr></thead>
                 <tbody>
                 <tr th:each="b : ${competition.bands()}">
                     <td th:text="${b.band()}">60~85㎡</td>
@@ -289,9 +289,10 @@
                     </td>
                     <!--/* 미달을 먼저 — 숫자 경쟁률 중앙값만 쓰면 대부분 미달인 지역도 경쟁이 있는 것처럼 읽힌다 */-->
                     <td class="num">
-                        <strong th:text="|미달 ${b.undersubscribed()}건 / ${b.total()}건|" title="모든 주택형이 1순위 해당지역에서 미달인 공고">미달 2건 / 9건</strong>
+                        <strong th:text="|미달 ${b.undersubscribed()}건 / ${b.total()}건|"
+                                title="기타지역 신청까지 받고도 1순위에서 다 못 채운 공고 — 2순위·무순위로 넘어갔다">미달 2건 / 9건</strong>
                         <div class="subtle" style="font-size:.78rem" th:if="${b.medianRate() != null}"
-                             th:text="|경쟁 있던 ${b.rateNotices()}건 중앙값 ${#numbers.formatDecimal(b.medianRate(), 1, 'COMMA', 1, 'POINT')} : 1|">경쟁 있던 7건 중앙값 12.3 : 1</div>
+                             th:text="|경쟁 있던 ${b.rateNotices()}건 해당지역 중앙값 ${#numbers.formatDecimal(b.medianRate(), 1, 'COMMA', 1, 'POINT')} : 1|">경쟁 있던 7건 해당지역 중앙값 12.3 : 1</div>
                     </td>
                 </tr>
                 </tbody>
@@ -304,7 +305,7 @@
             <div class="table-scroll">
                 <table>
                     <thead><tr><th>단지</th><th>공고</th><th class="num">평당가 (최고가 기준)</th>
-                        <th class="num">최저 당첨가점</th><th class="num">1순위 경쟁률</th></tr></thead>
+                        <th class="num">최저 당첨가점</th><th class="num">1순위 결과</th></tr></thead>
                     <tbody>
                     <tr th:each="n : ${competition.similar()}">
                         <td><span th:text="${n.name()}">○○ 아파트</span>
@@ -320,7 +321,8 @@
         </th:block>
         <p class="muted" style="margin:8px 0 0;font-size:.82rem">
             같은 시도에서 이 공고 전에 나온 민영 분양 공고의 청약홈 기록입니다. 최저 당첨가점은 공고마다 그 면적대 주택형 중 가장 낮은 값을 모았습니다
-            (미달·추첨 공고는 가점이 없어 빠집니다).
+            (미달·추첨 공고는 가점이 없어 빠집니다). 미달은 기타지역 신청까지 받고도 1순위에서 다 못 채운 공고이고,
+            경쟁률은 경쟁이 있던 공고의 해당지역 경쟁률입니다.
             분양가·규제·단지 규모·시기에 따라 크게 달라 <strong>당첨 가능성을 뜻하지 않습니다</strong>.
             <a th:href="@{/general-supply}">내 가점 계산하기 →</a></p>
     </section>

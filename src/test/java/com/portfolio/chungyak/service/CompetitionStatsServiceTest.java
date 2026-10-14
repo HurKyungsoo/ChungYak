@@ -22,7 +22,7 @@ class CompetitionStatsServiceTest {
     private static final LocalDate NOTICE = LocalDate.of(2026, 10, 1);
 
     private static PastUnit unit(String house, LocalDate date, String type, int lowest, String rate) {
-        return new PastUnit(house, date, type, lowest, rate);
+        return new PastUnit(house, date, type, lowest, rate, null, null);
     }
 
     @Test
@@ -60,6 +60,20 @@ class CompetitionStatsServiceTest {
         assertThat(b.medianRate()).isEqualTo((9.25 + 1234.5) / 2);   // 공고별 중앙값(A 9.25, B 1,234.5)의 중앙값
         assertThat(b.rateNotices()).isEqualTo(2);
         assertThat(b.undersubscribed()).isEqualTo(1);   // E 만 — B 는 경쟁 있던 공고에 센다
+    }
+
+    @Test
+    @DisplayName("미달은 1순위 최종 결과로 — 해당지역만 모자라고 기타지역으로 다 채운 주택형은 미달이 아니다")
+    void undersubscribedUsesFinalFirstRank() {
+        PastUnit filledByOthers = new PastUnit("A", NOTICE, "084.9A", 0, "(△1)", "14.00", null);
+        PastUnit stillShort = new PastUnit("B", NOTICE, "084.9A", 0, "(△30)", "(△23)", null);
+        PastUnit gyeonggi = new PastUnit("C", NOTICE, "084.9A", 0, "(△5)", "-", "(△2)");   // 경기: 기타경기 단계에서도 모자람
+        PastUnit localOnly = new PastUnit("D", NOTICE, "084.9A", 0, "(△3)", null, null);   // 기타지역 행이 없으면 해당지역 값
+
+        assertThat(CompetitionStatsService.finalUnder(filledByOthers)).isFalse();
+        assertThat(CompetitionStatsService.finalUnder(stillShort)).isTrue();
+        assertThat(CompetitionStatsService.finalUnder(gyeonggi)).isTrue();
+        assertThat(CompetitionStatsService.finalUnder(localOnly)).isTrue();
     }
 
     @Test
