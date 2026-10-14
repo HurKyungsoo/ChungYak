@@ -29,12 +29,19 @@ public record AnnouncementCompareRow(
         boolean ddayUrgent,
         Integer totalSupplyCount,
         int unitTypeCount,
-        int totalSpecialSupply,
+        /**
+         * 특공 세대 합계 — 주택형별 공식 특공 총계(SPECIAL_SUPPLY_COUNT)의 합. 유형별 합(breakdown)으로 세면
+         * 신혼희망타운처럼 유형 배정이 오지 않는 공고가 0 이 된다(CLAUDE.md). LH 는 원천이 주지 않아 null.
+         */
+        Integer totalSpecialSupply,
         String moveInYearMonth,
         String priceLow,
         String priceHigh,
         String perPyeongLow,
         String perPyeongHigh,
+        /** 평당가 최저(만원) — 화면이 공고끼리 "가장 낮음"을 표시하는 데만 쓴다 */
+        Integer perPyeongLowValue,
+        boolean lh,
         String noticeUrl,
         List<UnitRow> unitTypes,
         MatchInfo match) {
@@ -42,7 +49,7 @@ public record AnnouncementCompareRow(
     public record UnitRow(String typeName, String supplyArea, String price, String pricePerPyeong,
                           int generalSupplyCount, int specialSupplyCount) {
         public static UnitRow of(UnitType u) {
-            return new UnitRow(u.getTypeName(), u.getSupplyArea(),
+            return new UnitRow(UnitTypeLabels.shortName(u.getTypeName()), UnitTypeLabels.area(u.getSupplyArea()),
                     Prices.formatManwon(u.getTopAmount()),
                     Prices.formatManwon(Prices.perPyeong(u.getTopAmount(), u.getSupplyArea())),
                     u.getGeneralSupplyCount(), u.getSpecialSupplyCount());
@@ -69,9 +76,8 @@ public record AnnouncementCompareRow(
 
     public static AnnouncementCompareRow of(Announcement a, String status, LocalDate today, MatchInfo match) {
         Dday dday = Dday.of(status, a.getReceptBeginDate(), a.getReceptEndDate(), today);
-        int specialSum = a.getUnitTypes().stream()
-                .mapToInt(u -> u.getSupplyBreakdown() == null ? 0 : u.getSupplyBreakdown().total())
-                .sum();
+        Integer specialSum = a.isLh() ? null
+                : a.getUnitTypes().stream().mapToInt(UnitType::getSpecialSupplyCount).sum();
 
         // 분양가는 주택형마다 달라 한 칸에 담으려면 범위로 줄여야 한다 — 가장 싼 주택형과
         // 가장 비싼 주택형을 같이 보여준다. 하나뿐이거나 전부 같으면 화면이 한쪽만 그린다.
@@ -110,6 +116,8 @@ public record AnnouncementCompareRow(
                 hasPrice ? Prices.formatManwon(prices.getMax()) : null,
                 hasPerPyeong ? Prices.formatManwon(perPyeong.getMin()) : null,
                 hasPerPyeong ? Prices.formatManwon(perPyeong.getMax()) : null,
+                hasPerPyeong ? perPyeong.getMin() : null,
+                a.isLh(),
                 a.getNoticeUrl(),
                 a.getUnitTypes().stream().map(UnitRow::of).toList(),
                 match);

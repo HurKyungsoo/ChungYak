@@ -422,7 +422,25 @@
             border-right: 1px solid var(--border);
         }
         thead .compare-label-col { background: var(--surface-2); z-index: 3; }
-        .compare-value-col { min-width: 220px; }
+        .compare-value-col { min-width: 210px; }
+        /* 비교 화면은 열이 많아 본문보다 넓게 쓴다 */
+        main.wide { max-width: 1180px; }
+        .compare-value-col .col-sub { margin-top: 3px; font-size: .8rem; font-weight: 500; color: var(--text-subtle); }
+        .compare-value-col .col-chips { margin-top: 8px; }
+        .chip.chip-warn { color: var(--no); }
+        /* 행 묶음 머리(가격·일정·공급) — 옅은 띠로 갈라 훑어보기 쉽게 */
+        .compare-table tr.cmp-group th, .compare-table tr.cmp-group td {
+            background: var(--surface-2); padding: 6px 14px; font-size: .74rem; font-weight: 700;
+            letter-spacing: .04em; color: var(--text-muted); }
+        .cmp-big { font-size: .95rem; font-weight: 650; color: var(--text); }
+        .cmp-sub { margin-top: 2px; font-size: .8rem; color: var(--text-subtle); }
+        .cmp-best { display: inline-block; margin-left: 6px; vertical-align: 1px; padding: 1px 7px;
+            font-size: .7rem; font-weight: 700; border-radius: var(--r-pill);
+            background: var(--brand-weak); color: var(--brand); }
+        .cmp-best[hidden] { display: none; }
+        .compare-table tr.cmp-actions td { white-space: nowrap; }
+        .cmp-link { margin-left: 10px; font-size: .85rem; }
+        .btn.btn-sm { width: auto; min-height: 0; padding: 7px 12px; font-size: .84rem; }
         .compare-value-col .col-head { display: flex; align-items: flex-start; gap: 8px; }
         .compare-value-col .col-head .name { flex: 1; min-width: 0; font-size: .98rem; font-weight: 650; }
         .compare-value-col .col-head .name a { color: var(--text); }

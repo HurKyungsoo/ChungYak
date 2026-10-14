@@ -5,13 +5,11 @@
 <body>
 <header th:replace="~{fragments/common :: header}"></header>
 
-<main>
+<main class="wide">
     <a th:href="@{/announcements}" class="backlink">← 공고 목록</a>
     <h1>공고 비교</h1>
-    <p class="muted">
-        찜(♥)한 공고와 오늘 본 공고는 이 브라우저에만 저장돼 있어, 서버가 아니라 이 화면이 그 목록을
-        모아 보여드립니다. 정확한 신청 자격은 각 공고의 <strong>자격 판정</strong>에서 확인하세요.
-    </p>
+    <!--/* 찜·오늘 본 목록은 이 브라우저에만 있다 — 서버는 ids 로 받은 공고만 그린다 */-->
+    <p class="muted">찜(♥)하거나 최근 본 공고를 나란히 놓고 봅니다. 신청 자격은 각 공고의 <strong>자격 판정</strong>에서 확인하세요.</p>
 
     <!-- 저장된 조건을 이 화면에 적용 — 조건은 localStorage 에만 있으므로 JS 가 숨은 필드를 채워
          POST 한다(소득·자산이 URL 에 남지 않게). 조건이 없으면 버튼 자체를 띄우지 않는다. -->
@@ -21,7 +19,7 @@
         <!-- 글과 버튼을 한 문단에 넣으면 좁은 화면에서 버튼이 글 사이로 끼어 줄바꿈된다 — 나란히 두고 넘치면 아래로 -->
         <div class="banner info" style="align-items:center">
             <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;flex:1">
-                <p style="margin:0">저장해 둔 조건이 있습니다. 공고마다 신청 가능 여부를 함께 볼 수 있어요.</p>
+                <p style="margin:0">저장해 둔 조건으로 공고마다 <strong>넣을 수 있는지</strong> 함께 볼 수 있어요.</p>
                 <button type="submit" class="btn btn-primary" style="width:auto">내 조건 적용해서 보기</button>
             </div>
         </div>
@@ -53,9 +51,10 @@
     </div>
 
     <!-- 항목(행) x 공고(열) 표 — 첫 칼럼(항목명)을 고정해 두고 공고 칼럼만 가로로 민다.
-         카드를 나란히 늘어놓으면 좁은 화면에서 한 번에 하나만 보여 "비교"가 안 됐다 —
-         항목명이 항상 보이면 스와이프하면서도 지금 보는 숫자가 뭔지 안 놓친다. -->
-    <div id="compareContent" th:if="${rows.size() >= 2}">
+         행은 "내 판정 · 가격 · 일정 · 공급" 묶음으로 나눠 훑어보기 쉽게 한다. 지역·유형은 머리 칸으로 올렸다.
+         "가장 낮음·먼저 마감" 표시는 사실 비교일 뿐 어느 공고가 유리하다는 뜻이 아니다(경쟁률은 다루지 않는다). -->
+    <div id="compareContent" th:if="${rows.size() >= 2}"
+         th:with="KD=${T(com.portfolio.chungyak.web.view.KoreanDates)}">
         <div class="compare-table-wrap" data-scroll-hint>
             <table class="compare-table">
                 <thead>
@@ -70,7 +69,8 @@
                             <button type="button" class="chip-x compare-remove" th:attr="data-ann-id=${row.id},
                                     aria-label=${row.houseName} + ' 비교에서 빼기'">✕</button>
                         </div>
-                        <div class="chips" style="margin-top:8px">
+                        <div class="col-sub" th:text="|${row.regionName ?: '-'} · ${row.lh ? 'LH ' : ''}${row.houseDetailTypeLabel}|">경기 · 민영</div>
+                        <div class="chips col-chips">
                             <span class="chip">
                                 <span class="dot" th:classappend="${row.status == '접수중'} ? 'open' : (${row.status == '접수예정'} ? 'soon' : '')"></span>
                                 <span class="status-text" th:classappend="${row.status == '접수중'} ? 'open' : (${row.status == '접수예정'} ? 'soon' : '')"
@@ -78,19 +78,21 @@
                             </span>
                             <span class="chip dday" th:if="${row.ddayLabel != null}"
                                   th:classappend="${row.ddayUrgent} ? 'soon' : ''" th:text="${row.ddayLabel}">D-2</span>
-                            <span class="chip" th:if="${row.regulated}" style="color:var(--no)">규제지역</span>
+                            <span class="chip chip-warn" th:if="${row.regulated}">규제지역</span>
                         </div>
                     </th>
                 </tr>
                 </thead>
                 <tbody>
-                <!-- 내 조건 판정 결과 — 규칙 엔진이 낸 사실만. 어느 공고가 더 유리한지는 말하지 않는다
-                     (경쟁률 데이터가 없어 배정 세대수로 당첨 가능성을 말할 수 없다). -->
-                <tr th:if="${profileApplied}">
-                    <th class="compare-label-col">내 조건</th>
+                <!-- 내 판정 — 규칙 엔진이 낸 사실만. 어느 공고가 더 유리한지는 말하지 않는다 -->
+                <th:block th:if="${profileApplied}">
+                <tr class="cmp-group"><th class="compare-label-col">내 판정</th>
+                    <td th:attr="colspan=${rows.size()}"><span th:replace="~{fragments/common :: src('engine', '규칙 엔진 판정')}"></span></td></tr>
+                <tr>
+                    <th class="compare-label-col">신청 가능</th>
                     <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}">
                         <div class="match-box" th:classappend="${row.match.applicable} ? 'ok' : 'no'">
-                            <b th:if="${row.match.applicable}">신청 가능</b>
+                            <b th:if="${row.match.applicable}">✓ 넣을 수 있어요</b>
                             <b th:unless="${row.match.applicable}">신청 가능한 유형 없음</b>
                             <div class="chips" th:if="${row.match.applicable}" style="margin-top:6px">
                                 <span class="chip hl" th:each="label : ${row.match.typeLabels}" th:text="${label}">신혼부부</span>
@@ -107,84 +109,78 @@
                         </div>
                     </td>
                 </tr>
+                </th:block>
+
+                <tr class="cmp-group"><th class="compare-label-col">가격</th><td th:attr="colspan=${rows.size()}"></td></tr>
+                <!-- 주택형마다 다른 값이라 범위로 — 두 줄로 나눠 줄바꿈이 숫자 중간에 생기지 않게 -->
                 <tr>
-                    <th class="compare-label-col">지역</th>
-                    <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}"
-                        th:text="${row.regionName} ?: '-'">서울</td>
-                </tr>
-                <tr>
-                    <th class="compare-label-col">유형</th>
-                    <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}"
-                        th:text="${row.houseDetailTypeLabel} + ' · ' + ${row.houseTypeLabel}">민영 · APT</td>
-                </tr>
-                <!-- 주택형마다 다른 값이라 한 칸에는 범위로 넣는다. "(최고)"를 달아 두는 건
-                     이게 주택형별 최고 공급금액이기 때문이다 — 층·향에 따라 실제로는 더 낮다. -->
-                <tr>
-                    <th class="compare-label-col">분양가(최고)</th>
+                    <th class="compare-label-col">분양가 <span class="subtle">(최고)</span></th>
                     <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}">
-                        <span th:if="${row.priceLow == null}" class="subtle">-</span>
+                        <span th:if="${row.priceLow == null}" class="subtle" th:text="${row.lh} ? '공고문 확인' : '-'">-</span>
                         <th:block th:if="${row.priceLow != null}">
-                            <span th:text="${row.priceLow}">5억 466만원</span>
-                            <th:block th:if="${row.priceHigh != row.priceLow}">
-                                ~ <span th:text="${row.priceHigh}">7억 1,654만원</span>
-                            </th:block>
+                            <div class="cmp-big" th:text="${row.priceLow}">5억 466만원</div>
+                            <div class="cmp-sub" th:if="${row.priceHigh != row.priceLow}" th:text="'~ ' + ${row.priceHigh}">~ 7억 1,654만원</div>
                         </th:block>
                     </td>
                 </tr>
-                <!-- 크기가 다른 주택형끼리는 총액만으로 비싼지 싼지 알 수 없다 — 공급면적으로 나눈
-                     평당가를 같이 둔다. 가장 싼 주택형이 평당가까지 가장 싸지는 않으므로 따로 센다. -->
+                <!-- 크기가 다른 주택형끼리는 총액만으로 비싼지 알 수 없다 — 공급면적으로 나눈 평당가 -->
                 <tr>
                     <th class="compare-label-col">평당가</th>
-                    <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}">
+                    <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id},data-cmp-low=${row.perPyeongLowValue}">
                         <span th:if="${row.perPyeongLow == null}" class="subtle">-</span>
                         <th:block th:if="${row.perPyeongLow != null}">
-                            <span th:text="${row.perPyeongLow}">2,047만원</span>
-                            <th:block th:if="${row.perPyeongHigh != row.perPyeongLow}">
-                                ~ <span th:text="${row.perPyeongHigh}">2,694만원</span>
-                            </th:block>
+                            <div class="cmp-big"><span th:text="${row.perPyeongLow}">2,047만원</span><span class="cmp-best" hidden>가장 낮음</span></div>
+                            <div class="cmp-sub" th:if="${row.perPyeongHigh != row.perPyeongLow}" th:text="'~ ' + ${row.perPyeongHigh}">~ 2,694만원</div>
                         </th:block>
                     </td>
                 </tr>
+
+                <tr class="cmp-group"><th class="compare-label-col">일정</th><td th:attr="colspan=${rows.size()}"></td></tr>
                 <tr>
-                    <th class="compare-label-col">청약접수</th>
-                    <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}">
-                        <th:block th:if="${row.receptBeginDate != null}">
-                            <span th:text="${row.receptBeginDate}">시작</span> ~
-                            <span th:text="${row.receptEndDate} ?: '?'">종료</span>
+                    <th class="compare-label-col">청약 접수</th>
+                    <td class="compare-value-col" th:each="row : ${rows}"
+                        th:attr="data-ann-id=${row.id},data-cmp-end=${row.receptEndDate}">
+                        <th:block th:if="${row.receptEndDate != null}">
+                            <div class="cmp-big"><span th:text="'마감 ' + ${KD.monthDay(row.receptEndDate)}">마감 10.14 (수)</span><span class="cmp-best" hidden>먼저 마감</span></div>
+                            <div class="cmp-sub" th:if="${row.receptBeginDate != null}"
+                                 th:text="${KD.monthDayPlain(row.receptBeginDate)} + ' 시작'">10.12 시작</div>
                         </th:block>
-                        <span th:if="${row.receptBeginDate == null and row.receptEndDate != null}"
-                              th:text="'마감 ' + ${row.receptEndDate}">마감</span>
-                        <span th:if="${row.receptBeginDate == null and row.receptEndDate == null}" class="subtle">공고문 확인</span>
+                        <span th:if="${row.receptEndDate == null}" class="subtle">공고문 확인</span>
                     </td>
                 </tr>
                 <tr>
-                    <th class="compare-label-col">입주예정</th>
-                    <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}"
-                        th:text="${row.moveInYearMonth} ?: '-'">2027-06</td>
-                </tr>
-                <tr>
-                    <th class="compare-label-col">총 공급세대</th>
-                    <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}"
-                        th:text="${row.totalSupplyCount} ?: '-'">100</td>
-                </tr>
-                <tr>
-                    <th class="compare-label-col">주택형 수</th>
-                    <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}"
-                        th:text="${row.unitTypeCount} + '개'">4개</td>
-                </tr>
-                <tr>
-                    <th class="compare-label-col">특공 세대 합계</th>
-                    <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}"
-                        th:text="${row.totalSpecialSupply} + '세대'">35세대</td>
-                </tr>
-                <tr>
-                    <th class="compare-label-col">바로가기</th>
+                    <th class="compare-label-col">입주 예정</th>
                     <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}">
-                        <div class="btn-row">
-                            <a th:href="@{/announcements/{id}/eligibility(id=${row.id})}" class="btn btn-primary">자격 판정 →</a>
-                            <a th:if="${row.noticeUrl != null}" th:href="${row.noticeUrl}" target="_blank"
-                               rel="noopener" class="btn btn-ghost">공고문</a>
-                        </div>
+                        <span th:if="${row.moveInYearMonth != null}" th:text="${row.moveInYearMonth}">2027-06</span>
+                        <span th:unless="${row.moveInYearMonth != null}" class="subtle">-</span>
+                    </td>
+                </tr>
+
+                <tr class="cmp-group"><th class="compare-label-col">공급</th><td th:attr="colspan=${rows.size()}"></td></tr>
+                <tr>
+                    <th class="compare-label-col">총 공급</th>
+                    <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}">
+                        <span th:if="${row.totalSupplyCount != null}" class="cmp-big"
+                              th:text="${#numbers.formatInteger(row.totalSupplyCount, 1, 'COMMA')} + '세대'">333세대</span>
+                        <span th:unless="${row.totalSupplyCount != null}" class="subtle">-</span>
+                        <div class="cmp-sub" th:text="|주택형 ${row.unitTypeCount}개|">주택형 6개</div>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="compare-label-col">특별공급</th>
+                    <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}">
+                        <span th:if="${row.totalSpecialSupply != null and row.totalSpecialSupply > 0}"
+                              th:text="${#numbers.formatInteger(row.totalSpecialSupply, 1, 'COMMA')} + '세대'">164세대</span>
+                        <span th:if="${row.totalSpecialSupply != null and row.totalSpecialSupply == 0}" class="subtle">없음</span>
+                        <span th:if="${row.totalSpecialSupply == null}" class="subtle">공고문 확인</span>
+                    </td>
+                </tr>
+                <tr class="cmp-actions">
+                    <th class="compare-label-col"></th>
+                    <td class="compare-value-col" th:each="row : ${rows}" th:attr="data-ann-id=${row.id}">
+                        <a th:href="@{/announcements/{id}/eligibility(id=${row.id})}" class="btn btn-primary btn-sm">자격 판정 →</a>
+                        <a th:if="${row.noticeUrl != null}" th:href="${row.noticeUrl}" target="_blank"
+                           rel="noopener" class="cmp-link">공고문 ↗</a>
                     </td>
                 </tr>
                 </tbody>
@@ -195,15 +191,16 @@
         <div class="compare-unit-detail">
             <div th:each="row : ${rows}" th:if="${!row.unitTypes.isEmpty()}" th:attr="data-ann-id=${row.id}">
                 <details class="reasons-fold">
-                    <summary th:text="${row.houseName} + ' — 주택형 ' + ${row.unitTypeCount} + '개 보기'">공고명 — 주택형 4개 보기</summary>
+                    <summary><strong th:text="${row.houseName}">공고명</strong>
+                        <span class="muted" th:text="|주택형 ${row.unitTypeCount}개 보기|">주택형 4개 보기</span></summary>
                     <div class="table-scroll" style="margin-top:8px">
                         <table>
-                            <thead><tr><th>주택형</th><th class="num">면적 <button type="button" class="area-toggle" data-area-toggle aria-label="면적 단위 바꾸기 (㎡/평)">㎡</button></th><th class="num">분양가(최고)</th>
+                            <thead><tr><th>주택형</th><th class="num">공급면적 <button type="button" class="area-toggle" data-area-toggle aria-label="면적 단위 바꾸기 (㎡/평)">㎡</button></th><th class="num">분양가(최고)</th>
                                 <th class="num">평당가</th><th class="num">일반</th><th class="num">특공</th></tr></thead>
                             <tbody>
                             <tr th:each="u : ${row.unitTypes}">
-                                <td th:text="${u.typeName}">084A</td>
-                                <td class="num" th:attr="data-m2=${u.supplyArea}" th:text="${u.supplyArea} ?: '-'">84.97</td>
+                                <td th:text="${u.typeName}">84A</td>
+                                <td class="num" th:attr="data-m2=${u.supplyArea}" th:text="${u.supplyArea} ?: '-'">109.57</td>
                                 <td class="num" th:text="${u.price} ?: '-'">8억 9,300만원</td>
                                 <td class="num" th:text="${u.pricePerPyeong} ?: '-'">2,694만원</td>
                                 <td class="num" th:text="${u.generalSupplyCount}">141</td>
@@ -325,6 +322,26 @@
 
         if (!grid) return;   // 제거 버튼 등 표 안 인터랙션은 표가 있을 때만 연결한다
 
+        /* "가장 낮음"(평당가)·"먼저 마감"(접수 마감) — 값이 둘 이상이고 모두 같지는 않을 때만 붙인다.
+           사실 표시일 뿐 유리하다는 뜻이 아니다. 열을 빼면 남은 공고끼리 다시 센다. */
+        function markBest() {
+            [ ['data-cmp-low', function (v) { return parseInt(v, 10); }],
+             ['data-cmp-end', function (v) { return v; }]].forEach(function (spec) {
+                var cells = Array.prototype.filter.call(grid.querySelectorAll('[' + spec[0] + ']'),
+                        function (c) { return c.getAttribute(spec[0]); });
+                cells.forEach(function (c) { var b = c.querySelector('.cmp-best'); if (b) b.hidden = true; });
+                if (cells.length < 2) return;
+                var values = cells.map(function (c) { return spec[1](c.getAttribute(spec[0])); });
+                var min = values.reduce(function (a, b) { return b < a ? b : a; });
+                if (values.every(function (v) { return v === min; })) return;
+                cells.forEach(function (c, i) {
+                    if (values[i] !== min) return;
+                    var b = c.querySelector('.cmp-best'); if (b) b.hidden = false;
+                });
+            });
+        }
+        markBest();
+
         grid.addEventListener('click', function (e) {
             var btn = e.target.closest('.compare-remove');
             if (!btn) return;
@@ -364,6 +381,7 @@
             }
 
             renderPicker();   // 방금 뺀 공고가 다시 넣을 수 있는 목록으로 돌아온다
+            markBest();       // 남은 공고끼리 다시 센다
         });
     })();
 </script>
