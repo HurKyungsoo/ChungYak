@@ -467,7 +467,7 @@
 
 <!-- "오늘 본 공고" 기록용 — 이 값을 읽어 브라우저에만 남긴다(서버는 모른다) -->
 <div id="recentViewMarker" hidden
-     th:attr="data-ann-id=${announcement.id}, data-ann-name=${announcement.houseName}"></div>
+     th:attr="data-ann-id=${announcement.id}, data-ann-name=${announcement.displayName}"></div>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>
 <script th:replace="~{fragments/common :: scrapScript}"></script>
