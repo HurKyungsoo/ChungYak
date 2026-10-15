@@ -56,7 +56,7 @@ class AnnouncementSyncSchedulerTest {
         NewAnnouncementAlertService alertService = Mockito.mock(NewAnnouncementAlertService.class);
         scheduler = new AnnouncementSyncScheduler(List.of(applyhomeClient), syncService, repo, props,
                 syncStatus, Clock.fixed(Instant.parse("2026-09-03T04:00:00Z"), ZoneOffset.UTC), alertService,
-                Mockito.mock(AnnouncementIndexer.class), Mockito.mock(AnnouncementDocumentRepository.class));
+                Mockito.mock(AnnouncementIndexer.class), Mockito.mock(AnnouncementDocumentRepository.class), Mockito.mock(LhDocumentLinkService.class));
     }
 
     @Test
@@ -123,7 +123,7 @@ class AnnouncementSyncSchedulerTest {
         new AnnouncementSyncScheduler(List.of(lh), syncService, repo, props, syncStatus,
                 Clock.fixed(Instant.parse("2026-10-12T04:00:00Z"), ZoneOffset.UTC),
                 Mockito.mock(NewAnnouncementAlertService.class), Mockito.mock(AnnouncementIndexer.class),
-                Mockito.mock(AnnouncementDocumentRepository.class)).runSync();
+                Mockito.mock(AnnouncementDocumentRepository.class), Mockito.mock(LhDocumentLinkService.class)).runSync();
 
         verify(lh).enrichWithDetail(needsBackfill);
         verify(lh, never()).enrichWithDetail(alreadyDetailed);
@@ -161,7 +161,7 @@ class AnnouncementSyncSchedulerTest {
 
         new AnnouncementSyncScheduler(List.of(lh), syncService, repo, new PublicDataProperties(), syncStatus,
                 Clock.fixed(Instant.parse("2026-10-13T04:00:00Z"), ZoneOffset.UTC),
-                Mockito.mock(NewAnnouncementAlertService.class), Mockito.mock(AnnouncementIndexer.class), docs).runSync();
+                Mockito.mock(NewAnnouncementAlertService.class), Mockito.mock(AnnouncementIndexer.class), docs, Mockito.mock(LhDocumentLinkService.class)).runSync();
 
         verify(lh).fetchNoticeContent(truncated);
         verify(lh, never()).fetchNoticeContent(full);
@@ -203,7 +203,7 @@ class AnnouncementSyncSchedulerTest {
 
         new AnnouncementSyncScheduler(List.of(lh), syncService, repo, new PublicDataProperties(), syncStatus,
                 Clock.fixed(Instant.parse("2026-10-14T04:00:00Z"), ZoneOffset.UTC),
-                Mockito.mock(NewAnnouncementAlertService.class), Mockito.mock(AnnouncementIndexer.class), docs).runSync();
+                Mockito.mock(NewAnnouncementAlertService.class), Mockito.mock(AnnouncementIndexer.class), docs, Mockito.mock(LhDocumentLinkService.class)).runSync();
 
         verify(lh).fetchNoticeContent(open);
         verify(lh, never()).fetchNoticeContent(closed);
@@ -240,7 +240,7 @@ class AnnouncementSyncSchedulerTest {
 
         new AnnouncementSyncScheduler(List.of(applyhome), syncService, repo, new PublicDataProperties(), syncStatus,
                 Clock.fixed(Instant.parse("2026-10-13T04:00:00Z"), ZoneOffset.UTC),
-                Mockito.mock(NewAnnouncementAlertService.class), Mockito.mock(AnnouncementIndexer.class), docs).runSync();
+                Mockito.mock(NewAnnouncementAlertService.class), Mockito.mock(AnnouncementIndexer.class), docs, Mockito.mock(LhDocumentLinkService.class)).runSync();
 
         verify(applyhome).fetchNoticeContent(current);
         verify(applyhome, never()).fetchNoticeContent(closed);

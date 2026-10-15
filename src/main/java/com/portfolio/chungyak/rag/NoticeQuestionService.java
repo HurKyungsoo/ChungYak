@@ -54,7 +54,9 @@ public class NoticeQuestionService {
             return qaService.answer(announcementId, question);
         }
         Optional<Announcement> announcement = queryService.findDetail(announcementId);
-        var document = documentRepository.findByAnnouncementId(announcementId);
+        // 청약홈의 LH 공급 공고는 LH 같은 공고의 공고문을 빌려 쓴다 — 원문·검색 인덱스 모두 그 공고 것
+        Long documentOwner = announcement.map(Announcement::documentOwnerId).orElse(announcementId);
+        var document = documentRepository.findByAnnouncementId(documentOwner);
         Optional<NoticeSummaryTable> table = document.flatMap(d -> NoticeSummaryTable.parse(d.getFirstPart()));
         // 버튼 문구 확인 — via=quick 만 믿고 저장하면 아무 글이나 집계 표에 들어간다(원문 저장 금지)
         String quick = viaQuick ? announcement
@@ -69,7 +71,7 @@ public class NoticeQuestionService {
             qaService.count("FACT");
             result = QaAnswer.fact(fact.get().text(), fact.get().source());
         } else {
-            result = qaService.answer(announcementId, question);
+            result = qaService.answer(documentOwner, question);
         }
         topicStats.ifPresent(st -> st.record(question, result.status(), quick));
         return result;

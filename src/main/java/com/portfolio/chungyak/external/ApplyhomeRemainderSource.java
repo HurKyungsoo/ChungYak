@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 청약홈 <b>무순위·잔여세대</b> 수집 소스 — APT 와 같은 서비스·같은 키라 {@link ApplyhomeClient} 의 무순위 조회를
@@ -42,5 +43,21 @@ public class ApplyhomeRemainderSource implements AnnouncementSource {
     @Override
     public List<ExternalUnitType> fetchUnitTypes(ExternalAnnouncement announcement) {
         return client.fetchRemainderUnitTypes(announcement.getHouseManageNo(), announcement.getPblancNo());
+    }
+
+    /**
+     * 공고문 원문 — 무순위 공고 페이지({@code selectAPTRemndrLttotPblancDetailView.do})에도 APT 와 같은 PDF 링크가 있다
+     * (2026-10-15 2건 확인, 11쪽·약 1.7만 자). 상세 화면이 "신청 자격은 공고문"이라고 안내하는데 원문이 없어 Q&A 가
+     * 꺼져 있었다. APT 와 같은 fetcher·안전장치(끄는 스위치·요청 간격·실패 시 스킵)를 쓴다.
+     */
+    @Override
+    public Optional<String> fetchNoticeContent(ExternalAnnouncement announcement) {
+        return client.fetchNoticeContent(announcement);
+    }
+
+    /** 이 기능 전에 수집된 접수 중 무순위 공고도 한 번 받는다 */
+    @Override
+    public boolean backfillsMissingNotice() {
+        return client.backfillsMissingNotice();
     }
 }

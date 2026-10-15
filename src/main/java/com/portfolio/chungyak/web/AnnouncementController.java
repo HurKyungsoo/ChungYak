@@ -322,10 +322,13 @@ public class AnnouncementController {
         model.addAttribute("competition", competitionStats.forAnnouncement(announcement));
         model.addAttribute("hasCalendarEvents", !AnnouncementIcs.events(announcement).isEmpty());
         model.addAttribute("qaEnabled", qaService.isEnabled());
-        model.addAttribute("qaIndexed", qaService.hasIndex(id));
+        // 청약홈의 LH 공급 공고는 LH 같은 공고의 공고문을 빌려 쓴다 — 화면에 출처를 밝힌다
+        Long documentOwner = announcement.documentOwnerId();
+        model.addAttribute("documentBorrowedFrom", announcement.borrowsDocument() ? documentOwner : null);
+        model.addAttribute("qaIndexed", qaService.hasIndex(documentOwner));
         model.addAttribute("qaSemantic", qaService.isSemantic());   // BM25 모드면 '의미' 점수(늘 0)를 숨긴다
         // 공고문 첫 페이지 "단지 주요정보" 표(#38) — 원문 표 그대로, 표가 없거나 칸이 어긋나면 null
-        var document = documentRepository.findByAnnouncementId(id);
+        var document = documentRepository.findByAnnouncementId(documentOwner);
         Optional<NoticeSummaryTable> noticeSummary = document.flatMap(d -> NoticeSummaryTable.parse(d.getFirstPart()));
         model.addAttribute("noticeSummary", noticeSummary.orElse(null));
         // 자주 묻는 질문 버튼(#40) — 공식 데이터 버튼은 이 공고 값으로 답이 나오는 것만

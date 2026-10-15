@@ -5,6 +5,7 @@ import com.portfolio.chungyak.rag.RagIndexReport;
 import com.portfolio.chungyak.rag.VectorSearch;
 import com.portfolio.chungyak.repository.AnnouncementDocumentRepository;
 import com.portfolio.chungyak.repository.DocumentChunkRepository;
+import com.portfolio.chungyak.service.LhDocumentLinkService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,12 +33,19 @@ public class AdminRagController {
     private final VectorSearch vectorSearch;
     private final AnnouncementDocumentRepository documentRepository;
     private final DocumentChunkRepository chunkRepository;
+    private final LhDocumentLinkService lhDocumentLinker;
 
     /** 원문은 있으나 인덱스가 없는(또는 낡은) 공고를 임베딩·저장한다. */
     @PostMapping("/reindex")
     public RagIndexReport reindex() {
         log.info("수동 RAG 인덱싱 요청 수신");
         return indexer.indexPending();
+    }
+
+    /** 청약홈의 LH 공급 공고 ↔ LH 같은 공고 공고문 연결 — 정기 수집 끝에도 돈다. 배포 직후 바로 잇고 싶을 때 */
+    @PostMapping("/link-lh-documents")
+    public LhDocumentLinkService.LinkReport linkLhDocuments() {
+        return lhDocumentLinker.linkAll();
     }
 
     @GetMapping("/status")

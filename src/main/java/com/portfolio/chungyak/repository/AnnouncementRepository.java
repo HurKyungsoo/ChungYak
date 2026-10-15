@@ -20,6 +20,17 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
 
     boolean existsByLineageKey(String lineageKey);
 
+    /** 청약홈에 올라온 LH 공급 공고(신혼희망타운·LH 시행 공공분양) — LH 공고문 연결 대상. 무순위는 뺀다 */
+    @Query("select a from Announcement a where a.externalId like 'APPLYHOME-%' and a.externalId not like 'APPLYHOME-RM-%' "
+            + "and (a.developerName like '%토지주택%' or a.houseType = com.portfolio.chungyak.domain.HouseType.NEWLYWED_HOPE_TOWN) "
+            + "and a.noticeDate >= :since")
+    List<Announcement> findLhSuppliedOnApplyhome(@Param("since") LocalDate since);
+
+    @Query("select min(a.noticeDate) from Announcement a where a.externalId like 'LH-%'")
+    Optional<LocalDate> findOldestLhNoticeDate();
+
+    List<Announcement> findByExternalIdStartingWithAndNoticeDateBetween(String prefix, LocalDate from, LocalDate to);
+
     /** 접수 진행 중 또는 예정인 공고 */
     Page<Announcement> findByReceptEndDateGreaterThanEqualOrderByReceptBeginDateAsc(
             LocalDate today, Pageable pageable);

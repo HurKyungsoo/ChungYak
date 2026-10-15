@@ -47,6 +47,7 @@ public class AnnouncementSyncScheduler {
     private final NewAnnouncementAlertService alertService;
     private final AnnouncementIndexer indexer;
     private final AnnouncementDocumentRepository documentRepository;
+    private final LhDocumentLinkService lhDocumentLinker;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -106,6 +107,13 @@ public class AnnouncementSyncScheduler {
             alertService.notifyMatchingSubscribers(stillCurrent(newAnnouncements));
         } catch (RuntimeException e) {
             log.warn("새 공고 알림 발송 중 오류 — 다음 배치에서 다시 시도되지 않으니 원인 확인 필요. {}", e.toString());
+        }
+
+        // 청약홈에 올라온 LH 공급 공고에 LH 같은 공고의 공고문을 잇는다 — 두 소스를 다 받은 뒤라야 짝을 찾는다
+        try {
+            lhDocumentLinker.linkAll();
+        } catch (RuntimeException e) {
+            log.warn("LH 공고문 연결 중 오류 — 다음 배치에서 다시 시도. {}", e.toString());
         }
 
         // 공고문 Q&A 인덱스 — BM25 모드(무료)일 때만 자동. 실패해도 수집은 끝났으니 배치를 실패시키지 않는다.

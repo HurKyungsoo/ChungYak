@@ -140,6 +140,13 @@ public class Announcement {
     @Column(nullable = false, length = 20)
     private RevisionState revisionState = RevisionState.CURRENT;
 
+    /**
+     * 공고문을 빌려 쓰는 공고 id — 청약홈에 올라온 LH 공급 공고는 PDF 가 LH 쪽에만 있다.
+     * {@link LhNoticeTwin} 으로 찾은 LH 같은 공고(계보 최신본)를 가리킨다. null 이면 자기 공고문.
+     */
+    @Column(name = "document_announcement_id")
+    private Long documentAnnouncementId;
+
     @Builder.Default
     @OneToMany(mappedBy = "announcement", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UnitType> unitTypes = new ArrayList<>();
@@ -217,6 +224,21 @@ public class Announcement {
 
     public void applyRevisionState(RevisionState revisionState) {
         this.revisionState = revisionState;
+    }
+
+    /** 공고문(원문·Q&A 인덱스)을 찾을 공고 id — LH 같은 공고에서 빌려 쓰면 그 공고 */
+    public Long documentOwnerId() {
+        return documentAnnouncementId != null ? documentAnnouncementId : id;
+    }
+
+    /** 공고문을 다른 공고에서 빌려 쓰는지 */
+    public boolean borrowsDocument() {
+        return documentAnnouncementId != null && !documentAnnouncementId.equals(id);
+    }
+
+    /** null 이면 연결을 끊는다(자기 공고문이 생겼거나 짝을 더는 못 찾음) */
+    public void linkDocumentTo(Long announcementId) {
+        this.documentAnnouncementId = announcementId;
     }
 
     /** 목록·캘린더·매칭·알림에 보여 줄 공고인지 — 정정 전 본과 취소된 공고는 뺀다 (#47) */
