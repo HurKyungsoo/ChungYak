@@ -193,7 +193,12 @@ class ScreenRenderTest {
         assertThat(render("/my-profile")).contains("내 조건").contains("profileDraft");
         assertThat(render("/privacy")).contains("개인정보 처리방침").contains("제3자 제공과 처리 위탁");
         render("/quick?married=true&monthsSinceMarriage=40&childCount=1&houseless=true");
-        render("/announcements/" + aptId + "/eligibility");
+        // 제55조의3 특례 입력(#49) — 누가·언제 당첨 선택, 2024.6.19 이후 출생 자녀, 배우자 혼인 전 소유뿐
+        assertThat(render("/announcements/" + aptId + "/eligibility"))
+                .contains("name=\"specialSupplyWinTiming\"").contains("배우자가 혼인신고 전에")
+                .contains("name=\"hasChildBornSince20240619\"").contains("name=\"everOwnedHouseOnlySpouseBeforeMarriage\"")
+                .doesNotContain("세대당 평생 1회");
+        assertThat(render("/match")).contains("name=\"specialSupplyWinTiming\"");
     }
 
     @Test

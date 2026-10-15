@@ -41,9 +41,12 @@ public class FirstTimeRule implements EligibilityRule {
 
     @Override
     public EligibilityDecision evaluate(ApplicantProfile profile, Announcement announcement) {
-        if (profile.isEverOwnedHouse()) {
+        // 배우자의 혼인신고 전 소유는 따지지 않는다 — 주택공급규칙 제55조의3제1항제2호(2025. 3. 31.)
+        boolean onlySpousePreMarriage = profile.isEverOwnedHouse() && profile.isEverOwnedHouseOnlySpouseBeforeMarriage();
+        if (profile.isEverOwnedHouse() && !onlySpousePreMarriage) {
             return EligibilityDecision.ineligible(supportedType())
-                    .failed("과거 주택 소유 이력이 있어 생애최초 요건을 충족하지 못합니다.");
+                    .failed("과거 주택 소유 이력이 있어 생애최초 요건을 충족하지 못합니다. "
+                            + "배우자가 혼인신고 전에 소유했던 것뿐이라면 따지지 않으니 입력에서 골라 주세요.");
         }
 
         int requiredAccount = announcement.getRegulationFlags() != null
@@ -62,7 +65,9 @@ public class FirstTimeRule implements EligibilityRule {
                 ? EligibilityDecision.eligible(supportedType())
                 : EligibilityDecision.ineligible(supportedType());
 
-        decision.satisfied("과거 주택 소유 이력이 없습니다.");
+        decision.satisfied(onlySpousePreMarriage
+                ? "과거 주택 소유는 배우자의 혼인신고 전 소유뿐이라 생애최초 요건에서 따지지 않습니다 (주택공급규칙 제55조의3제1항제2호)."
+                : "과거 주택 소유 이력이 없습니다.");
 
         if (houselessOk) {
             decision.satisfied("현재 무주택입니다.");

@@ -23,11 +23,11 @@ class ReWinRequirementTest {
     }
 
     @Test
-    @DisplayName("과거 특별공급 당첨 이력이 있으면 무조건 FAIL (평생 1회)")
+    @DisplayName("과거 특별공급 당첨 이력이 있으면 FAIL (한 차례 한정, 제55조) — 특례 입력이 없을 때")
     void pastSpecialSupplyWinIsHardFail() {
         RequirementCheck c = req.check(profile(true, 300, false), SpecialSupplyType.NEWLYWED);
         assertThat(c.status()).isEqualTo(Status.FAIL);
-        assertThat(c.reason()).contains("평생 1회");
+        assertThat(c.reason()).contains("한 차례 한정");
     }
 
     @Test
@@ -82,5 +82,76 @@ class ReWinRequirementTest {
     void lifetimeFailHasNoHint() {
         assertThat(req.check(profile(true, 300, false), SpecialSupplyType.NEWLYWED).improvementHint())
                 .isNull();
+    }
+
+    // ── 제55조의3 특례 (2025. 3. 31. 개정, 2026. 6. 15. 현행 조문 기준) ──
+
+    private static ApplicantProfile won(SpecialSupplyWinTiming timing, boolean childSince20240619) {
+        return ApplicantProfile.builder().everWonSpecialSupply(true)
+                .specialSupplyWinTiming(timing).hasChildBornSince20240619(childSince20240619).build();
+    }
+
+    @Test
+    @DisplayName("① 배우자의 혼인 전 당첨 — 신생아·신혼부부·생애최초는 PASS, 다자녀·노부모는 FAIL")
+    void spousePreMarriageWin() {
+        ApplicantProfile p = won(SpecialSupplyWinTiming.SPOUSE_BEFORE_MARRIAGE, false);
+        for (SpecialSupplyType t : java.util.List.of(SpecialSupplyType.NEWBORN, SpecialSupplyType.NEWLYWED, SpecialSupplyType.FIRST_TIME)) {
+            RequirementCheck c = req.check(p, t);
+            assertThat(c.status()).as(t.name()).isEqualTo(Status.PASS);
+            assertThat(c.reason()).contains("제55조의3제1항");
+        }
+        assertThat(req.check(p, SpecialSupplyType.MULTI_CHILD).status()).isEqualTo(Status.FAIL);
+        assertThat(req.check(p, SpecialSupplyType.OLD_PARENTS).status()).isEqualTo(Status.FAIL);
+    }
+
+    @Test
+    @DisplayName("② 본인의 혼인 전 당첨 — 신혼부부만 한 차례 PASS, 생애최초·신생아는 FAIL")
+    void selfPreMarriageWin() {
+        ApplicantProfile p = won(SpecialSupplyWinTiming.SELF_BEFORE_MARRIAGE, false);
+        RequirementCheck c = req.check(p, SpecialSupplyType.NEWLYWED);
+        assertThat(c.status()).isEqualTo(Status.PASS);
+        assertThat(c.reason()).contains("제55조의3제2항").contains("한 차례");
+        assertThat(req.check(p, SpecialSupplyType.FIRST_TIME).status()).isEqualTo(Status.FAIL);
+        assertThat(req.check(p, SpecialSupplyType.NEWBORN).status()).isEqualTo(Status.FAIL);
+    }
+
+    @Test
+    @DisplayName("③ 2024.6.19 이후 출생 자녀 — 혼인 후 이력이어도 신생아·다자녀·신혼부부·노부모 PASS, 생애최초는 FAIL")
+    void childBornSince20240619() {
+        ApplicantProfile p = won(SpecialSupplyWinTiming.OTHER, true);
+        for (SpecialSupplyType t : java.util.List.of(SpecialSupplyType.NEWBORN, SpecialSupplyType.MULTI_CHILD,
+                SpecialSupplyType.NEWLYWED, SpecialSupplyType.OLD_PARENTS)) {
+            RequirementCheck c = req.check(p, t);
+            assertThat(c.status()).as(t.name()).isEqualTo(Status.PASS);
+            assertThat(c.reason()).contains("제55조의3제3항").contains("이 판정에는 반영하지 않았습니다");
+        }
+        assertThat(req.check(p, SpecialSupplyType.FIRST_TIME).status()).isEqualTo(Status.FAIL);
+        assertThat(req.check(p, SpecialSupplyType.NEWLYWED_HOPE_TOWN).status()).isEqualTo(Status.FAIL);
+    }
+
+    @Test
+    @DisplayName("특례가 있어도 재당첨 제한 기간은 따로 본다 — 기간 미달이면 FAIL")
+    void exemptionStillChecksPeriod() {
+        ApplicantProfile p = ApplicantProfile.builder().everWonSpecialSupply(true)
+                .specialSupplyWinTiming(SpecialSupplyWinTiming.SPOUSE_BEFORE_MARRIAGE)
+                .monthsSinceLastWin(59).build();
+        assertThat(req.check(p, SpecialSupplyType.NEWLYWED).status()).isEqualTo(Status.FAIL);
+        ApplicantProfile after = ApplicantProfile.builder().everWonSpecialSupply(true)
+                .specialSupplyWinTiming(SpecialSupplyWinTiming.SPOUSE_BEFORE_MARRIAGE)
+                .monthsSinceLastWin(60).build();
+        assertThat(req.check(after, SpecialSupplyType.NEWLYWED).reason()).contains("제55조의3제1항").contains("60개월");
+    }
+
+    @Test
+    @DisplayName("특례 입력이 없으면 FAIL 사유에 어떤 입력이면 달라지는지 알려 준다(유형별로 해당하는 것만)")
+    void failHintsAtExceptions() {
+        ApplicantProfile p = won(SpecialSupplyWinTiming.OTHER, false);
+        assertThat(req.check(p, SpecialSupplyType.NEWLYWED).reason())
+                .contains("본인·배우자의 혼인신고 전 당첨이거나 2024년 6월 19일 이후 출생한 자녀가 있으면");
+        assertThat(req.check(p, SpecialSupplyType.FIRST_TIME).reason())
+                .contains("배우자의 혼인신고 전 당첨이면").doesNotContain("2024년 6월 19일");
+        assertThat(req.check(p, SpecialSupplyType.MULTI_CHILD).reason())
+                .contains("2024년 6월 19일 이후 출생한 자녀가 있으면").doesNotContain("혼인신고 전");
+        assertThat(req.check(p, SpecialSupplyType.NEWLYWED_HOPE_TOWN).reason()).doesNotContain("다만");
     }
 }

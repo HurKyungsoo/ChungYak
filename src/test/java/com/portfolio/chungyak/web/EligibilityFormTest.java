@@ -144,4 +144,22 @@ class EligibilityFormTest {
 
         assertThat(form.getChildCount()).isZero();
     }
+
+    @Test
+    @DisplayName("제55조의3 입력 — 누가·언제·2024.6.19 자녀가 프로필로 가고, '배우자 혼인 전 소유뿐'은 과거 소유를 체크했을 때만")
+    void specialSupplyExceptionInputs() {
+        EligibilityForm form = new EligibilityForm();
+        form.setEverWonSpecialSupply(true);
+        form.setSpecialSupplyWinTiming(com.portfolio.chungyak.rule.SpecialSupplyWinTiming.SPOUSE_BEFORE_MARRIAGE);
+        form.setHasChildBornSince20240619(true);
+        form.setEverOwnedHouseOnlySpouseBeforeMarriage(true);   // 과거 소유를 체크하지 않았다 → 무시
+
+        var p = form.toProfile();
+        assertThat(p.getSpecialSupplyWinTiming()).isEqualTo(com.portfolio.chungyak.rule.SpecialSupplyWinTiming.SPOUSE_BEFORE_MARRIAGE);
+        assertThat(p.isHasChildBornSince20240619()).isTrue();
+        assertThat(p.isEverOwnedHouseOnlySpouseBeforeMarriage()).isFalse();
+
+        form.setSpecialSupplyWinTiming(null);   // 폼이 비워 보내면 특례 없음
+        assertThat(form.toProfile().getSpecialSupplyWinTiming()).isEqualTo(com.portfolio.chungyak.rule.SpecialSupplyWinTiming.OTHER);
+    }
 }

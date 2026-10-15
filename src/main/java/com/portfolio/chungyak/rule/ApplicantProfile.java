@@ -52,6 +52,12 @@ public class ApplicantProfile {
     /** 과거 주택 소유 이력 — 생애최초 특공은 세대 전원이 무주택 이력이어야 한다 */
     private final boolean everOwnedHouse;
 
+    /**
+     * 과거 주택 소유가 <b>배우자의 혼인신고 전 소유뿐</b>인지 — 생애최초 특공에서는 따지지 않는다
+     * (주택공급규칙 제55조의3제1항제2호, 2025. 3. 31.). {@link #everOwnedHouse} 가 true 일 때만 의미가 있다.
+     */
+    private final boolean everOwnedHouseOnlySpouseBeforeMarriage;
+
     /** 만 65세 이상 직계존속을 3년 이상 부양 중인지 */
     private final boolean supportingOldParents;
 
@@ -81,6 +87,16 @@ public class ApplicantProfile {
 
     /** 과거에 특별공급에 당첨된 적이 있는지 (본인 또는 세대원). 특별공급은 세대당 평생 1회. */
     private final boolean everWonSpecialSupply;
+
+    /** 과거 특별공급 당첨이 누구의·언제 것인지 — 제55조의3 특례. 모르면 OTHER(특례 없음) */
+    @Builder.Default
+    private final SpecialSupplyWinTiming specialSupplyWinTiming = SpecialSupplyWinTiming.OTHER;
+
+    /**
+     * 2024년 6월 19일 이후 출생한 자녀(태아, 그날 이후 출생자 입양 포함)가 있는지 — 특별공급 이력이 있어도 신생아·다자녀·
+     * 신혼부부·노부모 특공을 한 차례 더 신청할 수 있다(제55조의3제3항, 2025. 3. 31.).
+     */
+    private final boolean hasChildBornSince20240619;
 
     /** 마지막 당첨일로부터 경과 개월 수. null 이면 당첨 이력 없음. 재당첨 제한 기간 계산에 쓴다. */
     private final Integer monthsSinceLastWin;

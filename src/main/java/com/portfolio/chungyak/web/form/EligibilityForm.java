@@ -2,6 +2,7 @@ package com.portfolio.chungyak.web.form;
 
 import com.portfolio.chungyak.llm.ExtractedProfile;
 import com.portfolio.chungyak.rule.ApplicantProfile;
+import com.portfolio.chungyak.rule.SpecialSupplyWinTiming;
 
 /**
  * 자격 판정 입력 폼.
@@ -47,6 +48,9 @@ public class EligibilityForm {
     /** 과거 주택 소유 이력 */
     private boolean everOwnedHouse;
 
+    /** 과거 주택 소유가 배우자의 혼인신고 전 소유뿐인지 — 생애최초에서 따지지 않는다(제55조의3제1항제2호) */
+    private boolean everOwnedHouseOnlySpouseBeforeMarriage;
+
     /** 만 65세 이상 직계존속 3년 이상 부양 여부 */
     private boolean supportingOldParents;
 
@@ -73,6 +77,12 @@ public class EligibilityForm {
 
     /** 과거 특별공급 당첨 이력 (본인/세대원) — 특별공급은 평생 1회 */
     private boolean everWonSpecialSupply;
+
+    /** 과거 특공 당첨이 누구의·언제 것인지 — 제55조의3 특례. 기본 OTHER(특례 없음) */
+    private SpecialSupplyWinTiming specialSupplyWinTiming = SpecialSupplyWinTiming.OTHER;
+
+    /** 2024. 6. 19. 이후 출생 자녀(태아·입양 포함) — 특공 이력이 있어도 한 차례 더(제55조의3제3항) */
+    private boolean hasChildBornSince20240619;
 
     /** 마지막 당첨일로부터 경과 개월 (없으면 비움) */
     private Integer monthsSinceLastWin;
@@ -110,6 +120,7 @@ public class EligibilityForm {
                 .accountPaymentCount(accountPaymentCount)
                 .accountDeposit(accountDeposit)
                 .everOwnedHouse(everOwnedHouse)
+                .everOwnedHouseOnlySpouseBeforeMarriage(everOwnedHouse && everOwnedHouseOnlySpouseBeforeMarriage)
                 .supportingOldParents(supportingOldParents)
                 .householdHead(householdHead)
                 .residenceMonthsInRegion(residenceMonthsInRegion)
@@ -119,6 +130,8 @@ public class EligibilityForm {
                 .totalAssets(totalAssets)
                 .carValue(carValue)
                 .everWonSpecialSupply(everWonSpecialSupply)
+                .specialSupplyWinTiming(specialSupplyWinTiming == null ? SpecialSupplyWinTiming.OTHER : specialSupplyWinTiming)
+                .hasChildBornSince20240619(hasChildBornSince20240619)
                 .monthsSinceLastWin(monthsSinceLastWin)
                 .pastWinInSpeculationArea(pastWinInSpeculationArea)
                 .build();
@@ -178,6 +191,14 @@ public class EligibilityForm {
     public Integer getCarValue() { return carValue; }
     public void setCarValue(Integer carValue) { this.carValue = carValue; }
 
+    public boolean isEverOwnedHouseOnlySpouseBeforeMarriage() { return everOwnedHouseOnlySpouseBeforeMarriage; }
+    public void setEverOwnedHouseOnlySpouseBeforeMarriage(boolean v) { this.everOwnedHouseOnlySpouseBeforeMarriage = v; }
+    public SpecialSupplyWinTiming getSpecialSupplyWinTiming() { return specialSupplyWinTiming; }
+    /** 화면 선택지 — 템플릿에서 T(...) 정적 호출을 쓰지 않으려고 */
+    public SpecialSupplyWinTiming[] getSpecialSupplyWinTimingOptions() { return SpecialSupplyWinTiming.values(); }
+    public void setSpecialSupplyWinTiming(SpecialSupplyWinTiming v) { this.specialSupplyWinTiming = v; }
+    public boolean isHasChildBornSince20240619() { return hasChildBornSince20240619; }
+    public void setHasChildBornSince20240619(boolean v) { this.hasChildBornSince20240619 = v; }
     public boolean isEverWonSpecialSupply() { return everWonSpecialSupply; }
     public void setEverWonSpecialSupply(boolean everWonSpecialSupply) { this.everWonSpecialSupply = everWonSpecialSupply; }
 

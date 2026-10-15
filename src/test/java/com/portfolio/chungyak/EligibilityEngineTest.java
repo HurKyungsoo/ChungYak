@@ -179,7 +179,7 @@ class EligibilityEngineTest {
     }
 
     @Test
-    @DisplayName("과거 특별공급 당첨 이력이 있으면 모든 특공에서 탈락 (평생 1회)")
+    @DisplayName("과거 특별공급 당첨 이력이 있으면(누가·언제 모름) 모든 특공에서 탈락 (한 차례 한정, 제55조)")
     void pastSpecialSupplyWinBlocksAll() {
         ApplicantProfile profile = passing()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
@@ -190,8 +190,55 @@ class EligibilityEngineTest {
         assertThat(result.decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
         assertThat(result.decisions().get(SpecialSupplyType.FIRST_TIME).isEligible()).isFalse();
         assertThat(result.decisions().get(SpecialSupplyType.NEWLYWED).getFailedReasons())
-                .anyMatch(r -> r.contains("평생 1회"));
+                .anyMatch(r -> r.contains("한 차례 한정"));
         assertThat(result.hasAnyMatch()).isFalse();
+    }
+
+    @Test
+    @DisplayName("제55조의3 — 배우자의 혼인 전 당첨이면 신혼부부 특공은 신청 가능, 다자녀 등은 여전히 탈락")
+    void spousePreMarriageWinDoesNotBlockNewlywed() {
+        ApplicantProfile profile = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
+                .everWonSpecialSupply(true)
+                .specialSupplyWinTiming(com.portfolio.chungyak.rule.SpecialSupplyWinTiming.SPOUSE_BEFORE_MARRIAGE)
+                .build();
+
+        EligibilityEngine.MatchResult result = engine.evaluate(profile, privateAnnouncement);
+        assertThat(result.decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
+        assertThat(result.decisions().get(SpecialSupplyType.NEWLYWED).getSatisfiedReasons())
+                .anyMatch(r -> r.contains("제55조의3제1항"));
+    }
+
+    @Test
+    @DisplayName("제55조의3 — 2024.6.19 이후 출생 자녀가 있으면 혼인 후 특공 이력이 있어도 신혼부부 특공 가능")
+    void childBornSince20240619AllowsOnceMore() {
+        ApplicantProfile profile = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12).childCount(1).hasNewborn(true)
+                .everWonSpecialSupply(true).hasChildBornSince20240619(true)
+                .build();
+
+        EligibilityEngine.MatchResult result = engine.evaluate(profile, privateAnnouncement);
+        assertThat(result.decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
+        assertThat(result.decisions().get(SpecialSupplyType.FIRST_TIME).isEligible()).isFalse();   // 생애최초는 이 특례 밖
+    }
+
+    @Test
+    @DisplayName("생애최초 — 과거 주택 소유가 배우자의 혼인 전 소유뿐이면 따지지 않는다(제55조의3제1항제2호), 아니면 탈락")
+    void firstTimeIgnoresSpousePreMarriageOwnership() {
+        ApplicantProfile onlySpouse = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(24)
+                .everOwnedHouse(true).everOwnedHouseOnlySpouseBeforeMarriage(true)
+                .build();
+        EligibilityDecision d = engine.evaluate(onlySpouse, privateAnnouncement).decisions().get(SpecialSupplyType.FIRST_TIME);
+        assertThat(d.getFailedReasons()).noneMatch(r -> r.contains("과거 주택 소유"));
+        assertThat(d.getSatisfiedReasons()).anyMatch(r -> r.contains("배우자의 혼인신고 전 소유뿐"));
+
+        ApplicantProfile owned = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(24)
+                .everOwnedHouse(true)
+                .build();
+        assertThat(engine.evaluate(owned, privateAnnouncement).decisions().get(SpecialSupplyType.FIRST_TIME).getFailedReasons())
+                .anyMatch(r -> r.contains("과거 주택 소유 이력이 있어"));
     }
 
     @Test

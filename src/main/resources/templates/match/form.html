@@ -64,6 +64,9 @@
             <label class="check"><input type="checkbox" th:field="*{everOwnedHouse}">
                 <span>과거에 주택을 소유한 적이 있다 <span class="hint" style="display:inline">— 생애최초 특공은 소유 이력이 없어야 함</span></span>
             </label>
+            <label class="check" style="margin-left:24px"><input type="checkbox" th:field="*{everOwnedHouseOnlySpouseBeforeMarriage}">
+                <span>└ 배우자가 혼인신고 전에 소유했던 것뿐이다 <span class="hint" style="display:inline">— 이 경우 생애최초에서는 따지지 않습니다(2025.3.31 개정)</span></span>
+            </label>
         </fieldset>
 
         <fieldset>
@@ -127,11 +130,21 @@
         <fieldset>
             <legend>재당첨 제한</legend>
             <details class="set-collapse" data-auto-open
-                     th:open="${form.everWonSpecialSupply or form.pastWinInSpeculationArea or form.monthsSinceLastWin != null}">
+                     th:open="${form.everWonSpecialSupply or form.pastWinInSpeculationArea or form.monthsSinceLastWin != null or form.hasChildBornSince20240619}">
             <summary>과거에 청약에 당첨된 적이 있으면 펼쳐 주세요 <span class="muted">— 없으면 그대로 두세요</span></summary>
             <label class="check"><input type="checkbox" th:field="*{everWonSpecialSupply}" id="everWonCheck">
                 <span>과거에 특별공급에 당첨된 적이 있다 (본인/세대원)
-                    <span class="hint" style="display:inline">— 특별공급은 세대당 평생 1회</span></span></label>
+                    <span class="hint" style="display:inline">— 특별공급은 한 차례 한정, 아래 예외 확인</span></span></label>
+            <label class="field" style="max-width:360px"><span class="lbl">그 당첨은 누가·언제였나요?</span>
+                <select th:field="*{specialSupplyWinTiming}">
+                    <option th:each="t : *{specialSupplyWinTimingOptions}"
+                            th:value="${t}" th:text="${t.label}">혼인 후 또는 그 밖</option>
+                </select>
+                <span class="hint">배우자의 혼인 전 당첨은 신생아·신혼부부·생애최초에서 따지지 않고, 내 혼인 전 당첨이어도 신혼부부는 한 번 더 됩니다(2025.3.31 개정)</span>
+            </label>
+            <label class="check"><input type="checkbox" th:field="*{hasChildBornSince20240619}">
+                <span>2024년 6월 19일 이후 태어난 자녀가 있다 (임신·입양 포함)
+                    <span class="hint" style="display:inline">— 특공 이력이 있어도 신생아·다자녀·신혼부부·노부모 특공을 한 번 더</span></span></label>
             <label class="check"><input type="checkbox" th:field="*{pastWinInSpeculationArea}" id="pastWinSpeculationCheck">
                 <span>과거 당첨 주택이 투기과열지구·청약과열지역이었다
                     <span class="hint" style="display:inline">— 제한 기간 10년</span></span></label>
