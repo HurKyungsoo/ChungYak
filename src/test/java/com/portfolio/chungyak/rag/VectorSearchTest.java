@@ -61,6 +61,28 @@ class VectorSearchTest {
     }
 
     @Test
+    @DisplayName("검색에 쓴 질의 임베딩을 기억한다 — 비슷한 질문 재사용(#45)과 같은 질문 재검색이 Voyage 를 다시 부르지 않는다")
+    void remembersQueryVector() {
+        stub(List.of(chunk(1, 0, new float[]{1f, 0f}, "계약금 10%")));
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        EmbeddingClient counting = new EmbeddingClient() {
+            @Override public List<float[]> embed(List<String> texts, InputType type) {
+                calls.incrementAndGet();
+                return embedder.embed(texts, type);
+            }
+            @Override public String model() { return "fake"; }
+        };
+        VectorSearch search = new VectorSearch(chunkRepo, Optional.of(counting), props(0.4));
+
+        assertThat(search.cachedQueryVector("계약금은?")).isEmpty();
+        search.searchWithin(1L, "계약금은?", 3);
+        search.searchWithin(1L, " 계약금은? ", 3);
+
+        assertThat(calls).hasValue(1);
+        assertThat(search.cachedQueryVector("계약금은?")).hasValueSatisfying(v -> assertThat(v).containsExactly(1f, 0f));
+    }
+
+    @Test
     @DisplayName("벡터로는 안 잡히는 청크도 키워드가 정확히 맞으면 상위로 (BM25 신호)")
     void keywordLiftsExactMatch() {
         // 벡터상 전부 직교(코사인 0). 순위는 BM25 가 가른다.

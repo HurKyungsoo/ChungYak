@@ -1,5 +1,7 @@
 package com.portfolio.chungyak.rag;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.portfolio.chungyak.domain.DocumentChunk;
 import com.portfolio.chungyak.rag.embedding.EmbeddingClient;
 import com.portfolio.chungyak.rag.embedding.EmbeddingClient.InputType;
@@ -7,6 +9,7 @@ import com.portfolio.chungyak.repository.DocumentChunkRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -47,6 +50,15 @@ public class VectorSearch {
 
     private volatile Corpus corpus;
 
+    /**
+     * 최근 질의 임베딩 — 비슷한 질문 답 재사용(#45)이 Voyage 를 다시 부르지 않고 같은 벡터를 쓴다. 같은 질문을 다시 검색할
+     * 때도 아낀다. 메모리에만 두고 짧게 지운다(질문 원문을 오래 들고 있지 않는다).
+     */
+    private final Cache<String, float[]> queryVectors = Caffeine.newBuilder()
+            .maximumSize(500)
+            .expireAfterWrite(Duration.ofMinutes(10))
+            .build();
+
     public VectorSearch(DocumentChunkRepository chunkRepository,
                         Optional<EmbeddingClient> embeddingClient,
                         RagProperties properties) {
@@ -59,6 +71,11 @@ public class VectorSearch {
     /** 의미(벡터) 검색까지 하는지 — false 면 BM25(키워드)만. 검색 자체는 두 모드 모두 된다. */
     public boolean isSemantic() {
         return embeddingClient.isPresent();
+    }
+
+    /** 방금 검색에 쓴 질의 임베딩 — 없으면(BM25 모드·벡터 없는 공고·만료) empty. Voyage 를 새로 부르지 않는다. */
+    public Optional<float[]> cachedQueryVector(String query) {
+        return query == null ? Optional.empty() : Optional.ofNullable(queryVectors.getIfPresent(query.strip()));
     }
 
     /**
@@ -92,8 +109,7 @@ public class VectorSearch {
         // 청크에 벡터가 없으면(BM25 모드로 만든 인덱스 — Voyage 를 켠 직후 재인덱싱이 끝나기 전) 이 공고는 BM25 로만 찾는다.
         // 코사인이 전부 0 이라 벡터 순위가 청크 순서가 되어 앞쪽 청크를 끌어올리는 잡음이 된다. 질의 임베딩 호출도 아낀다.
         boolean chunksHaveVectors = chunks.stream().allMatch(c -> c.getEmbedding() != null && c.getEmbedding().length > 0);
-        float[] qVec = chunksHaveVectors
-                ? embeddingClient.map(e -> e.embed(List.of(q), InputType.QUERY).get(0)).orElse(null) : null;
+        float[] qVec = chunksHaveVectors ? embeddingClient.map(e -> queryVector(e, q)).orElse(null) : null;
 
         // BM25 IDF 는 전체 코퍼스 통계로 (공고 하나로 좁히면 IDF 가 의미 없다), 단어 빈도는 청크마다 즉석으로
         Bm25Index bm25 = corpus().bm25();
@@ -130,6 +146,14 @@ public class VectorSearch {
                 .map(x -> new Hit(x.c().getAnnouncementId(), x.c().getChunkIndex(),
                         x.c().getContent(), x.cos(), x.cover()))
                 .toList();
+    }
+
+    private float[] queryVector(EmbeddingClient client, String q) {
+        float[] cached = queryVectors.getIfPresent(q);
+        if (cached != null) return cached;
+        float[] v = client.embed(List.of(q), InputType.QUERY).get(0);
+        queryVectors.put(q, v);
+        return v;
     }
 
     /**

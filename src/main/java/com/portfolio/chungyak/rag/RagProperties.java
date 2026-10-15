@@ -11,7 +11,7 @@ public record RagProperties(Chunk chunk, Search search, Qa qa) {
     public RagProperties {
         if (chunk == null) chunk = new Chunk(0, 0);
         if (search == null) search = new Search(0, 0);
-        if (qa == null) qa = new Qa(0, 0, 0);
+        if (qa == null) qa = new Qa(0, 0, 0, 0);
     }
 
     /** 청크 목표 길이·겹침 (문자 수). */
@@ -33,12 +33,19 @@ public record RagProperties(Chunk chunk, Search search, Qa qa) {
     /**
      * Q&A 게이트: 최고 발췌의 코사인이 minScore 미만이고 키워드 겹침(termCoverage)도
      * keywordMinScore 미만이면 "관련 내용 없음"으로 LLM 호출을 생략한다.
+     * similarMinScore: 같은 공고의 이전 질문과 질문 임베딩 코사인이 이 이상이고 {@link SimilarQuestionGuard} 를 통과하면
+     * 이전 답을 다시 쓴다(#45). 1 보다 크게 두면 끈다.
      */
-    public record Qa(int contextChunks, double minScore, double keywordMinScore) {
+    public record Qa(int contextChunks, double minScore, double keywordMinScore, double similarMinScore) {
         public Qa {
             if (contextChunks <= 0) contextChunks = 4;
             if (minScore <= 0) minScore = 0.25;
             if (keywordMinScore <= 0 || keywordMinScore > 1) keywordMinScore = 0.5;
+            if (similarMinScore <= 0) similarMinScore = DocumentQaService.DEFAULT_SIMILAR_MIN_SCORE;
+        }
+
+        public Qa(int contextChunks, double minScore, double keywordMinScore) {
+            this(contextChunks, minScore, keywordMinScore, 0);
         }
     }
 }

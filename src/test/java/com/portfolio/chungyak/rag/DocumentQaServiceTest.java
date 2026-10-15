@@ -243,6 +243,67 @@ class DocumentQaServiceTest {
         assertThat(svc.answer(1L, "계약금은?").status()).isEqualTo(Status.ANSWERED);
     }
 
+    @Test
+    @DisplayName("비슷한 질문 — 같은 공고에서 서명이 같고 코사인이 기준 이상이면 이전 답을 다시 쓴다, LLM 미호출 (#45)")
+    void reusesAnswerForSimilarQuestion() {
+        when(search.searchWithin(eq(1L), anyString(), anyInt())).thenReturn(List.of(
+                new Hit(1L, 2, "계약금 10% 납부", 0.6, 1.0)));
+        when(chunkRepo.indexVersion()).thenReturn(version(10, 100));
+        when(search.cachedQueryVector("계약금은 몇 퍼센트예요?")).thenReturn(Optional.of(new float[]{1f, 0f}));
+        when(search.cachedQueryVector("계약금 비율이 얼마예요?")).thenReturn(Optional.of(new float[]{0.9f, 0.3f}));   // 코사인 0.95
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        com.portfolio.chungyak.llm.LlmUsageStats stats = new com.portfolio.chungyak.llm.LlmUsageStats(java.time.Clock.systemUTC());
+        DocumentQaService svc = new DocumentQaService(search, chunkRepo,
+                Optional.of((q, ex) -> { calls.incrementAndGet(); return "계약금은 분양가의 10%입니다 [1]."; }),
+                props, Optional.of(stats), Optional.empty());
+
+        QaAnswer first = svc.answer(1L, "계약금은 몇 퍼센트예요?");
+        QaAnswer second = svc.answer(1L, "계약금 비율이 얼마예요?");
+
+        assertThat(first.isSimilarReuse()).isFalse();
+        assertThat(second.status()).isEqualTo(Status.ANSWERED);
+        assertThat(second.answer()).isEqualTo(first.answer());
+        assertThat(second.isSimilarReuse()).isTrue();
+        assertThat(calls).hasValue(1);
+        assertThat(stats.snapshot()).containsEntry("qa.SIMILAR_HIT", 1L);
+
+        when(chunkRepo.indexVersion()).thenReturn(version(10, 101));   // 재인덱싱하면 예전 답을 쓰지 않는다
+        assertThat(svc.answer(1L, "계약금 비율이 얼마예요?").isSimilarReuse()).isFalse();
+        assertThat(calls).hasValue(2);
+    }
+
+    @Test
+    @DisplayName("비슷한 질문 — 벡터가 같아도 핵심 낱말이 다르면(계약금 vs 중도금) 다시 묻는다, 코사인이 낮아도 다시 묻는다 (#45)")
+    void doesNotReuseAcrossDifferentMeaning() {
+        when(search.searchWithin(eq(1L), anyString(), anyInt())).thenReturn(List.of(
+                new Hit(1L, 2, "계약금 10%, 중도금 60%", 0.6, 1.0)));
+        when(chunkRepo.indexVersion()).thenReturn(version(10, 100));
+        when(search.cachedQueryVector("계약금은 몇 퍼센트예요?")).thenReturn(Optional.of(new float[]{1f, 0f}));
+        when(search.cachedQueryVector("중도금은 몇 퍼센트예요?")).thenReturn(Optional.of(new float[]{1f, 0f}));
+        when(search.cachedQueryVector("계약금 몇 프로 내요?")).thenReturn(Optional.of(new float[]{0.6f, 0.8f}));   // 코사인 0.6
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        DocumentQaService svc = service(Optional.of((q, ex) -> { calls.incrementAndGet(); return "답 [1]."; }));
+
+        svc.answer(1L, "계약금은 몇 퍼센트예요?");
+        assertThat(svc.answer(1L, "중도금은 몇 퍼센트예요?").isSimilarReuse()).isFalse();
+        assertThat(svc.answer(1L, "계약금 몇 프로 내요?").isSimilarReuse()).isFalse();
+        assertThat(calls).hasValue(3);
+    }
+
+    @Test
+    @DisplayName("비슷한 질문 — 질문 임베딩이 없으면(BM25 모드) 재사용하지 않는다 (#45)")
+    void noReuseWithoutQueryVector() {
+        when(search.searchWithin(eq(1L), anyString(), anyInt())).thenReturn(List.of(
+                new Hit(1L, 2, "계약금 10% 납부", 0.0, 1.0)));
+        when(chunkRepo.indexVersion()).thenReturn(version(10, 100));
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        DocumentQaService svc = service(Optional.of((q, ex) -> { calls.incrementAndGet(); return "답 [1]."; }));
+
+        svc.answer(1L, "계약금은 몇 퍼센트예요?");
+        svc.answer(1L, "계약금 비율이 얼마예요?");
+        assertThat(calls).hasValue(2);
+    }
+
     private static DocumentChunkRepository.IndexVersion version(long count, long maxId) {
         return new DocumentChunkRepository.IndexVersion() {
             @Override public long getCount() { return count; }

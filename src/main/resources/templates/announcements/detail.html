@@ -311,6 +311,8 @@
                 <span th:if="${qa.fact}" class="muted">값 그대로 — AI 를 거치지 않았습니다</span>
                 <span th:unless="${qa.fact}" class="ai-chip">AI</span>
                 <span th:unless="${qa.fact}" class="muted">아래 발췌만 근거로 정리했습니다</span>
+                <!--/* 비슷한 질문 답 재사용(#45) — 이전 질문 문장은 보여 주지 않는다(다른 이용자의 질문일 수 있다) */-->
+                <span th:if="${qa.similarReuse}" class="muted">· 뜻이 비슷한 이전 질문에 한 답입니다</span>
             </div>
             <p style="margin:0;white-space:pre-wrap" th:text="${qa.answer}">답변</p>
             <!--/* 서술 문장 근거 검사(#41) — 발췌 낱말과 거의 겹치지 않거나 숫자가 발췌에 없는 문장. 결정론 검사라 놓치는 것도 있다 */-->

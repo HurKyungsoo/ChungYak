@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,12 +32,16 @@ public class DocumentQaService {
 
     private final VectorSearch vectorSearch;
     private final DocumentChunkRepository chunkRepository;
+    /** 비슷한 질문 답 재사용(#45) 코사인 기준값 기본 — SimilarQuestionEvalTest 로 정했다 */
+    static final double DEFAULT_SIMILAR_MIN_SCORE = 0.85;
+
     private final Optional<DocumentAnswerer> answerer;
     /** 재정렬(Voyage rerank) — 있으면 하이브리드 상위 후보를 다시 매겨 앞쪽만 LLM 에 넘긴다 */
     private final Optional<Reranker> reranker;
     private final int contextChunks;
     private final double minScore;
     private final double keywordMinScore;
+    private final double similarMinScore;
 
     /**
      * 답 캐시 (#32) — 무료 등급 하루 토큰 한도(200K, Q&A 한 번 ≈ 3,800 토큰)를 아끼려고, 같은 공고·같은 질문은
@@ -47,6 +52,23 @@ public class DocumentQaService {
             .maximumSize(2_000)
             .expireAfterWrite(Duration.ofHours(24))
             .build();
+
+    /**
+     * 비슷한 질문 답 재사용 (#45) — 글자가 달라도 같은 뜻이면("계약금 몇 %예요?" / "계약금 비율이 얼마예요?") Groq 를 다시
+     * 부르지 않는다. 키는 공고 + 청크 버전, 값은 그 공고에서 답한 질문들의 {임베딩, 서명, 답}. 질문 원문은 담지 않는다(#40).
+     * 질문 임베딩은 검색이 이미 만든 것({@link VectorSearch#cachedQueryVector})이라 Voyage 추가 호출이 없다.
+     * 무게 = 기억한 질문 수(벡터 1024차원 ≈ 4KB) — 전체 2,000개 ≈ 8MB.
+     */
+    private final Cache<String, List<Remembered>> similarCache = Caffeine.newBuilder()
+            .maximumWeight(2_000)
+            .weigher((String k, List<Remembered> v) -> Math.max(1, v.size()))
+            .expireAfterWrite(Duration.ofHours(24))
+            .build();
+
+    /** 공고 하나에 기억하는 질문 수 상한 — 넘으면 오래된 것부터 버린다 */
+    private static final int SIMILAR_PER_NOTICE = 30;
+
+    private record Remembered(float[] vector, SimilarQuestionGuard.Signature signature, QaAnswer answer) {}
 
     /** 결과 분포 카운터(#25 운영 관찰) — 질문 문장은 담지 않는다 */
     private final Optional<LlmUsageStats> stats;
@@ -73,14 +95,21 @@ public class DocumentQaService {
         this.contextChunks = properties.qa().contextChunks();
         this.minScore = properties.qa().minScore();
         this.keywordMinScore = properties.qa().keywordMinScore();
+        this.similarMinScore = properties.qa().similarMinScore();
     }
 
     /** 공백·물음표·대소문자 차이는 같은 질문으로 본다. 청크 버전을 못 읽으면 캐시하지 않는다(null). */
     private String cacheKey(Long announcementId, String question) {
-        DocumentChunkRepository.IndexVersion v = chunkRepository.indexVersion();
-        if (v == null) return null;
+        String notice = noticeKey(announcementId);
+        if (notice == null) return null;
         String q = question.strip().toLowerCase().replaceAll("[\\s?？!.]+", " ").strip();
-        return announcementId + "|" + v.getCount() + "|" + v.getMaxId() + "|" + q;
+        return notice + "|" + q;
+    }
+
+    /** 공고 + 청크 버전 — 재인덱싱하면 바뀌어 예전 답을 버린다. 버전을 못 읽으면 null */
+    private String noticeKey(Long announcementId) {
+        DocumentChunkRepository.IndexVersion v = chunkRepository.indexVersion();
+        return v == null ? null : announcementId + "|" + v.getCount() + "|" + v.getMaxId();
     }
 
     public boolean isEnabled() {
@@ -118,10 +147,16 @@ public class DocumentQaService {
     /**
      * @param source        FACT 일 때 값의 출처(그 밖에는 null)
      * @param weakSentences 발췌에서 근거를 찾지 못한 답 문장(#41, {@link SentenceGrounding}) — 화면이 "원문 확인"으로 표시
+     * @param similar       뜻이 비슷한 이전 질문의 답을 다시 썼다(#45) — 화면이 "비슷한 질문의 답"으로 표시
      */
-    public record QaAnswer(Status status, String answer, List<Citation> citations, String source, List<String> weakSentences) {
+    public record QaAnswer(Status status, String answer, List<Citation> citations, String source, List<String> weakSentences,
+                           boolean similar) {
         public QaAnswer {
             weakSentences = weakSentences == null ? List.of() : List.copyOf(weakSentences);
+        }
+
+        public QaAnswer(Status status, String answer, List<Citation> citations, String source, List<String> weakSentences) {
+            this(status, answer, citations, source, weakSentences, false);
         }
 
         public QaAnswer(Status status, String answer, List<Citation> citations) {
@@ -136,6 +171,10 @@ public class DocumentQaService {
         public boolean hasWeakSentences() { return status == Status.ANSWERED && !weakSentences.isEmpty(); }
 
         public boolean isShown() { return status != Status.DISABLED; }
+        /** 비슷한 질문의 답을 다시 쓴 AI 답인지 */
+        public boolean isSimilarReuse() { return similar && status == Status.ANSWERED; }
+
+        QaAnswer asSimilar() { return new QaAnswer(status, answer, citations, source, weakSentences, true); }
         public boolean hasAnswer() { return status == Status.ANSWERED || status == Status.FACT; }
         public boolean isFact() { return status == Status.FACT; }
 
@@ -178,12 +217,64 @@ public class DocumentQaService {
 
     private QaAnswer answerUncached(Long announcementId, String question) {
         int fetch = reranker.map(r -> Math.max(contextChunks, r.candidates())).orElse(contextChunks);
-        List<Hit> hits = rerank(question.strip(), vectorSearch.searchWithin(announcementId, question.strip(), fetch));
-        hits = hits.subList(0, Math.min(contextChunks, hits.size()));
+        List<Hit> hits = vectorSearch.searchWithin(announcementId, question.strip(), fetch);
         if (hits.isEmpty()) {
             // BM25 모드는 키워드가 하나도 안 걸린 청크를 빼므로, 인덱스가 있어도 결과가 빌 수 있다 — 그건 "관련 없음"이다
             return hasIndex(announcementId) ? QaAnswer.noMatch(List.of()) : QaAnswer.noIndex();
         }
+
+        // 비슷한 질문 답 재사용(#45) — 검색이 만든 질문 임베딩으로 본다. 재정렬·LLM 둘 다 아낀다
+        String notice = noticeKey(announcementId);
+        Optional<float[]> vector = vectorSearch.cachedQueryVector(question);
+        SimilarQuestionGuard.Signature signature = SimilarQuestionGuard.of(question);
+        Optional<QaAnswer> similar = vector.flatMap(v -> findSimilar(notice, v, signature));
+        if (similar.isPresent()) {
+            log.info("공고 #{} Q&A — 비슷한 질문의 답을 다시 씀", announcementId);
+            count("SIMILAR_HIT");
+            return similar.get();
+        }
+
+        QaAnswer fresh = answerFromHits(announcementId, question, rerank(question.strip(), hits));
+        if (vector.isPresent() && (fresh.status() == Status.ANSWERED || fresh.status() == Status.UNGROUNDED)) {
+            remember(notice, new Remembered(vector.get(), signature, fresh));
+        }
+        return fresh;
+    }
+
+    /** 서명이 같고 코사인이 기준 이상인 이전 질문 중 가장 가까운 것의 답 */
+    private Optional<QaAnswer> findSimilar(String notice, float[] vector, SimilarQuestionGuard.Signature signature) {
+        if (notice == null || similarMinScore > 1) return Optional.empty();
+        List<Remembered> seen = similarCache.getIfPresent(notice);
+        if (seen == null) return Optional.empty();
+        Remembered best = null;
+        double bestScore = similarMinScore;
+        synchronized (seen) {
+            for (Remembered r : seen) {
+                if (!SimilarQuestionGuard.compatible(r.signature(), signature)) continue;
+                double cos = Cosine.similarity(r.vector(), vector);
+                if (cos >= bestScore) {
+                    best = r;
+                    bestScore = cos;
+                }
+            }
+        }
+        return Optional.ofNullable(best).map(r -> r.answer().asSimilar());
+    }
+
+    private void remember(String notice, Remembered entry) {
+        if (notice == null || similarMinScore > 1) return;
+        similarCache.asMap().compute(notice, (k, old) -> {
+            List<Remembered> list = old == null ? new ArrayList<>() : old;
+            synchronized (list) {
+                list.add(entry);
+                if (list.size() > SIMILAR_PER_NOTICE) list.remove(0);
+            }
+            return list;
+        });
+    }
+
+    private QaAnswer answerFromHits(Long announcementId, String question, List<Hit> hits) {
+        hits = hits.subList(0, Math.min(contextChunks, hits.size()));
 
         List<Citation> citations = hits.stream()
                 .map(h -> new Citation(h.chunkIndex(), h.content(), h.score(), h.keywordScore()))

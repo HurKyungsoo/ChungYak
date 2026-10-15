@@ -43,6 +43,10 @@
   한도는 **조직(계정) 단위**다(429 메시지가 `in organization org_…` 로 지목) — 같은 계정이면 키를 새로 만들어도
   공유한다. 로컬 eval·실사용 시험을 많이 돌리면 운영이 429 로 막힌다(실제로 막혔다). 분리하려면 별도 Groq 계정.
   운영 관찰: `GET /api/admin/llm/stats`(추출·Q&A 결과 분포, 429 횟수, 모델별 호출·토큰 — 재배포 시 0 부터).
+  **비슷한 질문 답 재사용**(#45): 같은 공고에서 질문 임베딩 코사인 ≥ `RAG_QA_SIMILAR_MIN_SCORE`(0.85) **이고**
+  `rag/SimilarQuestionGuard`(핵심 낱말·순서·숫자·묻는 것)가 같으면 이전 답(`qa.SIMILAR_HIT`). 메모리만, 원문 저장 없음.
+  코사인만으로는 안 된다 — "보증금 올리고 월세 줄이기"와 그 반대가 0.95, 같은 뜻 "견본주택/모델하우스"는 0.59.
+  기준값은 `SimilarQuestionEvalTest`(Voyage 키 있을 때, 같은 뜻 30·다른 뜻 367쌍)가 오탐 0 을 강제한다.
   Q&A 주제별 집계(#40): `GET /api/admin/qa/topics?days=30` — 주제(`rag/QuestionTopic`) × 결과 × 버튼 문구 × 날짜 개수만
   `qa_topic_stat`(V9)에 쌓는다. **질문 원문은 저장하지 않는다**(버튼 문구는 서버가 만든 문장이고, 실제 버튼 목록에 있을 때만 저장).
   자주 묻는 질문 버튼(`rag/QuickQuestions`): 공식 데이터 버튼은 `FactAnswerer` 로 답이 나오는 것만 띄우고, AI 버튼 문구는
