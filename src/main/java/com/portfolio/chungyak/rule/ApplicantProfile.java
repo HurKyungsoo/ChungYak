@@ -104,6 +104,12 @@ public class ApplicantProfile {
      */
     private final boolean hasChildBornSince20240619;
 
+    /**
+     * 2023년 3월 28일 이후 출생한 자녀 수(태아·입양 포함) — 공공주택 특별법 공공분양은 소득 기준에 %p 가산
+     * (공공주택 특별법 시행규칙 [별표 6] 제3호가목). 모르면 null(가산 없음).
+     */
+    private final Integer childrenBornSince20230328;
+
     /** 마지막 당첨일로부터 경과 개월 수. null 이면 당첨 이력 없음. 재당첨 제한 기간 계산에 쓴다. */
     private final Integer monthsSinceLastWin;
 

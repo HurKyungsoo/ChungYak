@@ -23,21 +23,21 @@ class IncomeRequirementTest {
     @Test
     @DisplayName("소득이 유형 상한 이내면 PASS, 초과면 FAIL")
     void withinAndOverLimit() {
-        // 3인 도시근로자 7,198,649원. 신혼 상한 140% = 10,078,108원.
-        assertThat(req.check(profile(7_000_000, 3, false), SpecialSupplyType.NEWLYWED).status())
+        // 3인 도시근로자 7,198,649원. 공공주택 특별법 신혼 상한 130% = 9,358,244원.
+        assertThat(req.check(profile(7_000_000, 3, false), SpecialSupplyType.NEWLYWED, PUBLIC).status())
                 .isEqualTo(Status.PASS);
-        assertThat(req.check(profile(11_000_000, 3, false), SpecialSupplyType.NEWLYWED).status())
+        assertThat(req.check(profile(11_000_000, 3, false), SpecialSupplyType.NEWLYWED, PUBLIC).status())
                 .isEqualTo(Status.FAIL);
     }
 
     @Test
     @DisplayName("초과하면 상한 금액과 초과 금액을 적는다 — 같은 기준표·같은 산수 (#19-1b)")
     void failReasonCarriesGap() {
-        // 3인 7,198,649원 × 140% = 10,078,109원(반올림) → 1,007만원. 11,000,000 - 10,078,109 = 921,891 → 92만원
-        assertThat(req.check(profile(11_000_000, 3, false), SpecialSupplyType.NEWLYWED).reason())
-                .endsWith("상한은 월 1,007만원으로 월 92만원 초과입니다.");
+        // 공공주택 특별법 신혼 130%: 3인 7,198,649원 × 130% = 9,358,244원 → 935만원. 11,000,000 - 9,358,244 = 1,641,756 → 164만원
+        assertThat(req.check(profile(11_000_000, 3, false), SpecialSupplyType.NEWLYWED, PUBLIC).reason())
+                .endsWith("상한은 월 935만원으로 월 164만원 초과입니다.");
         // 통과하면 금액을 덧붙이지 않는다
-        assertThat(req.check(profile(7_000_000, 3, false), SpecialSupplyType.NEWLYWED).reason())
+        assertThat(req.check(profile(7_000_000, 3, false), SpecialSupplyType.NEWLYWED, PUBLIC).reason())
                 .doesNotContain("상한은 월");
     }
 
@@ -45,15 +45,15 @@ class IncomeRequirementTest {
     @DisplayName("맞벌이는 완화된 상한을 쓴다")
     void dualIncomeUsesRelaxedLimit() {
         // 약 146% — 단독 140 초과, 맞벌이 160 이내
-        assertThat(req.check(profile(10_500_000, 3, false), SpecialSupplyType.NEWLYWED).passed()).isFalse();
-        assertThat(req.check(profile(10_500_000, 3, true), SpecialSupplyType.NEWLYWED).passed()).isTrue();
+        assertThat(req.check(profile(10_500_000, 3, false), SpecialSupplyType.NEWLYWED, NATIONAL).passed()).isFalse();
+        assertThat(req.check(profile(10_500_000, 3, true), SpecialSupplyType.NEWLYWED, NATIONAL).passed()).isTrue();
     }
 
     @Test
     @DisplayName("다자녀·노부모는 맞벌이 완화가 없다 (single = dual = 120)")
     void multiChildNoDualRelaxation() {
         // 약 121% — 120 초과. 맞벌이여도 그대로 FAIL
-        assertThat(req.check(profile(8_700_000, 3, true), SpecialSupplyType.MULTI_CHILD).passed()).isFalse();
+        assertThat(req.check(profile(8_700_000, 3, true), SpecialSupplyType.MULTI_CHILD, NATIONAL).passed()).isFalse();
     }
 
     @Test
@@ -67,7 +67,7 @@ class IncomeRequirementTest {
     @Test
     @DisplayName("이유 문장에 % 와 상한이 들어간다")
     void reasonCarriesNumbers() {
-        RequirementCheck c = req.check(profile(7_000_000, 3, false), SpecialSupplyType.NEWLYWED);
+        RequirementCheck c = req.check(profile(7_000_000, 3, false), SpecialSupplyType.NEWLYWED, NATIONAL);
         assertThat(c.reason()).contains("%").contains("140% 이하");
     }
 
@@ -78,7 +78,12 @@ class IncomeRequirementTest {
     }
 
     private static final com.portfolio.chungyak.domain.Announcement PRIVATE = housing(com.portfolio.chungyak.domain.HouseDetailType.PRIVATE);
-    private static final com.portfolio.chungyak.domain.Announcement PUBLIC = housing(com.portfolio.chungyak.domain.HouseDetailType.PUBLIC);
+    /** 공공주택 특별법 표시 없는 국민주택 — 주택공급규칙 기준(신혼 140/160, 다자녀 120) */
+    private static final com.portfolio.chungyak.domain.Announcement NATIONAL = housing(com.portfolio.chungyak.domain.HouseDetailType.PUBLIC);
+    /** 공공주택 특별법 공공분양 — [별표 6] 기준(맞벌이 200%) */
+    private static final com.portfolio.chungyak.domain.Announcement PUBLIC = com.portfolio.chungyak.domain.Announcement.builder()
+            .houseDetailType(com.portfolio.chungyak.domain.HouseDetailType.PUBLIC)
+            .regulationFlags(com.portfolio.chungyak.domain.RegulationFlags.builder().publicHousingSpecialLaw(true).build()).build();
 
     @Test
     @DisplayName("민영 다자녀·노부모는 소득 기준이 없다(제40조①·제46조①) — 공공은 120% 그대로")
@@ -121,17 +126,58 @@ class IncomeRequirementTest {
                 .contains("추첨공급");
         assertThat(req.check(over.realEstateValue(331_000_001L).build(), SpecialSupplyType.NEWBORN, PRIVATE).status())
                 .isEqualTo(Status.FAIL);
-        // 공공은 부동산 경로 없음 — 예전처럼 FAIL
+        // 공공주택 특별법은 부동산 경로 없음(자산 기준이 따로) — FAIL, 그 밖의 국민주택은 경로 있음(제35조의3①2호)
         assertThat(req.check(over.realEstateValue(100_000_000L).build(), SpecialSupplyType.NEWBORN, PUBLIC).status())
                 .isEqualTo(Status.FAIL);
+        assertThat(req.check(over.realEstateValue(100_000_000L).build(), SpecialSupplyType.NEWBORN, NATIONAL).status())
+                .isEqualTo(Status.PASS);
     }
 
     @Test
-    @DisplayName("공공(국민) 공고·공고 모름은 예전 상한 그대로 — 신생아 맞벌이 200%")
-    void publicUnchanged() {
+    @DisplayName("신생아 맞벌이 170% — 공공주택 특별법(공고 모름 포함)은 200% 라 PASS, 국민주택은 130% 초과 → 부동산 경로, 민영은 160% 초과 → 부동산 경로")
+    void newbornByHousingRule() {
         ApplicantProfile dual170 = profile(12_240_000, 3, true);   // 약 170%
         assertThat(req.check(dual170, SpecialSupplyType.NEWBORN, PUBLIC).status()).isEqualTo(Status.PASS);
         assertThat(req.check(dual170, SpecialSupplyType.NEWBORN).status()).isEqualTo(Status.PASS);
+        assertThat(req.check(dual170, SpecialSupplyType.NEWBORN, NATIONAL).status()).isEqualTo(Status.MISSING);
         assertThat(req.check(dual170, SpecialSupplyType.NEWBORN, PRIVATE).status()).isEqualTo(Status.MISSING);
+    }
+
+    @Test
+    @DisplayName("공공주택 특별법 [별표 6] — 외벌이 상한(다자녀·노부모 120, 신혼·생애최초 130, 신생아 140), 맞벌이는 모두 200")
+    void publicHousingAnnex6() {
+        // 3인 7,198,649원 기준. 135% ≈ 9,718,176
+        ApplicantProfile single135 = profile(9_718_176, 3, false);
+        assertThat(req.check(single135, SpecialSupplyType.NEWLYWED, PUBLIC).status()).isEqualTo(Status.FAIL);    // 130 초과
+        assertThat(req.check(single135, SpecialSupplyType.NEWBORN, PUBLIC).status()).isEqualTo(Status.PASS);     // 140 이내
+        ApplicantProfile dual190 = profile(13_677_433, 3, true);   // 약 190%
+        for (SpecialSupplyType t : java.util.List.of(SpecialSupplyType.MULTI_CHILD, SpecialSupplyType.NEWLYWED,
+                SpecialSupplyType.FIRST_TIME, SpecialSupplyType.OLD_PARENTS, SpecialSupplyType.NEWBORN)) {
+            assertThat(req.check(dual190, t, PUBLIC).status()).as(t.name()).isEqualTo(Status.PASS);
+        }
+    }
+
+    @Test
+    @DisplayName("공공주택 특별법 — 2023.3.28 이후 출생 자녀 가산: 그 자녀만 1명 +10%p, 2명 이상 또는 1명+그 전 자녀 +20%p. 민영·국민주택엔 없음")
+    void birthBonus() {
+        // 신혼 외벌이 130% → 138% 는 FAIL, 1명 가산(140)이면 PASS
+        ApplicantProfile.ApplicantProfileBuilder p138 = ApplicantProfile.builder()
+                .monthlyHouseholdIncome(9_934_136).householdSize(3).dualIncome(false);
+        assertThat(req.check(p138.build(), SpecialSupplyType.NEWLYWED, PUBLIC).status()).isEqualTo(Status.FAIL);
+        RequirementCheck one = req.check(p138.childCount(1).childrenBornSince20230328(1).build(), SpecialSupplyType.NEWLYWED, PUBLIC);
+        assertThat(one.status()).isEqualTo(Status.PASS);
+        assertThat(one.reason()).contains("140% 이하").contains("+10%p");
+        // 145% — 1명이면 140 이라 FAIL, 1명 + 그 전 자녀면 150 이라 PASS
+        ApplicantProfile.ApplicantProfileBuilder p145 = ApplicantProfile.builder()
+                .monthlyHouseholdIncome(10_438_041).householdSize(3).dualIncome(false);
+        assertThat(req.check(p145.childCount(1).childrenBornSince20230328(1).build(), SpecialSupplyType.NEWLYWED, PUBLIC).status())
+                .isEqualTo(Status.FAIL);
+        assertThat(req.check(p145.childCount(2).childrenBornSince20230328(1).build(), SpecialSupplyType.NEWLYWED, PUBLIC).status())
+                .isEqualTo(Status.PASS);
+        assertThat(req.check(p145.childCount(2).childrenBornSince20230328(2).build(), SpecialSupplyType.NEWLYWED, PUBLIC).reason())
+                .contains("+20%p");
+        // 국민주택(140)에는 가산이 없다 — 145% 는 부동산 경로로
+        assertThat(req.check(p145.childCount(2).childrenBornSince20230328(2).build(), SpecialSupplyType.NEWLYWED, NATIONAL).status())
+                .isEqualTo(Status.MISSING);
     }
 }

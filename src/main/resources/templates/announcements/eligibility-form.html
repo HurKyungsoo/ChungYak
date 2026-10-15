@@ -58,6 +58,10 @@
                 </label>
             </div>
             <label class="check"><input type="checkbox" th:field="*{hasNewborn}"> <span>2세 이하 자녀(신생아)가 있다</span></label>
+            <label class="field" style="max-width:360px"><span class="lbl">2023년 3월 28일 이후 태어난 자녀 수 <span class="hint" style="display:inline">(임신·입양 포함)</span></span>
+                <input type="number" min="0" th:field="*{childrenBornSince20230328}" placeholder="0">
+                <span class="hint">공공분양(공공주택 특별법)은 이 자녀가 있으면 소득 기준이 올라갑니다 — 올라간 기준은 판정 결과에 나옵니다</span>
+            </label>
             <label class="check" th:if="${announcement.houseType.name() == 'NEWLYWED_HOPE_TOWN'}">
                 <input type="checkbox" th:field="*{hasChildUnderSix}">
                 <span>만 6세 이하 자녀(태아 포함)가 있다

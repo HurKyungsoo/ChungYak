@@ -30,11 +30,12 @@ public final class RuleTestSupport {
     public static final SpecialSupplyRequirementProperties REQUIREMENTS =
             new SpecialSupplyRequirementProperties(
                     Map.of(
-                            SpecialSupplyType.MULTI_CHILD, new IncomeLimit(120, 120),
-                            SpecialSupplyType.NEWLYWED, new IncomeLimit(140, 160),
-                            SpecialSupplyType.FIRST_TIME, new IncomeLimit(130, 160),
-                            SpecialSupplyType.OLD_PARENTS, new IncomeLimit(120, 120),
-                            SpecialSupplyType.NEWBORN, new IncomeLimit(150, 200),
+                            // 공공주택 특별법 시행규칙 [별표 6](2026-06-22) — application.yml special-supply.income-limit 과 같게
+                            SpecialSupplyType.MULTI_CHILD, new IncomeLimit(120, 200),
+                            SpecialSupplyType.NEWLYWED, new IncomeLimit(130, 200),
+                            SpecialSupplyType.FIRST_TIME, new IncomeLimit(130, 200),
+                            SpecialSupplyType.OLD_PARENTS, new IncomeLimit(120, 200),
+                            SpecialSupplyType.NEWBORN, new IncomeLimit(140, 200),
                             SpecialSupplyType.NEWLYWED_HOPE_TOWN, new IncomeLimit(130, 200)),
                     new AssetLimit(379_000_000L, 37_080_000),
                     // 민영주택 — application.yml special-supply.private-income-limit 과 같게(다자녀·노부모는 소득 기준 없음)
@@ -43,7 +44,15 @@ public final class RuleTestSupport {
                             SpecialSupplyType.FIRST_TIME, new IncomeLimit(160, 160),
                             SpecialSupplyType.NEWBORN, new IncomeLimit(160, 160)),
                     331_000_000L,
-                    java.util.Set.of(SpecialSupplyType.NEWLYWED, SpecialSupplyType.FIRST_TIME, SpecialSupplyType.NEWBORN));
+                    java.util.Set.of(SpecialSupplyType.NEWLYWED, SpecialSupplyType.FIRST_TIME, SpecialSupplyType.NEWBORN),
+                    // 국민주택(공공주택 특별법 아님) — application.yml special-supply.national-income-limit 과 같게
+                    Map.of(
+                            SpecialSupplyType.MULTI_CHILD, new IncomeLimit(120, 120),
+                            SpecialSupplyType.NEWLYWED, new IncomeLimit(140, 160),
+                            SpecialSupplyType.FIRST_TIME, new IncomeLimit(130, 130),
+                            SpecialSupplyType.OLD_PARENTS, new IncomeLimit(120, 120),
+                            SpecialSupplyType.NEWBORN, new IncomeLimit(130, 130)),
+                    new SpecialSupplyRequirementProperties.BirthBonus(10, 20));
 
     public static final IncomeRequirement INCOME = new IncomeRequirement(INCOME_REFERENCE, REQUIREMENTS);
     public static final AssetRequirement ASSET = new AssetRequirement(REQUIREMENTS);

@@ -207,6 +207,20 @@ class EligibilityEngineTest {
     }
 
     @Test
+    @DisplayName("공공주택 특별법 공공분양([별표 6]) — 신혼부부 맞벌이 190% 는 200% 이내라 가능, 같은 사람이 국민주택이면 160% 초과")
+    void publicHousingNewlywedDualIncome() {
+        Announcement specialLaw = announcement(HouseDetailType.PUBLIC, false);
+        org.springframework.test.util.ReflectionTestUtils.setField(specialLaw, "regulationFlags",
+                RegulationFlags.builder().publicHousingSpecialLaw(true).build());
+        ApplicantProfile dual190 = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(24).accountPaymentCount(24)
+                .householdSize(3).monthlyHouseholdIncome(13_677_433).dualIncome(true)
+                .build();
+        assertThat(engine.evaluate(dual190, specialLaw).decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
+        assertThat(engine.evaluate(dual190, publicAnnouncement).decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
+    }
+
+    @Test
     @DisplayName("제55조의3 — 배우자의 혼인 전 당첨이면 신혼부부 특공은 신청 가능, 다자녀 등은 여전히 탈락")
     void spousePreMarriageWinDoesNotBlockNewlywed() {
         ApplicantProfile profile = passing()

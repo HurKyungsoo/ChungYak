@@ -159,23 +159,37 @@ security:
     password: ${ADMIN_PASSWORD:}
 
 # 특별공급 소득·자산 요건. 제도 개정으로 자주 바뀜 — 배포 없이 여기만 수정.
-# income-limit: 도시근로자 월평균소득 대비 % (single 단독 / dual 맞벌이 완화)
-# asset-limit: 원. 공공주택(HOUSE_DTL_SECD=03) 특별공급에만 적용, 민영은 소득만.
+# 소득 상한은 도시근로자 월평균소득 대비 % (single 단독 / dual 본인·배우자 모두 소득). 공고에 적용되는 법별로 셋이다
+# (IncomeRequirement.housingRuleOf): 공공주택 특별법(income-limit) / 그 밖의 국민주택(national-) / 민영(private-).
+# asset-limit: 원. 공공(PUBLIC) 공고 특별공급에만 적용, 민영은 소득만.
 special-supply:
+  # 공공주택 특별법 공공분양 — 공공주택 특별법 시행규칙 [별표 6] (개정 2026-06-22, 2026-10-15 법령정보센터 원문 PDF 확인).
+  # 청약홈 PUBLIC_HOUSE_SPCLW_APPLC_AT=Y 공고와 LH 공고. (분양전환공공임대 2인 가구 예외는 반영 안 함)
   income-limit:
-    multi-child:  { single: 120, dual: 120 }
-    newlywed:     { single: 140, dual: 160 }
-    first-time:   { single: 130, dual: 160 }
-    old-parents:  { single: 120, dual: 120 }
-    newborn:      { single: 150, dual: 200 }
-    newlywed-hope-town: { single: 130, dual: 200 }   # 표준 신혼부부와 다른 신혼희망타운 전용 기준
+    multi-child:  { single: 120, dual: 200 }   # [별표 6] 제2호가목
+    newlywed:     { single: 130, dual: 200 }   # 나목
+    first-time:   { single: 130, dual: 200 }   # 다목
+    old-parents:  { single: 120, dual: 200 }   # 라목
+    newborn:      { single: 140, dual: 200 }   # 마목(2세 미만 자녀)
+    newlywed-hope-town: { single: 130, dual: 200 }   # 표준 신혼부부와 다른 신혼희망타운 전용 기준([별표 6의 3], 미재확인)
+  # 2023-03-28 이후 출생 자녀(태아·입양 포함)가 있으면 공공주택 특별법 소득 기준에 %p 가산 — [별표 6] 제3호가목
+  birth-bonus:
+    one: 10            # 그 자녀만 1명
+    two-or-more: 20    # 2명 이상, 또는 1명 + 그 전에 출생한 자녀
+  # 그 밖의 국민주택(PUBLIC, 공공주택 특별법 표시 없음) — 주택공급에 관한 규칙 2026-06-15 현행
+  national-income-limit:
+    multi-child: { single: 120, dual: 120 }   # 제40조② (제18조 사업주체 85㎡ 이하)
+    newlywed:    { single: 140, dual: 160 }   # 제41조④다목
+    first-time:  { single: 130, dual: 130 }   # 제43조①4호
+    old-parents: { single: 120, dual: 120 }   # 제46조③ (제18조 사업주체 85㎡ 이하)
+    newborn:     { single: 130, dual: 130 }   # 제35조의3①2호
   # 민영주택(HOUSE_DTL_SECD=01) 공고 — 주택공급규칙 2026-06-15 현행 조문(2026-10-15 국가법령정보센터 원문 확인).
   # 여기 없는 유형은 민영에서 소득 기준이 없다: 다자녀(제40조①)·노부모(제46조①). 위 income-limit 은 공공(국민)주택 공고용.
   private-income-limit:
     newlywed:   { single: 140, dual: 160 }   # 제41조①라목 — 배우자 소득이 있으면 160
     first-time: { single: 160, dual: 160 }   # 제43조③4호 — 맞벌이 구분 없음
     newborn:    { single: 160, dual: 160 }   # 제35조의3③2호 — 맞벌이 구분 없음 (2026-10 민영 공고 2건 "130% 초과 160% 이하" 확인)
-  # 민영 신혼부부·생애최초·신생아: 소득 기준을 넘어도 세대 부동산 가액이 이 금액 이하면 추첨공급 대상
+  # 민영·국민주택 신혼부부·생애최초·신생아: 소득 기준을 넘어도 세대 부동산 가액이 이 금액 이하면 추첨공급 대상
   # (국민건강보험법 시행령 재산등급 29등급 하한·상한 평균 — 매년 바뀐다). 3억 3,100만원 = 2026-10 민영 공고 2건 표기.
   real-estate-limit: 331000000
   real-estate-track: [newlywed, first-time, newborn]

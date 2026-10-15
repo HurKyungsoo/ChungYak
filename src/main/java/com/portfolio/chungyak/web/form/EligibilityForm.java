@@ -32,6 +32,8 @@ public class EligibilityForm {
 
     /** 만 6세 이하 자녀(태아 포함) 유무 — 신혼희망타운 전용 */
     private boolean hasChildUnderSix;
+    /** 2023. 3. 28. 이후 출생 자녀 수(태아·입양 포함) — 공공주택 특별법 공공분양 소득 기준 가산 */
+    private Integer childrenBornSince20230328;
 
     /** 무주택 여부 */
     private boolean houseless;
@@ -117,6 +119,7 @@ public class EligibilityForm {
                 .childCount(Math.max(0, childCount))
                 .hasNewborn(hasNewborn)
                 .hasChildUnderSix(hasChildUnderSix)
+                .childrenBornSince20230328(childrenBornSince20230328)
                 .houseless(houseless)
                 .accountMonths(accountMonths)
                 .accountPaymentCount(accountPaymentCount)
@@ -204,6 +207,8 @@ public class EligibilityForm {
     public void setHasChildBornSince20240619(boolean v) { this.hasChildBornSince20240619 = v; }
     public Long getRealEstateValue() { return realEstateValue; }
     public void setRealEstateValue(Long realEstateValue) { this.realEstateValue = realEstateValue; }
+    public Integer getChildrenBornSince20230328() { return childrenBornSince20230328; }
+    public void setChildrenBornSince20230328(Integer v) { this.childrenBornSince20230328 = v; }
     public boolean isEverWonSpecialSupply() { return everWonSpecialSupply; }
     public void setEverWonSpecialSupply(boolean everWonSpecialSupply) { this.everWonSpecialSupply = everWonSpecialSupply; }
 
