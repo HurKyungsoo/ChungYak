@@ -71,6 +71,8 @@ public class EligibilityForm {
 
     /** 총자산 (원) — 공공주택 특공 자산 요건 */
     private Long totalAssets;
+    /** 세대 부동산 가액 (원) — 민영 신혼부부·생애최초·신생아에서 소득 기준을 넘을 때 추첨공급 판단 */
+    private Long realEstateValue;
 
     /** 자동차가액 (원) — 공공주택 특공 자산 요건 */
     private Integer carValue;
@@ -128,6 +130,7 @@ public class EligibilityForm {
                 .householdSize(householdSize)
                 .dualIncome(dualIncome)
                 .totalAssets(totalAssets)
+                .realEstateValue(realEstateValue)
                 .carValue(carValue)
                 .everWonSpecialSupply(everWonSpecialSupply)
                 .specialSupplyWinTiming(specialSupplyWinTiming == null ? SpecialSupplyWinTiming.OTHER : specialSupplyWinTiming)
@@ -199,6 +202,8 @@ public class EligibilityForm {
     public void setSpecialSupplyWinTiming(SpecialSupplyWinTiming v) { this.specialSupplyWinTiming = v; }
     public boolean isHasChildBornSince20240619() { return hasChildBornSince20240619; }
     public void setHasChildBornSince20240619(boolean v) { this.hasChildBornSince20240619 = v; }
+    public Long getRealEstateValue() { return realEstateValue; }
+    public void setRealEstateValue(Long realEstateValue) { this.realEstateValue = realEstateValue; }
     public boolean isEverWonSpecialSupply() { return everWonSpecialSupply; }
     public void setEverWonSpecialSupply(boolean everWonSpecialSupply) { this.everWonSpecialSupply = everWonSpecialSupply; }
 

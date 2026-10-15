@@ -44,7 +44,7 @@ public class CommonRequirements {
                                            SpecialSupplyType type) {
         return List.of(
                 reWin.check(profile, type),
-                income.check(profile, type),
+                income.check(profile, type, announcement),
                 asset.check(profile, announcement),
                 account.check(profile, announcement),
                 residence.check(profile, announcement));

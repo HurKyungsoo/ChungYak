@@ -169,6 +169,16 @@ special-supply:
     old-parents:  { single: 120, dual: 120 }
     newborn:      { single: 150, dual: 200 }
     newlywed-hope-town: { single: 130, dual: 200 }   # 표준 신혼부부와 다른 신혼희망타운 전용 기준
+  # 민영주택(HOUSE_DTL_SECD=01) 공고 — 주택공급규칙 2026-06-15 현행 조문(2026-10-15 국가법령정보센터 원문 확인).
+  # 여기 없는 유형은 민영에서 소득 기준이 없다: 다자녀(제40조①)·노부모(제46조①). 위 income-limit 은 공공(국민)주택 공고용.
+  private-income-limit:
+    newlywed:   { single: 140, dual: 160 }   # 제41조①라목 — 배우자 소득이 있으면 160
+    first-time: { single: 160, dual: 160 }   # 제43조③4호 — 맞벌이 구분 없음
+    newborn:    { single: 160, dual: 160 }   # 제35조의3③2호 — 맞벌이 구분 없음 (2026-10 민영 공고 2건 "130% 초과 160% 이하" 확인)
+  # 민영 신혼부부·생애최초·신생아: 소득 기준을 넘어도 세대 부동산 가액이 이 금액 이하면 추첨공급 대상
+  # (국민건강보험법 시행령 재산등급 29등급 하한·상한 평균 — 매년 바뀐다). 3억 3,100만원 = 2026-10 민영 공고 2건 표기.
+  real-estate-limit: 331000000
+  real-estate-track: [newlywed, first-time, newborn]
   asset-limit:
     total-assets: 379000000   # 3.79억
     car-value: 37080000       # 3,708만

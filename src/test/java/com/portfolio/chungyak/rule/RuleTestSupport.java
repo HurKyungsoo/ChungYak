@@ -36,7 +36,14 @@ public final class RuleTestSupport {
                             SpecialSupplyType.OLD_PARENTS, new IncomeLimit(120, 120),
                             SpecialSupplyType.NEWBORN, new IncomeLimit(150, 200),
                             SpecialSupplyType.NEWLYWED_HOPE_TOWN, new IncomeLimit(130, 200)),
-                    new AssetLimit(379_000_000L, 37_080_000));
+                    new AssetLimit(379_000_000L, 37_080_000),
+                    // 민영주택 — application.yml special-supply.private-income-limit 과 같게(다자녀·노부모는 소득 기준 없음)
+                    Map.of(
+                            SpecialSupplyType.NEWLYWED, new IncomeLimit(140, 160),
+                            SpecialSupplyType.FIRST_TIME, new IncomeLimit(160, 160),
+                            SpecialSupplyType.NEWBORN, new IncomeLimit(160, 160)),
+                    331_000_000L,
+                    java.util.Set.of(SpecialSupplyType.NEWLYWED, SpecialSupplyType.FIRST_TIME, SpecialSupplyType.NEWBORN));
 
     public static final IncomeRequirement INCOME = new IncomeRequirement(INCOME_REFERENCE, REQUIREMENTS);
     public static final AssetRequirement ASSET = new AssetRequirement(REQUIREMENTS);

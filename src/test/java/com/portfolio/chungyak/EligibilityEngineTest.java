@@ -195,6 +195,18 @@ class EligibilityEngineTest {
     }
 
     @Test
+    @DisplayName("소득 기준은 공고 구분별 — 민영 다자녀는 소득 기준이 없어 고소득도 가능, 공공 다자녀는 120% 초과로 탈락 (제40조)")
+    void multiChildIncomeDependsOnHousingType() {
+        ApplicantProfile rich = passing()
+                .childCount(3).houseless(true).accountMonths(24).accountPaymentCount(24)
+                .monthlyHouseholdIncome(25_000_000)
+                .build();
+        assertThat(engine.evaluate(rich, privateAnnouncement).decisions().get(SpecialSupplyType.MULTI_CHILD).isEligible()).isTrue();
+        assertThat(engine.evaluate(rich, publicAnnouncement).decisions().get(SpecialSupplyType.MULTI_CHILD).getFailedReasons())
+                .anyMatch(r -> r.contains("120% 이하"));
+    }
+
+    @Test
     @DisplayName("제55조의3 — 배우자의 혼인 전 당첨이면 신혼부부 특공은 신청 가능, 다자녀 등은 여전히 탈락")
     void spousePreMarriageWinDoesNotBlockNewlywed() {
         ApplicantProfile profile = passing()

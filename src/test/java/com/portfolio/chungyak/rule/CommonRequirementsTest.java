@@ -53,6 +53,7 @@ class CommonRequirementsTest {
         // 소득 요건만 초과하도록 만든 프로필 — 신혼부부 소득상한 140%를 넘긴다
         ApplicantProfile profile = RuleTestSupport.passingIncomeAndAssets()
                 .monthlyHouseholdIncome(20_000_000)
+                .realEstateValue(500_000_000L)   // 민영 신혼부부는 소득을 넘어도 부동산 3.31억 이하면 추첨 — 넘게 둬 FAIL 로
                 .build();
         Announcement a = announcement(false);
 

@@ -112,6 +112,11 @@
                     <input type="text" inputmode="numeric" th:field="*{monthlyHouseholdIncome}" placeholder="예: 6,000,000" class="currency-input">
                     <span class="currency-helper"></span>
                 </label>
+                <label class="field"><span class="lbl">세대 부동산 가액 (원) <span class="req-badge cond">민영·소득 초과 시</span></span>
+                    <input type="text" inputmode="numeric" th:field="*{realEstateValue}" placeholder="예: 200,000,000" class="currency-input">
+                    <span class="currency-helper"></span>
+                    <span class="hint">민영 신혼부부·생애최초·신생아 특공은 소득 기준을 넘어도 이 금액이 기준(공고문의 "부동산가액 ○억 이하") 이하면 추첨으로 신청할 수 있습니다 — 판정 결과에 기준 금액이 나옵니다</span>
+                </label>
                 <label class="field"><span class="lbl">총자산 (원) <span class="req-badge cond">공공주택 필수</span></span>
                     <input type="text" inputmode="numeric" th:field="*{totalAssets}" placeholder="예: 3억 (300,000,000)" class="currency-input">
                     <span class="currency-helper"></span>

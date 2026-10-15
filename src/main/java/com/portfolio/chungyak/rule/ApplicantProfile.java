@@ -82,6 +82,12 @@ public class ApplicantProfile {
     /** 총자산 (원). 공공주택 특별공급만 자산 요건이 있다(민영은 소득만). */
     private final Long totalAssets;
 
+    /**
+     * 세대 부동산 가액 합계 (원). 민영 신혼부부·생애최초·신생아 특공은 소득 기준을 넘어도 이 값이 기준 이하면
+     * 추첨공급 대상이다 — {@link IncomeRequirement}. 모르면 null(소득 초과 시 MISSING).
+     */
+    private final Long realEstateValue;
+
     /** 자동차가액 (원). 공공주택 특별공급 자산 요건 — 총자산과 별개 상한. */
     private final Integer carValue;
 
