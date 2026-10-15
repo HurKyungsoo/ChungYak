@@ -20,8 +20,15 @@ class IncomeReferenceConfigTest {
     @SuppressWarnings("unchecked")
     void productionTableShape() throws Exception {
         try (InputStream in = getClass().getResourceAsStream("/application.yml")) {
-            Map<String, Object> root = new Yaml().load(in);
-            Map<String, Object> ref = (Map<String, Object>) root.get("income-reference");
+            // application.yml 은 프로필별 문서(---)가 여럿이다 — 기본 문서(income-reference 가 있는 것)를 찾는다
+            Map<String, Object> ref = null;
+            for (Object doc : new Yaml().loadAll(in)) {
+                if (doc instanceof Map<?, ?> m && m.get("income-reference") != null) {
+                    ref = (Map<String, Object>) m.get("income-reference");
+                    break;
+                }
+            }
+            assertThat(ref).as("application.yml 의 income-reference").isNotNull();
             Map<Integer, Number> t = (Map<Integer, Number>) ref.get("monthly-average");
 
             assertThat(String.valueOf(ref.get("basis-year"))).matches("\\d{4}");
