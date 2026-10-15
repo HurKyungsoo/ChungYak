@@ -249,16 +249,16 @@ class DocumentQaServiceTest {
         when(search.searchWithin(eq(1L), anyString(), anyInt())).thenReturn(List.of(
                 new Hit(1L, 2, "계약금 10% 납부", 0.6, 1.0)));
         when(chunkRepo.indexVersion()).thenReturn(version(10, 100));
-        when(search.cachedQueryVector("계약금은 몇 퍼센트예요?")).thenReturn(Optional.of(new float[]{1f, 0f}));
-        when(search.cachedQueryVector("계약금 비율이 얼마예요?")).thenReturn(Optional.of(new float[]{0.9f, 0.3f}));   // 코사인 0.95
+        when(search.cachedQueryVector("소득 기준이 어떻게 되나요?")).thenReturn(Optional.of(new float[]{1f, 0f}));
+        when(search.cachedQueryVector("소득 기준은요?")).thenReturn(Optional.of(new float[]{0.9f, 0.3f}));   // 코사인 0.95
         java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
         com.portfolio.chungyak.llm.LlmUsageStats stats = new com.portfolio.chungyak.llm.LlmUsageStats(java.time.Clock.systemUTC());
         DocumentQaService svc = new DocumentQaService(search, chunkRepo,
                 Optional.of((q, ex) -> { calls.incrementAndGet(); return "계약금은 분양가의 10%입니다 [1]."; }),
                 props, Optional.of(stats), Optional.empty());
 
-        QaAnswer first = svc.answer(1L, "계약금은 몇 퍼센트예요?");
-        QaAnswer second = svc.answer(1L, "계약금 비율이 얼마예요?");
+        QaAnswer first = svc.answer(1L, "소득 기준이 어떻게 되나요?");
+        QaAnswer second = svc.answer(1L, "소득 기준은요?");
 
         assertThat(first.isSimilarReuse()).isFalse();
         assertThat(second.status()).isEqualTo(Status.ANSWERED);
@@ -268,7 +268,7 @@ class DocumentQaServiceTest {
         assertThat(stats.snapshot()).containsEntry("qa.SIMILAR_HIT", 1L);
 
         when(chunkRepo.indexVersion()).thenReturn(version(10, 101));   // 재인덱싱하면 예전 답을 쓰지 않는다
-        assertThat(svc.answer(1L, "계약금 비율이 얼마예요?").isSimilarReuse()).isFalse();
+        assertThat(svc.answer(1L, "소득 기준은요?").isSimilarReuse()).isFalse();
         assertThat(calls).hasValue(2);
     }
 

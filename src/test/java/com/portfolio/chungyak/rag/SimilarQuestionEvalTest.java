@@ -42,12 +42,26 @@ class SimilarQuestionEvalTest {
     record Scored(Pair pair, boolean guard, double cos) {}
 
     static List<Pair> readPairs() throws IOException {
+        return readPairs("/eval/notice-qa-similar-pairs.tsv", "hand");
+    }
+
+    /** 가드를 정한 뒤에 쓴 쌍 — 이걸 보고 가드를 고치지 않는다 */
+    static List<Pair> readHoldout() throws IOException {
+        return readPairs("/eval/notice-qa-similar-holdout.tsv", "holdout");
+    }
+
+    /** hold-out 2 — hold-out 1 오탐을 보고 "나머지 낱말" 검사를 넣기 전에 썼다. 그 검사의 검증용 */
+    static List<Pair> readHoldout2() throws IOException {
+        return readPairs("/eval/notice-qa-similar-holdout2.tsv", "holdout2");
+    }
+
+    private static List<Pair> readPairs(String resource, String origin) throws IOException {
         List<Pair> out = new ArrayList<>();
-        try (var in = SimilarQuestionEvalTest.class.getResourceAsStream("/eval/notice-qa-similar-pairs.tsv")) {
+        try (var in = SimilarQuestionEvalTest.class.getResourceAsStream(resource)) {
             for (String line : new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).split("\\R")) {
                 if (line.isBlank() || line.startsWith("#")) continue;
                 String[] f = line.split("\t");
-                out.add(new Pair(f[0].equals("same"), f[1], f[2], "hand"));
+                out.add(new Pair(f[0].equals("same"), f[1], f[2], origin));
             }
         }
         return out;
@@ -76,6 +90,8 @@ class SimilarQuestionEvalTest {
         List<Pair> hand = readPairs();
         List<Pair> pairs = new ArrayList<>(hand);
         pairs.addAll(sameNoticePairs(hand));
+        pairs.addAll(readHoldout());
+        pairs.addAll(readHoldout2());
 
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(10));
@@ -103,6 +119,16 @@ class SimilarQuestionEvalTest {
                 scored.stream().filter(s -> s.pair().same() && s.guard()).count(), sameN,
                 scored.stream().filter(s -> !s.pair().same() && s.guard()).count(), diffN);
 
+        for (String origin : List.of("hand", "notice", "holdout", "holdout2")) {
+            List<Scored> part = scored.stream().filter(s -> s.pair().origin().equals(origin)).toList();
+            System.out.printf("  [%s] 같은 뜻 재사용 %d/%d · 다른 뜻 오탐 %d/%d (기준 %.2f, 가드 통과 다른 뜻 %d)%n", origin,
+                    part.stream().filter(s -> s.pair().same() && s.guard() && s.cos() >= PRODUCTION_MIN).count(),
+                    part.stream().filter(s -> s.pair().same()).count(),
+                    part.stream().filter(s -> !s.pair().same() && s.guard() && s.cos() >= PRODUCTION_MIN).count(),
+                    part.stream().filter(s -> !s.pair().same()).count(), PRODUCTION_MIN,
+                    part.stream().filter(s -> !s.pair().same() && s.guard()).count());
+        }
+
         System.out.println("\n기준값 | 재사용(같은 뜻) | 오탐(가드+코사인) | 오탐(코사인만)");
         for (int t = 80; t <= 98; t++) {
             double min = t / 100.0;
@@ -119,6 +145,10 @@ class SimilarQuestionEvalTest {
         System.out.println("\n가드를 통과한 다른 뜻 쌍:");
         scored.stream().filter(s -> !s.pair().same() && s.guard())
                 .forEach(s -> System.out.printf("  %.3f [%s] %s / %s%n", s.cos(), s.pair().origin(), s.pair().a(), s.pair().b()));
+        System.out.println("\nhold-out 쌍 (가드·코사인):");
+        scored.stream().filter(s -> s.pair().origin().startsWith("holdout"))
+                .forEach(s -> System.out.printf("  [%s] %s %.3f %s %s / %s%n", s.pair().origin(), s.pair().same() ? "same" : "diff", s.cos(),
+                        s.guard() ? "가드O" : "가드X", s.pair().a(), s.pair().b()));
         System.out.println("\n다른 뜻 쌍 중 코사인 상위 15 (가드 결과 함께):");
         scored.stream().filter(s -> !s.pair().same()).sorted(Comparator.comparingDouble(Scored::cos).reversed()).limit(15)
                 .forEach(s -> System.out.printf("  %.3f %s [%s] %s / %s%n", s.cos(), s.guard() ? "가드O" : "가드X",
