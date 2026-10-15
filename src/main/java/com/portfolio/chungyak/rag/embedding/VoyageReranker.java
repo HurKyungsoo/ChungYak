@@ -33,11 +33,22 @@ public class VoyageReranker implements Reranker {
 
     @Override
     public List<Integer> order(String query, List<String> documents) {
-        if (documents == null || documents.size() <= 1) {
+        if (documents == null || documents.size() <= 1) {   // 후보 1개 이하면 다시 매길 게 없다 — 호출하지 않는다
             List<Integer> same = new ArrayList<>();
             for (int i = 0; documents != null && i < documents.size(); i++) same.add(i);
             return same;
         }
+        double[] score = scores(query, documents);
+        List<Integer> order = new ArrayList<>();
+        for (int i = 0; i < score.length; i++) order.add(i);
+        order.sort(Comparator.comparingDouble((Integer i) -> score[i]).reversed());
+        return order;
+    }
+
+    /** 문서별 관련도(0..1) — 공식 FAQ 검색(OfficialFaqSearch)이 기준값으로 거른다 */
+    @Override
+    public double[] scores(String query, List<String> documents) {
+        if (documents == null || documents.isEmpty()) return new double[0];
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("query", query);
         body.put("documents", documents);
@@ -50,11 +61,11 @@ public class VoyageReranker implements Reranker {
                 .body(body)
                 .retrieve()
                 .body(String.class);
-        return parseOrder(json, documents.size());
+        return parseScores(json, documents.size());
     }
 
-    /** package-private — 응답 파싱만 오프라인으로 검증한다. 응답에 빠진 인덱스는 뒤에 붙인다 */
-    List<Integer> parseOrder(String json, int expected) {
+    /** package-private — 응답 파싱만 오프라인으로 검증한다. 응답에 빠진 인덱스는 맨 뒤(−∞) */
+    double[] parseScores(String json, int expected) {
         try {
             double[] score = new double[expected];
             Arrays.fill(score, Double.NEGATIVE_INFINITY);
@@ -62,13 +73,19 @@ public class VoyageReranker implements Reranker {
                 int idx = d.path("index").asInt(-1);
                 if (idx >= 0 && idx < expected) score[idx] = d.path("relevance_score").asDouble();
             }
-            List<Integer> order = new ArrayList<>();
-            for (int i = 0; i < expected; i++) order.add(i);
-            order.sort(Comparator.comparingDouble((Integer i) -> score[i]).reversed());
-            return order;
+            return score;
         } catch (Exception e) {
             throw new IllegalStateException("Voyage rerank 응답 파싱 실패", e);
         }
+    }
+
+    /** package-private — 기존 테스트용(점수 → 순서) */
+    List<Integer> parseOrder(String json, int expected) {
+        double[] score = parseScores(json, expected);
+        List<Integer> order = new ArrayList<>();
+        for (int i = 0; i < expected; i++) order.add(i);
+        order.sort(Comparator.comparingDouble((Integer i) -> score[i]).reversed());
+        return order;
     }
 
     @Override

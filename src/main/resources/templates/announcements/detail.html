@@ -313,6 +313,44 @@
             </button>
         </form>
 
+        <!--/* 국토부 FAQ 공식 답 — 원문 그대로(AI 아님). 비슷한 질문 제목을 함께 보여 이용자가 맞는 질문인지 본다.
+               기준일 2024-05-29 뒤 개정과 겹치면 개정 이유(국가법령정보센터 원문)를 붙인다 */-->
+        <section th:if="${officialFaq != null}" class="card official-faq" style="margin-top:12px" aria-label="국토부 공식 답변">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+                <strong>국토부 공식 답변</strong>
+                <span th:replace="~{fragments/common :: src('data', '국토부 FAQ')}"></span>
+                <span class="muted">비슷한 질문에 대한 답을 원문 그대로 옮겼습니다 — AI 를 거치지 않았습니다</span>
+            </div>
+            <p style="margin:0 0 6px;font-weight:600" th:text="|Q${officialFaq.item.no}. ${officialFaq.item.question}|">Q. 질문</p>
+            <p style="margin:0;white-space:pre-wrap" th:text="${officialFaq.item.displayAnswerHead()}">답</p>
+            <details th:if="${officialFaq.item.long}" style="margin-top:6px">
+                <summary>답 전체 보기</summary>
+                <p style="margin:6px 0 0;white-space:pre-wrap" th:text="${officialFaq.item.displayAnswer()}">전체</p>
+            </details>
+            <div th:if="${!#lists.isEmpty(officialFaq.amendments)}" class="weak-sentences" role="note" style="margin-top:10px">
+                <strong>이 답은 2024년 5월 기준입니다 — 이후 아래 개정과 관련될 수 있어요.</strong>
+                지금도 맞는지 공고문이나 청약홈 상담(1644-7445)으로 확인하세요.
+                <ul>
+                    <li th:each="a : ${officialFaq.amendments}">
+                        <span th:text="|${a.effective} 시행 (${a.decree}) — ${a.title}|">개정</span>
+                        <details><summary>개정 이유(국가법령정보센터 원문)</summary><p style="margin:4px 0 0" th:text="${a.reason}">이유</p></details>
+                    </li>
+                </ul>
+            </div>
+            <div th:if="${!#lists.isEmpty(officialFaq.related)}" style="margin-top:10px">
+                <span class="muted">질문과 조금 다르다면 — 비슷한 다른 문항</span>
+                <details th:each="r : ${officialFaq.related}" style="margin-top:4px">
+                    <summary th:text="|Q${r.no}. ${r.question}|">다른 문항</summary>
+                    <p style="margin:6px 0 0;white-space:pre-wrap" th:text="${r.displayAnswer()}">답</p>
+                </details>
+            </div>
+            <p class="muted" style="margin:10px 0 0;font-size:.85rem">
+                출처: <a th:href="${officialFaq.url}" target="_blank" rel="noopener">국토교통부 「2024 주택청약 FAQ」</a><span
+                    th:if="${officialFaq.item.page != null}" th:text="| ${officialFaq.item.page}쪽|"></span> (2024. 5. 29. 기준).
+                자격 판정이 아니라 국토부 해석입니다 — 내 조건으로 판정은 <a th:unless="${announcement.remainder}"
+                    th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}">자격 판정</a><span th:if="${announcement.remainder}">공고문</span>에서.</p>
+        </section>
+
         <div th:if="${qa != null and qa.hasAnswer()}" class="card tint" style="margin-top:12px">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
                 <strong>답변</strong>

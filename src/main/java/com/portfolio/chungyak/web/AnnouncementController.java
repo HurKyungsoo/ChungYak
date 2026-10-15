@@ -301,6 +301,7 @@ public class AnnouncementController {
         var qa = questionService.answer(id, question, "quick".equals(via));
         model.addAttribute("qa", qa);
         model.addAttribute("question", question);
+        model.addAttribute("officialFaq", questionService.officialAnswer(question, qa).orElse(null));
         model.addAttribute("qaRephrase", questionService.rephraseSuggestion(question, qa).orElse(null));
         return renderDetail(id, model);
     }

@@ -126,6 +126,41 @@ class ScreenRenderTest {
     }
 
     /** 200 + 문서 끝까지(렌더링 도중 끊기면 </html> 이 없다) */
+    // 공고문 Q&A 는 키가 없으면 꺼진다 — 화면만 그려 보려고 응답을 정해 둔다(기본값은 꺼짐 그대로)
+    @MockBean private com.portfolio.chungyak.rag.DocumentQaService qaService;
+    @MockBean private com.portfolio.chungyak.rag.NoticeQuestionService questionService;
+
+    @Test
+    @DisplayName("국토부 공식 답변 카드 — FAQ 질문·답 원문, 기준일 뒤 개정 경고(개정 이유), 비슷한 다른 문항, 출처 쪽수")
+    void officialFaqCard() throws Exception {
+        var faq = com.portfolio.chungyak.rag.OfficialFaq.load();
+        var item = faq.item(146);   // 특별공급 횟수 — 2025-03-31 개정과 겹친다
+        var match = new com.portfolio.chungyak.rag.OfficialFaqSearch.Match(item, 0.82, java.util.List.of(faq.item(147)),
+                faq.amendmentsFor(item), faq.source(), faq.basisDate(), faq.url());
+        var qa = new com.portfolio.chungyak.rag.DocumentQaService.QaAnswer(
+                com.portfolio.chungyak.rag.DocumentQaService.Status.ANSWERED, "AI 답변", java.util.List.of());
+        org.mockito.Mockito.when(qaService.isEnabled()).thenReturn(true);
+        org.mockito.Mockito.when(qaService.hasIndex(org.mockito.ArgumentMatchers.anyLong())).thenReturn(true);
+        org.mockito.Mockito.when(questionService.answer(org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyBoolean())).thenReturn(qa);
+        org.mockito.Mockito.when(questionService.rephraseSuggestion(org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(java.util.Optional.empty());
+        org.mockito.Mockito.when(questionService.officialAnswer(org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(java.util.Optional.of(match));
+
+        MvcResult r = mvc.perform(post("/announcements/" + aptId + "/qa").param("question", "결혼 전에 특공 받았는데 또 넣을 수 있어요?"))
+                .andExpect(status().isOk()).andReturn();
+        String body = r.getResponse().getContentAsString();
+        assertThat(body.stripTrailing()).endsWith("</html>");
+        assertThat(body).contains("국토부 공식 답변").contains("Q146.").contains("AI 를 거치지 않았습니다")
+                .contains("이 답은 2024년 5월 기준입니다").contains("2025-03-31 시행 (국토교통부령 제1471호)")
+                .contains("개정 이유(국가법령정보센터 원문)").contains("Q147.")
+                .contains("2024 주택청약 FAQ").contains(item.page() + "쪽")
+                .contains("AI 답변");
+        // 공식 답이 AI 답보다 먼저
+        assertThat(body.indexOf("국토부 공식 답변")).isLessThan(body.indexOf("AI 답변"));
+    }
+
     private String render(String url) throws Exception {
         MvcResult r = mvc.perform(get(url)).andExpect(status().isOk()).andReturn();
         String body = r.getResponse().getContentAsString();

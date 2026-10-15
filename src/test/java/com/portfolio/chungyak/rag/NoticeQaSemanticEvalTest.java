@@ -460,7 +460,7 @@ class NoticeQaSemanticEvalTest {
         return java.util.Arrays.stream(order).map(candidates::get).toList();
     }
 
-    private static double[] rerankScores(String query, List<String> docs) {
+    static double[] rerankScores(String query, List<String> docs) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update((RERANK_MODEL + "|" + query).getBytes(StandardCharsets.UTF_8));

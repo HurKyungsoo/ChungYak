@@ -26,22 +26,45 @@ public class NoticeQuestionService {
     private final DocumentQaService qaService;
     /** 주제별 집계(#40) — 질문 원문은 넘기지 않고 주제·결과만 쌓는다 */
     private final Optional<QaTopicStats> topicStats;
+    /** 국토부 FAQ 공식 답(원문 그대로) — 재정렬기(Voyage)가 없으면 꺼진다 */
+    private final Optional<OfficialFaqSearch> officialFaq;
 
     public NoticeQuestionService(AnnouncementQueryService queryService,
                                  AnnouncementDocumentRepository documentRepository,
                                  DocumentQaService qaService) {
-        this(queryService, documentRepository, qaService, Optional.empty());
+        this(queryService, documentRepository, qaService, Optional.empty(), Optional.empty());
+    }
+
+    public NoticeQuestionService(AnnouncementQueryService queryService,
+                                 AnnouncementDocumentRepository documentRepository,
+                                 DocumentQaService qaService,
+                                 Optional<QaTopicStats> topicStats) {
+        this(queryService, documentRepository, qaService, topicStats, Optional.empty());
     }
 
     @Autowired
     public NoticeQuestionService(AnnouncementQueryService queryService,
                                  AnnouncementDocumentRepository documentRepository,
                                  DocumentQaService qaService,
-                                 Optional<QaTopicStats> topicStats) {
+                                 Optional<QaTopicStats> topicStats,
+                                 Optional<OfficialFaqSearch> officialFaq) {
         this.queryService = queryService;
         this.documentRepository = documentRepository;
         this.qaService = qaService;
         this.topicStats = topicStats;
+        this.officialFaq = officialFaq;
+    }
+
+    /**
+     * 비슷한 질문의 국토부 공식 답(FAQ 원문). 이용자 질문의 다수는 "내 상황이 어떻게 세어지나"이고 그 해석은
+     * 공고문보다 FAQ 에 있다 — AI 가 공고문 발췌로 판정처럼 답하기 전에 공식 답을 함께 보여 준다.
+     * 공고 데이터로 이미 답한 질문(FACT — 발표일·세대수·계약금 등 공고마다 다른 값)에는 붙이지 않는다.
+     */
+    public Optional<OfficialFaqSearch.Match> officialAnswer(String question, QaAnswer qa) {
+        if (qa == null || !qa.isShown() || qa.isFact() || question == null || question.isBlank()) return Optional.empty();
+        Optional<OfficialFaqSearch.Match> m = officialFaq.flatMap(f -> f.search(question));
+        qaService.count(m.isPresent() ? "OFFICIAL_FAQ" : "OFFICIAL_FAQ_NONE");
+        return m;
     }
 
     public QaAnswer answer(Long announcementId, String question) {

@@ -13,6 +13,11 @@ public interface Reranker {
     /** @return 관련도 높은 순의 원래 인덱스 (documents 와 같은 개수) */
     List<Integer> order(String query, List<String> documents);
 
+    /** 문서별 관련도 점수(높을수록 관련) — 기준값으로 거를 때. 점수를 주지 않는 구현은 지원하지 않는다 */
+    default double[] scores(String query, List<String> documents) {
+        throw new UnsupportedOperationException("점수를 주지 않는 재정렬기: " + model());
+    }
+
     /** 다시 매길 후보 수 — 많을수록 정확하지만 토큰(≈ 후보당 700)과 지연이 는다 */
     int candidates();
 
