@@ -621,12 +621,21 @@
             border-color: color-mix(in srgb, var(--ok) 28%, transparent); }
         .result-hero.bad  { background: var(--no-weak);
             border-color: color-mix(in srgb, var(--no) 28%, transparent); }
+        .result-hero.needs-info { background: var(--warn-weak);
+            border-color: color-mix(in srgb, var(--warn) 28%, transparent); }
         .result-hero .result-icon {
-            width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
-            font-size: 1.45rem; flex-shrink: 0;
+            width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
+            flex-shrink: 0;
         }
+        .result-hero .result-icon svg { width: 23px; height: 23px; stroke: currentColor;
+            stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
         .result-hero.good .result-icon { background: color-mix(in srgb, var(--ok) 18%, transparent); }
         .result-hero.bad  .result-icon { background: color-mix(in srgb, var(--no) 18%, transparent); }
+        .result-hero.needs-info .result-icon { background: color-mix(in srgb, var(--warn) 18%, transparent); }
+        .result-hero.good .result-icon { color: var(--ok); }
+        .result-hero.bad .result-icon { color: var(--no); }
+        .result-hero.needs-info .result-icon,
+        .result-hero.needs-info .headline { color: var(--warn); }
         .result-hero .result-body { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
         .result-hero .headline { font-size: 1.35rem; font-weight: 750; letter-spacing: -0.02em; line-height: 1.3; }
         .result-hero.good .headline { color: color-mix(in srgb, var(--ok) 85%, var(--text)); }
@@ -635,6 +644,18 @@
         .result-hero .score-num { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
         /* 판정 결과 요약 카드 (#21) — result-hero 를 확장 */
         .summary-card .headline .sc-type { color: inherit; }
+        .summary-card .unit-shortcuts { display: inline-flex; flex-wrap: wrap; gap: 4px 7px; vertical-align: middle; }
+        .summary-card .unit-shortcut { display: inline-flex; align-items: center; padding: 3px 9px;
+            border-radius: var(--r-pill); background: color-mix(in srgb, var(--brand) 10%, var(--surface));
+            color: var(--brand); font-size: .82rem; font-weight: 700; text-decoration: none; }
+        .summary-card .unit-shortcut:hover { background: color-mix(in srgb, var(--brand) 17%, var(--surface)); }
+        .matched-units-title { scroll-margin-top: 84px; display: flex; align-items: center; gap: 8px; }
+        .unit-count { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px;
+            border-radius: var(--r-pill); color: var(--brand); background: var(--brand-weak); font-size: .78rem; }
+        .matched-unit-row { background: color-mix(in srgb, var(--brand-weak) 38%, var(--surface)); scroll-margin-top: 84px; }
+        .matched-unit-row:target { outline: 2px solid var(--brand); outline-offset: -2px; }
+        .unit-eligible-badge { display: block; width: fit-content; margin-top: 4px; padding: 2px 7px;
+            border-radius: var(--r-pill); color: var(--brand); background: var(--brand-weak); font-size: .68rem; font-weight: 700; }
         .summary-card .sc-type { color: var(--text); font-weight: 650; text-decoration: none;
             border-bottom: 1px dashed color-mix(in srgb, currentColor 45%, transparent); }
         .summary-card .sc-type:hover { border-bottom-style: solid; }
@@ -651,7 +672,9 @@
         .summary-card .sc-links a { font-weight: 600; }
         @media (max-width: 560px) {
             .result-hero.summary-card { padding: 16px; gap: 12px; }
-            .summary-card .result-icon { display: none; }
+            .summary-card .result-icon { width: 34px; height: 34px; border-radius: 10px; }
+            .summary-card .result-icon svg { width: 19px; height: 19px; }
+            .summary-card .headline { font-size: 1.12rem; }
             .summary-card .sc-rows li { flex-direction: column; gap: 3px; }
         }
         /* ── next steps card (결과 하단 CTA) ─────────────────────── */
@@ -846,6 +869,12 @@
         .decision-card { display: flex; flex-direction: column; gap: 2px; }
         .decision-card .head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .decision-card .head strong { font-size: .98rem; }
+        .decision-card .reason-group { margin-top: 10px; padding: 10px 12px; border-radius: 10px; }
+        .decision-card .reason-group-attention { background: color-mix(in srgb, var(--no-weak) 60%, var(--surface)); }
+        .decision-card .reason-group-satisfied { background: color-mix(in srgb, var(--ok-weak) 55%, var(--surface)); }
+        .decision-card .reason-group-title { display: block; font-size: .8rem; font-weight: 750; color: var(--text-muted); }
+        .decision-card .reason-group-note { margin: 3px 0 0; font-size: .8rem; color: var(--text-muted); }
+        .decision-card .reason-group .reasons { margin-top: 5px; }
         .decision-card .reasons-fold { margin-top: 6px; }
         .decision-card .reasons-fold > summary {
             cursor: pointer; font-size: .84rem; color: var(--text-muted);

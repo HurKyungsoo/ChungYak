@@ -27,23 +27,31 @@
     <!-- 요약 카드 (#21) — AI 없이 늘 보이는 결정론적 요약. ResultSummaryCard 가 엔진 플래그
          (eligible/undetermined/fixable) 그대로 줄을 나눈다. 사유 문장은 아래 근거 카드에 있고
          여기서는 유형 이름을 그 카드로 잇기만 한다(힌트만 예외 — "가장 가까운 보완"이 이 카드의 핵심이다). -->
-    <section class="result-hero summary-card" th:classappend="${summaryCard.hasAnyMatch} ? 'good' : 'bad'"
+    <section class="result-hero summary-card" th:classappend="${summaryCard.hasAnyMatch ? 'good' : 'bad'} + ${!summaryCard.hasAnyMatch and !summaryCard.needsInfo.isEmpty() ? ' needs-info' : ''}"
              th:with="sc=${summaryCard}" aria-label="판정 요약">
-        <div class="result-icon" th:text="${sc.hasAnyMatch} ? '✅' : '🧭'">✅</div>
+        <div class="result-icon" aria-hidden="true">
+            <svg th:if="${sc.hasAnyMatch}" viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.2 4.2L19 7"/></svg>
+            <svg th:unless="${sc.hasAnyMatch}" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5m0-8h.01"/></svg>
+        </div>
         <div class="result-body">
             <th:block th:if="${sc.hasAnyMatch}">
-                <div class="headline">신청 가능:
+                <div class="headline">신청 가능한 유형이 있어요:
                     <th:block th:each="a, it : ${sc.applicable}"><a class="sc-type" th:href="'#decision-' + ${a.typeName}"
                         th:text="${a.label} + (${a.count != null} ? ' ' + ${#numbers.formatInteger(a.count, 1, 'COMMA')} + '세대' : '')">신혼부부 47세대</a><span th:unless="${it.last}"> · </span></th:block>
                 </div>
                 <div class="sub">
-                    <span th:text="|신청 가능한 주택형 ${result.matchedUnitTypes.size()}개 — 주택형별 배정은 아래 표에서 확인하세요.|">신청 가능한 주택형 2개</span>
+                    <span>신청 가능한 주택형을 바로 확인하세요:</span>
+                    <span class="unit-shortcuts" th:each="m, it : ${result.matchedUnitTypes}">
+                        <a class="unit-shortcut" th:href="'#unit-' + ${m.typeName}"
+                           th:text="${m.typeName} + (${m.supplyArea != null} ? ' · ' + ${m.supplyArea} + '㎡' : '')">084.9730A · 84.97㎡</a>
+                        <span class="muted" th:unless="${it.last}">·</span>
+                    </span>
                     <span th:if="${sc.applicable.?[count == null].size() > 0}">LH 공고는 유형별 세대수를 공개하지 않아 세대수를 적지 않았습니다.</span>
                 </div>
             </th:block>
             <th:block th:unless="${sc.hasAnyMatch}">
-                <div class="headline">현재 조건으로 신청 가능한 특별공급 유형이 없습니다</div>
-                <div class="sub" th:if="${sc.blocked.isEmpty() and sc.nearestFix == null and sc.needsInfo.isEmpty()}">아래 판정 근거에서 어떤 요건이 막았는지 확인하세요.</div>
+                <div class="headline" th:text="${!sc.needsInfo.isEmpty()} ? '판정을 위해 입력이 더 필요해요' : '현재 조건으로 신청 가능한 유형이 없어요'">현재 조건으로 신청 가능한 유형이 없어요</div>
+                <div class="sub" th:text="${!sc.needsInfo.isEmpty()} ? '필요한 정보를 입력하면 해당 유형의 자격을 확인할 수 있어요.' : '아래에서 해당하지 않는 요건과 보완 가능한 조건을 확인하세요.'">아래 판정 근거를 확인하세요.</div>
             </th:block>
 
             <ul class="sc-rows" th:if="${!sc.qualifiedButUnavailable.isEmpty() or sc.nearestFix != null
@@ -172,15 +180,15 @@
             대부분의 특별공급 소득 요건(140~160% 이하)을 초과합니다.</span>
     </p>
 
-    <h2>신청 가능한 주택형</h2>
+    <h2 id="matched-unit-types" class="matched-units-title">신청 가능한 주택형 <span class="unit-count" th:text="${result.matchedUnitTypes.size()}">2</span></h2>
     <div class="table-scroll" th:if="${!result.matchedUnitTypes.isEmpty()}">
         <table>
             <thead>
             <tr><th>주택형</th><th class="num">공급면적 <button type="button" class="area-toggle" data-area-toggle aria-label="면적 단위 바꾸기 (㎡/평)">㎡</button></th><th>신청 가능 유형 · 배정 세대</th><th class="num">합계</th></tr>
             </thead>
             <tbody>
-            <tr th:each="m : ${result.matchedUnitTypes}">
-                <td th:text="${m.typeName}">084.9730A</td>
+            <tr th:each="m : ${result.matchedUnitTypes}" class="matched-unit-row" th:id="'unit-' + ${m.typeName}">
+                <td><strong th:text="${m.typeName}">084.9730A</strong><span class="unit-eligible-badge">내 조건 신청 가능</span></td>
                 <td class="num" th:attr="data-m2=${m.supplyArea}" th:text="${m.supplyArea} ?: '-'">84.97</td>
                 <td>
                     <span th:each="t, it : ${m.applicableTypes}" th:with="sep=${it.last} ? '' : ',  '">
@@ -276,10 +284,14 @@
               th:text="|신청 ${#numbers.formatInteger(c.applications, 1, 'COMMA')}건 (배정 ${#numbers.formatInteger(c.households, 1, 'COMMA')}세대 기준)|">신청 2,950건</span>
 
         <!-- 막은 요건 · 입력 필요 — 맨 위에 항상 펼쳐서 -->
-        <ul class="reasons" th:if="${!d.ownFailedReasons.isEmpty() or !d.ownMissingInputs.isEmpty()}">
+        <div class="reason-group reason-group-attention" th:if="${!d.ownFailedReasons.isEmpty() or !d.ownMissingInputs.isEmpty()}">
+            <strong class="reason-group-title" th:text="${d.undetermined} ? '확인이 필요한 조건' : '충족하지 못한 조건'">충족하지 못한 조건</strong>
+            <p class="reason-group-note" th:if="${!d.ownMissingInputs.isEmpty()}">입력값이 없어 판정을 보류한 항목입니다. 조건을 입력하면 결과가 달라질 수 있어요.</p>
+        <ul class="reasons">
             <li th:each="r : ${d.ownFailedReasons}" class="r-no"><span class="r-text" th:utext="${@emphasis.html(r)}">미충족</span></li>
             <li th:each="r : ${d.ownMissingInputs}" class="r-miss" th:text="${r} + ' — 입력이 필요합니다'">누락</li>
         </ul>
+        </div>
 
         <!-- 이 유형만의 이유는 다 충족했는데도 미충족이면, 위 공통요건 레일에서 막힌 것이다 —
              "왜 미충족인지" 근거가 하나도 안 보이는 걸 막는다. -->
@@ -290,9 +302,12 @@
         </p>
 
         <!-- 이 유형만의 충족 요건 — 펼쳐 둔다(무엇 때문에 되는지가 근거의 절반이다) -->
-        <ul class="reasons" th:if="${!d.ownSatisfiedReasons.isEmpty()}">
+        <div class="reason-group reason-group-satisfied" th:if="${!d.ownSatisfiedReasons.isEmpty()}">
+            <strong class="reason-group-title">충족한 조건</strong>
+        <ul class="reasons">
             <li th:each="r : ${d.ownSatisfiedReasons}" class="r-ok"><span class="r-text" th:utext="${@emphasis.html(r)}">충족</span></li>
         </ul>
+        </div>
 
         <!--/* 개선 경로 — 엔진이 결정론적으로 계산한 힌트만(공통요건 힌트 포함, 이 카드만 봐도 알 수 있게).
              제목은 엔진의 isFixable 로 고른다: 미충족이 전부 메울 수 있으면 "이것만 바뀌면 가능",
