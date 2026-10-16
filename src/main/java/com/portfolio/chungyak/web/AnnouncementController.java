@@ -87,8 +87,9 @@ public class AnnouncementController {
                        Model model) {
         HouseDetailType parsedDetailType = parseDetailType(detailType);
         SupplyCategory parsedCategory = parseCategory(category);
+        String canonicalRegion = queryService.canonicalRegion(region);
         List<Announcement> announcements =
-                queryService.findOpenOrUpcoming(region, parsedDetailType, q, parsedCategory);
+                queryService.findOpenOrUpcoming(canonicalRegion, parsedDetailType, q, parsedCategory);
 
         LocalDate today = queryService.today();
         AnnouncementListSort parsedSort = AnnouncementListSort.from(sort);
@@ -102,7 +103,7 @@ public class AnnouncementController {
         model.addAttribute("totalCount", queryService.totalCount());
         model.addAttribute("regions", queryService.availableRegions());
         model.addAttribute("detailTypes", HouseDetailType.values());
-        model.addAttribute("selectedRegion", region);
+        model.addAttribute("selectedRegion", canonicalRegion);
         model.addAttribute("selectedDetailType", parsedDetailType);
         model.addAttribute("selectedKeyword", q);
         model.addAttribute("categories", SupplyCategory.values());
@@ -143,7 +144,7 @@ public class AnnouncementController {
                            Model model) {
         LocalDate today = queryService.today();
         YearMonth ym = parseMonth(month, today);
-        CalendarFilter filter = new CalendarFilter(region, parseDetailType(detailType), parseCategory(category));
+        CalendarFilter filter = new CalendarFilter(queryService.canonicalRegion(region), parseDetailType(detailType), parseCategory(category));
         List<Announcement> announcements = queryService.findOpenOrUpcoming(
                 filter.region(), filter.detailType(), null, filter.category());
         CalendarView calendar = CalendarView.of(announcements, ym, today);
