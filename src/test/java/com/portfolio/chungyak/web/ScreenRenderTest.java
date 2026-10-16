@@ -169,9 +169,22 @@ class ScreenRenderTest {
     }
 
     @Test
+    @DisplayName("빠른 진단 결과 — 유형별 추가 확인 항목과 해당 조건 미충족을 구분해 렌더링")
+    void quickCheckResultExplainsNextStepsByType() throws Exception {
+        String body = render("/quick?married=true&monthsSinceMarriage=36&childCount=1&houseless=true");
+        assertThat(body).contains("추가 확인이 필요한 유형")
+                .contains("입력 조건에 해당하지 않는 유형")
+                .contains("당첨 가능성이나 최종 지원 자격을 판정하지 않습니다")
+                .contains("내 조건으로 자세히 확인하기")
+                .doesNotContain("아직 가능성이 남은 유형");
+    }
+
+    @Test
     @DisplayName("목록·캘린더·구분 필터·빈 상태·비교·조건 찾기·가점 화면")
     void listAndPlainScreens() throws Exception {
-        render("/announcements");
+        String announcements = render("/announcements");
+        assertThat(announcements).contains("id=\"myProfileFilter\"")
+                .contains("내 조건 관리").contains("profile:filter-changed");
         render("/announcements?category=RENTAL");
         render("/announcements?q=존재하지않는검색어&region=서울&category=SALE");   // 빈 상태 + 필터 해제 링크
         render("/announcements/calendar");

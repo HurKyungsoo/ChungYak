@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,7 +26,7 @@ import java.util.Set;
  * {@code missingInputs} 라서 어떤 유형도 eligible 이 될 수 없다. 대신 엔진이 이미 확정한 두 가지만 쓴다:
  * <ul>
  *   <li><b>탈락 확정</b> — {@code failedReasons} 가 있는 유형. 입력이 더 들어와도 뒤집히지 않는다.</li>
- *   <li><b>가능성 있음</b> — 아직 실패 사유가 없고 확인만 남은 유형. 자격 인정이 아니라 "확인 필요"다.</li>
+ *   <li><b>추가 확인 필요</b> — 아직 실패 사유가 없고 확인만 남은 유형. 자격 인정이 아니다.</li>
  * </ul>
  *
  * 다루는 유형을 {@link #QUICK_CHECKABLE_TYPES} 로 제한하는 이유: {@link ApplicantProfile} 의
@@ -70,8 +69,7 @@ public class QuickCheckService {
         }
 
         List<QuickCheckView.TypeRow> ruledOut = new ArrayList<>();
-        List<QuickCheckView.TypeRow> possible = new ArrayList<>();
-        Set<String> remainingInputs = new LinkedHashSet<>();
+        List<QuickCheckView.TypeRow> needsReview = new ArrayList<>();
 
         for (SpecialSupplyType type : SpecialSupplyType.values()) {
             List<EligibilityDecision> decisions = byType.get(type);
@@ -81,16 +79,17 @@ public class QuickCheckService {
             boolean failedEverywhere = decisions.stream().allMatch(d -> !d.getFailedReasons().isEmpty());
 
             if (failedEverywhere) {
-                ruledOut.add(new QuickCheckView.TypeRow(type.getLabel(), firstFailedReason(decisions)));
+                ruledOut.add(new QuickCheckView.TypeRow(type.getLabel(), firstFailedReason(decisions), List.of()));
             } else {
-                possible.add(new QuickCheckView.TypeRow(type.getLabel(), null));
+                Set<String> typeInputs = new java.util.LinkedHashSet<>();
                 decisions.stream()
                         .filter(d -> d.getFailedReasons().isEmpty())
-                        .forEach(d -> remainingInputs.addAll(d.getMissingInputs()));
+                        .forEach(d -> typeInputs.addAll(d.getMissingInputs()));
+                needsReview.add(new QuickCheckView.TypeRow(type.getLabel(), null, List.copyOf(typeInputs)));
             }
         }
 
-        return QuickCheckView.of(possible, ruledOut, List.copyOf(remainingInputs));
+        return QuickCheckView.of(needsReview, ruledOut);
     }
 
     private static String firstFailedReason(List<EligibilityDecision> decisions) {

@@ -516,7 +516,8 @@
         .my-badge.fixable { background: var(--warn-weak); color: var(--warn); }
         .my-badge.needs_info { background: var(--surface-2); color: var(--text-muted); font-weight: 600; }
         .my-badge.none { background: transparent; color: var(--text-subtle); font-weight: 500; padding: 0; }
-        .my-badge-note { margin-left: auto; font-size: .82rem; font-weight: 600; }
+        .my-badge-note { margin-left: auto; display: inline-flex; align-items: center; gap: 10px; font-size: .82rem; font-weight: 600; }
+        .my-badge-filter { border: 0; padding: 0; background: none; color: var(--brand); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
         /* 공고문 요약표 (#38) — 상세의 벤토 아래 */
         .notice-summary { margin: 0 0 16px; }
         .notice-summary .ns-head { display: flex; align-items: baseline; justify-content: space-between;
@@ -532,6 +533,7 @@
             border: 1px solid color-mix(in srgb, var(--brand) 35%, transparent); }
         .remainder-chip:hover { background: var(--brand-weak); text-decoration: none; }
         .my-badge-note[hidden] { display: none; }
+        @media (max-width: 560px) { .my-badge-note { width: 100%; margin-left: 0; justify-content: space-between; } }
         .fixable-groups { margin-top: 20px; }
         .fg-item { padding: 12px 0; border-top: 1px solid var(--border); }
         .fg-hints { margin: 0; padding-left: 1.1em; font-weight: 600; font-size: .92rem; display: grid; gap: 2px; }
@@ -1729,10 +1731,11 @@
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (badges) {
                 if (!badges) return;
-                var shown = 0, eligible = 0, needsInfo = 0;
+                var shown = 0, eligible = 0, fixable = 0, needsInfo = 0;
                 cards.forEach(function (card) {
                     var b = badges[card.getAttribute('data-ann-id')];
                     if (!b || !TEXT[b.state]) return;
+                    card.dataset.profileState = b.state;
                     var el = document.createElement('div');
                     el.className = 'my-badge ' + b.state.toLowerCase();
                     el.textContent = TEXT[b.state](b);   // 서버 값이라도 textContent 로만
@@ -1741,6 +1744,7 @@
                     card.appendChild(el);
                     shown++;
                     if (b.state === 'ELIGIBLE') eligible++;
+                    if (b.state === 'FIXABLE') fixable++;
                     if (b.state === 'NEEDS_INFO') needsInfo++;
                 });
                 // 저장된 조건이 있어도 빠른 진단을 숨기지 않는다. 숨기면 사용자는 기능이 사라진 것으로
@@ -1753,13 +1757,31 @@
                 }
                 var note = document.getElementById('myBadgeNote');
                 if (note && shown) {
-                    // 가능 0곳인데 정보 부족이 섞여 있으면 "0곳"은 틀린 결론처럼 읽힌다 — 채울 것을 먼저 말한다
-                    if (eligible === 0 && needsInfo > 0) {
-                        note.textContent = '조건을 더 채우면 ' + needsInfo + '곳을 판정할 수 있어요 · 내 조건 보기';
+                    var toggle = document.getElementById('myProfileFilter');
+                    var filterState = 'ELIGIBLE';
+                    if (eligible === 0 && fixable > 0) {
+                        filterState = 'FIXABLE';
+                        toggle.textContent = '조건을 보완하면 가능한 공고 ' + fixable + '곳 보기';
+                    } else if (eligible === 0 && needsInfo > 0) {
+                        filterState = 'NEEDS_INFO';
+                        toggle.textContent = '정보가 더 필요한 공고 ' + needsInfo + '곳 보기';
+                    } else if (eligible === 0) {
+                        toggle.hidden = true;
                     } else {
-                        note.querySelector('b').textContent = eligible;
+                        toggle.textContent = '신청 가능 공고 ' + eligible + '곳 보기';
                     }
                     note.hidden = false;
+                    toggle.addEventListener('click', function () {
+                        if (toggle.hidden) return;
+                        var active = toggle.getAttribute('aria-pressed') !== 'true';
+                        toggle.setAttribute('aria-pressed', String(active));
+                        toggle.textContent = active ? '전체 공고 보기' :
+                            (filterState === 'FIXABLE' ? '조건을 보완하면 가능한 공고 ' + fixable + '곳 보기' :
+                                filterState === 'NEEDS_INFO' ? '정보가 더 필요한 공고 ' + needsInfo + '곳 보기' : '신청 가능 공고 ' + eligible + '곳 보기');
+                        document.dispatchEvent(new CustomEvent('profile:filter-changed', {
+                            detail: { active: active, state: filterState }
+                        }));
+                    });
                 }
             })
             .catch(function () { /* 배지 없이 그대로 */ });
@@ -2022,11 +2044,13 @@
         if (filterToggle) {
             var cards = document.querySelectorAll('.notice-card[data-ann-id]');
             var countLabel = document.getElementById('listCount');
+            var profileOnly = false;
             var applyFilter = function () {
                 var onlyScraps = filterToggle.checked;
                 var shown = 0;
                 cards.forEach(function (card) {
-                    var show = !onlyScraps || scraps.has(card.dataset.annId);
+                    var matchesProfile = !profileOnly || card.dataset.profileState === window.chungyakProfileFilterState;
+                    var show = matchesProfile && (!onlyScraps || scraps.has(card.dataset.annId));
                     card.style.display = show ? '' : 'none';
                     if (show) shown++;
                 });
@@ -2035,6 +2059,11 @@
             };
             filterToggle.addEventListener('change', applyFilter);
             document.addEventListener('scrap:changed', applyFilter);
+            document.addEventListener('profile:filter-changed', function (event) {
+                profileOnly = !!(event.detail && event.detail.active);
+                window.chungyakProfileFilterState = (event.detail && event.detail.state) || 'ELIGIBLE';
+                applyFilter();
+            });
             applyFilter();
         }
 

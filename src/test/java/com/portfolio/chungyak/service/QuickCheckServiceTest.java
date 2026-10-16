@@ -70,19 +70,23 @@ class QuickCheckServiceTest {
         QuickCheckView view = serviceWith(announcement())
                 .check(threeAnswers(true, 24, 0, true));
 
-        // possible 은 "아직 탈락 사유가 없다"는 뜻일 뿐이라 남은 입력 항목이 반드시 있다
+        // 추가 확인은 자격 인정이 아니며, 유형별로 추가 입력 항목을 표시한다.
         assertThat(view.evaluated()).isTrue();
-        assertThat(view.remainingInputs()).isNotEmpty();
+        assertThat(view.needsReview()).isNotEmpty();
+        assertThat(view.needsReview()).allSatisfy(row -> assertThat(row.remainingInputs()).isNotEmpty());
     }
 
     @Test
-    @DisplayName("자녀가 없으면 다자녀는 탈락 확정으로, 신혼부부는 가능성으로 분류된다")
-    void rulesOutMultiChildButKeepsNewlywedPossible() {
+    @DisplayName("자녀가 없으면 다자녀는 해당 조건 미충족, 신혼부부는 추가 확인으로 분류된다")
+    void rulesOutMultiChildButKeepsNewlywedForReview() {
         QuickCheckView view = serviceWith(announcement())
                 .check(threeAnswers(true, 24, 0, true));
 
         assertThat(view.ruledOut()).extracting(QuickCheckView.TypeRow::typeLabel).contains("다자녀가구");
-        assertThat(view.possible()).extracting(QuickCheckView.TypeRow::typeLabel).contains("신혼부부");
+        assertThat(view.needsReview()).extracting(QuickCheckView.TypeRow::typeLabel).contains("신혼부부");
+        assertThat(view.needsReview()).filteredOn(row -> row.typeLabel().equals("신혼부부"))
+                .singleElement()
+                .satisfies(row -> assertThat(row.remainingInputs()).isNotEmpty());
     }
 
     @Test
@@ -104,7 +108,7 @@ class QuickCheckServiceTest {
                 .check(threeAnswers(true, 24, 0, true));
 
         List<String> shown = new java.util.ArrayList<>();
-        view.possible().forEach(r -> shown.add(r.typeLabel()));
+        view.needsReview().forEach(r -> shown.add(r.typeLabel()));
         view.ruledOut().forEach(r -> shown.add(r.typeLabel()));
 
         assertThat(shown).doesNotContain("노부모부양", "신생아", "기관추천", "청년");
@@ -116,7 +120,7 @@ class QuickCheckServiceTest {
         QuickCheckView view = serviceWith().check(threeAnswers(true, 24, 0, true));
 
         assertThat(view.evaluated()).isFalse();
-        assertThat(view.possible()).isEmpty();
+        assertThat(view.needsReview()).isEmpty();
         assertThat(view.ruledOut()).isEmpty();
     }
 }

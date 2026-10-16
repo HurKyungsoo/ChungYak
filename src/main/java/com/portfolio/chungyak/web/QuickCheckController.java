@@ -41,7 +41,7 @@ public class QuickCheckController {
                 .build();
 
         QuickCheckView view = quickCheckService.check(profile);
-        log.info("빠른 진단 — 가능성 {}종, 탈락 확정 {}종", view.possible().size(), view.ruledOut().size());
+        log.info("빠른 진단 — 추가 확인 {}종, 해당 조건 미충족 {}종", view.needsReview().size(), view.ruledOut().size());
 
         model.addAttribute("result", view);
         model.addAttribute("married", married);
