@@ -1216,6 +1216,29 @@
         .compare-table thead th { background: var(--surface); }
         .profile-strip { border-radius: 12px; }
 
+        /* 공고 목록은 첫 화면에서 히어로·진단·필터·공고 카드가 한 덩어리로 뭉치지 않게 층을 나눈다. */
+        main > .hero {
+            padding: 22px 24px; border: 1px solid color-mix(in srgb, var(--brand) 14%, var(--border));
+            border-radius: 20px;
+            background: linear-gradient(115deg, var(--surface) 45%, var(--brand-weak));
+            box-shadow: var(--shadow-sm);
+        }
+        .hero .eyebrow { display: inline-flex; align-items: center; gap: 7px; }
+        .hero .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+        .quick-check { box-shadow: var(--shadow-sm); }
+        #list.sec-head { flex-wrap: wrap; align-items: center; row-gap: 8px; margin-top: 30px; }
+        .filter-bar:not(.cal-filter) {
+            padding: 11px; background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; box-shadow: var(--shadow-sm);
+        }
+        .notice-list { gap: 14px; }
+        .notice-card {
+            padding: 18px; border-radius: 18px;
+            transition: transform .16s, box-shadow .16s, border-color .16s;
+        }
+        .notice-card:hover { transform: translateY(-2px); }
+        .notice-card .title { font-size: 1.03rem; line-height: 1.4; }
+
         /* 캘린더는 표처럼 보이는 격자 대신 날짜별 카드로 훑을 수 있게 */
         .cal-nav {
             margin: 6px 0 12px; padding: 14px 16px; background: var(--surface);
@@ -1248,6 +1271,8 @@
             .cal-nav h2 { font-size: 1.12rem; }
             .agenda-day { padding: 12px; }
             .result-hero { padding: 16px; }
+            main > .hero { padding: 17px; border-radius: 17px; }
+            .notice-card { padding: 15px; }
         }
     </style>
 </head>
