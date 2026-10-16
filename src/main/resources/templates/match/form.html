@@ -9,36 +9,38 @@
     <a th:href="@{/announcements}" class="backlink">← 공고 목록</a>
     <h1>내 조건으로 공고 찾기</h1>
 
-    <!-- 설명은 두 줄로 (#46) -->
-    <p class="muted">
-        조건을 한 번 입력하면 <b>지금 접수중·접수예정인 공고</b> 전체에서 신청 가능한 곳을 모아 보여드립니다.
-        모르거나 해당 없는 항목은 비워 두세요.<br>
-        <span class="req-badge">필수</span> 는 비우면 판정을 보류하는 항목,
-        <span class="req-badge cond">국민주택 필수</span> 처럼 조건이 붙은 건 그런 공고에서만 필요합니다.
+    <p class="muted match-intro">
+        한 번 입력하면 접수 중·예정 공고 전체에서 신청 가능한 유형을 찾아드립니다.
+        <strong>모르는 항목은 비워도 괜찮아요.</strong> 해당 유형만 추가 확인이 필요하다고 표시합니다.
     </p>
 
-    <!-- 상황 설명 입력 — LLM 은 폼을 채워주기만 하고 판정에는 관여하지 않습니다 -->
-    <fieldset th:if="${extractionAvailable}" class="tint">
-        <legend>상황 설명 입력 <span class="ai-chip">AI</span> <span class="muted">(선택)</span></legend>
-        <p class="muted" style="margin-top:2px">
-            현재 거주 형태, 세대 구성, 주택 소유 여부 등 본인의 상황을 자유롭게 적어주세요.
-            <strong>AI 가 문장에서 필요한 항목을 찾아 자동으로 채워드립니다.</strong>
-            채워진 값은 공고를 찾기 전에 직접 확인하고 수정할 수 있습니다.
-        </p>
-        <form method="post" th:action="@{/match/extract}" data-pending="AI 가 읽는 중…">
+    <!-- AI는 선택 보조 기능이므로 기본 입력 흐름을 방해하지 않게 접어 둔다. -->
+    <details th:if="${extractionAvailable}" class="card ai-assist"
+             th:open="${naturalText != null and !#strings.isEmpty(naturalText)}">
+        <summary>상황을 문장으로 입력하기 <span class="ai-chip">AI · 선택</span></summary>
+        <p class="muted">문장에서 입력 항목을 찾아 채웁니다. 판정은 하지 않으며, 채워진 값은 직접 확인·수정할 수 있어요.</p>
+        <form method="post" th:action="@{/match/extract}" data-pending="AI가 읽는 중…">
             <textarea name="naturalText" rows="3"
                       placeholder="예: 결혼한 지 3년 됐고 아이가 둘이에요. 청약통장은 2년 넣었고 무주택입니다."
                       th:text="${naturalText}"></textarea>
-            <div class="btn-row"><button type="submit" class="btn btn-ghost">폼 채우기</button></div>
+            <div class="btn-row"><button type="submit" class="btn btn-ghost">입력 항목 채우기</button></div>
         </form>
-    </fieldset>
+    </details>
 
     <div th:replace="~{fragments/common :: extractionBanner(${extraction})}"></div>
 
     <div th:replace="~{fragments/common :: profileDraftBanner}"></div>
 
-    <form method="post" th:action="@{/match}" th:object="${form}" data-remember-profile data-progress-form>
-        <fieldset>
+    <nav class="match-stepper" id="matchStepper" aria-label="입력 진행" hidden>
+        <span class="match-step-count" id="matchStepCount" aria-live="polite">1 / 3단계</span>
+        <span class="match-step-name" id="matchStepName">가족 · 주택</span>
+        <div class="match-step-track" role="progressbar" aria-label="입력 단계" aria-valuemin="1" aria-valuemax="3" aria-valuenow="1">
+            <span id="matchStepProgress"></span>
+        </div>
+    </nav>
+
+    <form id="matchForm" method="post" th:action="@{/match}" th:object="${form}" data-remember-profile>
+        <fieldset data-match-step="1">
             <legend>혼인 · 자녀</legend>
             <label class="check"><input type="checkbox" th:field="*{married}" id="marriedCheck"> <span>혼인 중이다</span></label>
             <div class="field-grid">
@@ -62,7 +64,7 @@
             </label>
         </fieldset>
 
-        <fieldset>
+        <fieldset data-match-step="1">
             <legend>주택 소유</legend>
             <label class="check"><input type="checkbox" th:field="*{houseless}"> <span>현재 무주택이다</span></label>
             <label class="check"><input type="checkbox" th:field="*{everOwnedHouse}">
@@ -73,7 +75,7 @@
             </label>
         </fieldset>
 
-        <fieldset>
+        <fieldset data-match-step="2">
             <legend>청약통장</legend>
             <div class="field-grid">
                 <label class="field"><span class="lbl">가입 기간 (개월) <span class="req-badge">필수</span></span>
@@ -92,7 +94,7 @@
             </div>
         </fieldset>
 
-        <fieldset>
+        <fieldset data-match-step="2">
             <legend>세대 · 거주</legend>
             <label class="check"><input type="checkbox" th:field="*{householdHead}"> <span>세대주이다</span></label>
             <label class="check"><input type="checkbox" th:field="*{supportingOldParents}">
@@ -108,7 +110,7 @@
             </div>
         </fieldset>
 
-        <fieldset>
+        <fieldset data-match-step="3">
             <legend>소득 · 자산</legend>
             <p class="muted" style="margin:2px 0 10px">금액은 서버에 30분만 머물고 지워집니다(다시 채우려고 이 브라우저에는 저장).</p>
             <div class="field-grid">
@@ -136,7 +138,7 @@
 
         <!-- 재당첨 제한은 해당자가 드물어 접어 둔다 (#46). 접혀 있어도 칸은 폼에 그대로 있고 기본값(당첨 이력 없음)으로
              판정된다 — 규칙 엔진 입력의 뜻은 바뀌지 않는다. 값이 있으면(되돌아옴·저장된 조건·AI 채움) 펼친다. -->
-        <fieldset>
+        <fieldset data-match-step="3">
             <legend>재당첨 제한</legend>
             <details class="set-collapse" data-auto-open
                      th:open="${form.everWonSpecialSupply or form.pastWinInSpeculationArea or form.monthsSinceLastWin != null or form.hasChildBornSince20240619}">
@@ -170,7 +172,11 @@
                 <span class="form-progress" aria-live="polite"></span>
                 <span class="form-required" aria-live="polite"></span>
             </div>
-            <button type="submit" class="btn btn-primary btn-lg">신청 가능한 공고 찾기</button>
+            <div class="match-step-actions">
+                <button type="button" class="btn btn-ghost" id="matchPrev" hidden>← 이전</button>
+                <button type="button" class="btn btn-primary btn-lg" id="matchNext" hidden>다음 단계 →</button>
+                <button type="submit" class="btn btn-primary btn-lg" id="matchSubmit">신청 가능한 공고 찾기</button>
+            </div>
         </div>
     </form>
 
@@ -178,6 +184,57 @@
 </main>
 
 <script th:replace="~{fragments/common :: currencyInputScript}"></script>
+<script>
+    (function () {
+        var form = document.getElementById('matchForm');
+        var stepper = document.getElementById('matchStepper');
+        if (!form || !stepper) return;
+
+        var groups = [
+            {name: '가족 · 주택', fields: Array.from(form.querySelectorAll('[data-match-step="1"]'))},
+            {name: '통장 · 거주', fields: Array.from(form.querySelectorAll('[data-match-step="2"]'))},
+            {name: '소득 · 자산 · 선택 이력', fields: Array.from(form.querySelectorAll('[data-match-step="3"]'))}
+        ].filter(function (group) { return group.fields.length > 0; });
+        if (groups.length < 2) return;
+
+        var current = 0;
+        var count = document.getElementById('matchStepCount');
+        var name = document.getElementById('matchStepName');
+        var stickyProgress = form.querySelector('.form-progress');
+        var progress = document.getElementById('matchStepProgress');
+        var track = stepper.querySelector('[role="progressbar"]');
+        var prev = document.getElementById('matchPrev');
+        var next = document.getElementById('matchNext');
+        var submit = document.getElementById('matchSubmit');
+
+        function render(shouldScroll) {
+            groups.forEach(function (group, index) {
+                group.fields.forEach(function (fieldset) { fieldset.hidden = index !== current; });
+            });
+            count.textContent = (current + 1) + ' / ' + groups.length + '단계';
+            name.textContent = groups[current].name;
+            if (stickyProgress) stickyProgress.textContent = count.textContent + ' · ' + name.textContent;
+            progress.style.width = ((current + 1) * 100 / groups.length) + '%';
+            track.setAttribute('aria-valuemax', groups.length);
+            track.setAttribute('aria-valuenow', current + 1);
+            prev.hidden = current === 0;
+            next.hidden = current === groups.length - 1;
+            submit.hidden = current !== groups.length - 1;
+            form.dispatchEvent(new Event('change', {bubbles: true}));
+            if (shouldScroll) {
+                stepper.scrollIntoView({behavior: 'smooth', block: 'start'});
+                var firstInput = groups[current].fields[0].querySelector('input:not([type=hidden]), select, textarea');
+                if (firstInput) firstInput.focus({preventScroll: true});
+            }
+        }
+
+        form.classList.add('is-stepped');
+        stepper.hidden = false;
+        prev.addEventListener('click', function () { if (current > 0) { current--; render(true); } });
+        next.addEventListener('click', function () { if (current < groups.length - 1) { current++; render(true); } });
+        render(false);
+    })();
+</script>
 <script>
     const marriedCheck = document.getElementById('marriedCheck');
     const marriageMonthsField = document.getElementById('marriageMonthsField');

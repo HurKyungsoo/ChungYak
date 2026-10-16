@@ -1216,6 +1216,55 @@
         .compare-table thead th { background: var(--surface); }
         .profile-strip { border-radius: 12px; }
 
+        /* 긴 자격 입력은 네 단계로 나누되, 스크립트가 꺼져도 전체 폼과 제출 버튼은 그대로 쓸 수 있다. */
+        .match-intro { max-width: 720px; margin: 4px 0 16px; }
+        .ai-assist { padding: 12px 16px; margin: 0 0 16px; }
+        .ai-assist summary { color: var(--text); font-weight: 650; cursor: pointer; }
+        .ai-assist summary .ai-chip { margin-left: 6px; vertical-align: 1px; }
+        .ai-assist p { margin: 10px 0; }
+        .match-stepper {
+            display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 12px;
+            margin: 18px 0 12px; padding: 13px 16px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-sm);
+            scroll-margin-top: 76px;
+        }
+        .match-stepper[hidden] { display: none; }
+        .match-step-count { color: var(--brand); font-size: .78rem; font-weight: 750; white-space: nowrap; }
+        .match-step-name { color: var(--text); font-size: .9rem; font-weight: 700; text-align: right; }
+        .match-step-track { grid-column: 1 / -1; height: 5px; overflow: hidden; border-radius: var(--r-pill); background: var(--surface-2); }
+        .match-step-track span { display: block; height: 100%; border-radius: inherit; background: var(--brand); transition: width .2s ease; }
+        .match-step-actions { display: flex; align-items: center; gap: 8px; }
+        .match-step-actions [hidden] { display: none !important; }
+        .form-submit-bar .match-step-actions .btn { width: auto; }
+        .form-submit-bar .match-step-actions #matchNext,
+        .form-submit-bar .match-step-actions #matchSubmit { min-width: 180px; }
+        .match-step-actions #matchPrev { min-width: 104px; }
+
+        /* 가점 계산은 입력 도중에도 항목별 점수와 만점 비중을 보여준다. */
+        .score-intro { max-width: 680px; margin: 4px 0 16px; }
+        .score-preview {
+            margin: 16px 0 20px; padding: 17px 19px; background: var(--brand-weak);
+            border: 1px solid color-mix(in srgb, var(--brand) 22%, transparent);
+            border-radius: 18px; box-shadow: var(--shadow-sm);
+        }
+        .score-preview-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .score-preview-head > div { display: flex; flex-direction: column; gap: 2px; }
+        .score-preview-label { font-size: .8rem; font-weight: 650; color: var(--text-muted); }
+        .score-preview-status { color: var(--text-subtle); font-size: .76rem; }
+        .score-preview-total { color: var(--brand); font-size: 1.8rem; line-height: 1.1; letter-spacing: -.04em; white-space: nowrap; }
+        .score-preview-total small { font-size: .8rem; font-weight: 600; letter-spacing: 0; }
+        .score-preview-items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 13px; }
+        .score-preview-item { min-width: 0; padding: 10px 11px; background: var(--surface); border: 1px solid var(--border); border-radius: 11px; }
+        .score-preview-item > span { display: block; color: var(--text-muted); font-size: .74rem; font-weight: 600; }
+        .score-preview-item > strong { display: block; margin-top: 2px; color: var(--text); font-size: 1rem; }
+        .score-preview-item > strong small { color: var(--text-subtle); font-size: .72rem; font-weight: 500; }
+        .score-preview-item > i { display: block; height: 4px; margin-top: 8px; overflow: hidden; border-radius: var(--r-pill); background: var(--surface-2); }
+        .score-preview-item > i > b { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--brand); transition: width .18s ease; }
+        .score-preview-note { margin: 10px 0 0; color: var(--text-subtle); font-size: .72rem; }
+        .score-field-note { clear: both; margin: 0 0 8px; font-size: .82rem; }
+        .score-max-label { float: right; color: var(--brand); font-size: .76rem; font-weight: 650; }
+        .optional-fieldset { background: color-mix(in srgb, var(--surface-2) 45%, var(--surface)); }
+
         /* 공고 목록은 첫 화면에서 히어로·진단·필터·공고 카드가 한 덩어리로 뭉치지 않게 층을 나눈다. */
         main > .hero {
             padding: 22px 24px; border: 1px solid color-mix(in srgb, var(--brand) 14%, var(--border));
@@ -1273,6 +1322,17 @@
             .result-hero { padding: 16px; }
             main > .hero { padding: 17px; border-radius: 17px; }
             .notice-card { padding: 15px; }
+            .match-stepper { margin-top: 12px; padding: 11px 13px; }
+            .form-submit-bar .match-step-actions .btn { min-width: 0; }
+            .form-submit-bar .match-step-actions #matchNext,
+            .form-submit-bar .match-step-actions #matchSubmit { min-width: 0; }
+            .score-preview { padding: 14px; }
+            .score-preview-items { gap: 6px; }
+            .score-preview-item { padding: 8px; }
+            .score-preview-item > span { font-size: .68rem; }
+            .score-preview-item > strong { font-size: .9rem; }
+            .score-preview-item > strong small { font-size: .64rem; }
+            .score-preview-total { font-size: 1.55rem; }
         }
     </style>
 </head>
