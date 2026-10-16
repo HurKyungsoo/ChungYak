@@ -1177,6 +1177,78 @@
             /* 탭바에 가리지 않게 바닥을 비운다 */
             .site-footer .inner { padding-bottom: 96px; }
         }
+
+        /* ── 화면 공통 마감 — 기존 파랑·회색 토큰과 컴포넌트는 유지하고 간격·표면만 정돈한다 ── */
+        main > h1:first-of-type {
+            margin: 2px 0 8px; font-size: clamp(1.55rem, 1.25rem + 1vw, 2rem);
+            line-height: 1.28; letter-spacing: -0.035em;
+        }
+        .backlink + h1 { margin-top: 0; }
+        .card, fieldset {
+            border-radius: 16px;
+            box-shadow: var(--shadow-sm);
+        }
+        fieldset { padding: 18px 20px; margin: 16px 0; }
+        fieldset legend { font-size: 1rem; letter-spacing: -0.015em; }
+        fieldset.tint { box-shadow: none; }
+        .field-grid { gap: 14px 18px; }
+        input[type=number], input[type=text], input[type=email], textarea, select {
+            background: var(--surface); border-color: var(--border-strong);
+        }
+        input:hover, textarea:hover, select:hover { border-color: color-mix(in srgb, var(--brand) 45%, var(--border-strong)); }
+        .btn { transition: transform .14s, box-shadow .14s, background-color .14s, border-color .14s; }
+        .btn-primary { box-shadow: 0 2px 6px color-mix(in srgb, var(--brand) 20%, transparent); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 5px 12px color-mix(in srgb, var(--brand) 24%, transparent); }
+        .result-hero { border-radius: 16px; box-shadow: var(--shadow-sm); }
+        .sec-head { align-items: center; margin-top: 30px; margin-bottom: 5px; }
+        .sec-head h2 { letter-spacing: -0.025em; }
+        .notice-card { border-radius: 16px; }
+        .disclaimer { border-radius: 14px; }
+        .calendar-heading { margin: 0 0 16px; }
+        .calendar-heading .eyebrow {
+            display: inline-flex; margin-bottom: 7px; padding: 3px 9px;
+            border-radius: var(--r-pill); background: var(--brand-weak);
+            color: var(--brand); font-size: .75rem; font-weight: 650;
+        }
+        .calendar-heading h1 { margin: 0 0 4px; }
+        .calendar-heading p { margin: 0; }
+        .compare-table-wrap { border-radius: 14px; box-shadow: var(--shadow-sm); }
+        .compare-table thead th { background: var(--surface); }
+        .profile-strip { border-radius: 12px; }
+
+        /* 캘린더는 표처럼 보이는 격자 대신 날짜별 카드로 훑을 수 있게 */
+        .cal-nav {
+            margin: 6px 0 12px; padding: 14px 16px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow-sm);
+        }
+        .cal-nav h2 { font-size: 1.3rem; letter-spacing: -0.03em; }
+        .cal-grid {
+            gap: 5px; background: transparent; border: 0; border-radius: 0; overflow: visible;
+        }
+        .cal-dow { background: transparent; padding: 6px 4px; }
+        .cal-day {
+            min-height: 100px; padding: 7px; gap: 4px;
+            border: 1px solid var(--border); border-radius: 10px;
+            box-shadow: 0 1px 2px rgba(20,25,35,.025);
+        }
+        .cal-day.out { background: color-mix(in srgb, var(--surface) 55%, var(--bg)); border-color: transparent; }
+        .cal-day.today { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); background: var(--brand-weak); }
+        .cal-day.selected { box-shadow: inset 0 0 0 2px var(--brand); }
+        .cal-event { padding: 3px 6px; border-radius: 6px; }
+        .agenda-day {
+            padding: 14px; border: 1px solid var(--border); border-radius: 14px;
+            background: var(--surface); box-shadow: var(--shadow-sm);
+        }
+        .cal-day-panel { border-radius: 16px; }
+
+        @media (max-width: 560px) {
+            main > h1:first-of-type { font-size: 1.55rem; }
+            fieldset { padding: 15px 14px; margin: 13px 0; }
+            .cal-nav { padding: 12px; }
+            .cal-nav h2 { font-size: 1.12rem; }
+            .agenda-day { padding: 12px; }
+            .result-hero { padding: 16px; }
+        }
     </style>
 </head>
 <body>

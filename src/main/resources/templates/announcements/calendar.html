@@ -8,6 +8,12 @@
 <main>
     <a th:href="@{/announcements}" class="backlink">← 공고 목록</a>
 
+    <div class="calendar-heading">
+        <span class="eyebrow">접수 일정을 한눈에</span>
+        <h1>청약 캘린더</h1>
+        <p class="muted">접수 시작일과 마감일을 확인하고, 날짜를 눌러 해당 공고를 살펴보세요.</p>
+    </div>
+
     <!-- 달 이동·날짜 펼치기 링크는 고른 필터를 그대로 이어 간다(filter.suffix()) -->
     <div class="cal-nav">
         <h2 th:text="${calendar.label}">2026년 9월</h2>
