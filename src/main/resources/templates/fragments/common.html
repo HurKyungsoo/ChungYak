@@ -208,6 +208,9 @@
         .stat-strip a.stat-urgent b { color: var(--warn); }
         .stat-strip a.stat-urgent:hover { text-decoration: underline; }
         .stat-strip b { color: var(--text); font-weight: 750; font-size: .98rem; letter-spacing: -0.01em; }
+        .category-links { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
+        .category-links .chip { background: var(--surface); }
+        .category-links .chip:hover { background: var(--brand-weak); text-decoration: none; }
 
         .sec-head { display: flex; align-items: baseline; gap: 10px; margin: 26px 0 2px; }
         .sec-head h2 { margin: 0; }
@@ -400,6 +403,12 @@
         .quick-check .qc-checks label { display: inline-flex; align-items: center; gap: 7px;
                                         font-size: .9rem; font-weight: 600; cursor: pointer; }
         .quick-check .qc-checks input { accent-color: var(--brand); width: 16px; height: 16px; }
+        .quick-check .quick-profile-note {
+            display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+            color: var(--text-muted); font-size: .8rem;
+        }
+        .quick-check .quick-profile-note::before { content: "✓"; color: var(--ok); font-weight: 800; }
+        .quick-check .quick-profile-note a { color: var(--brand); font-weight: 650; }
         /* 체크박스 줄(라벨 없음)과 "혼인 경과" 필드(위에 라벨 있음)가 한 줄에서
            align-items:flex-end 로 만나면 높이가 달라 체크박스만 아래로 떠 보인다 —
            좁은 화면에서는 혼인 경과 필드를 아예 다음 줄로 내려 자연스럽게 만든다. */
@@ -1577,9 +1586,14 @@
                     if (b.state === 'ELIGIBLE') eligible++;
                     if (b.state === 'NEEDS_INFO') needsInfo++;
                 });
-                // 저장된 조건으로 배지를 붙였으면 "30초 빠른 진단"은 같은 입구의 반복이다 (#46)
+                // 저장된 조건이 있어도 빠른 진단을 숨기지 않는다. 숨기면 사용자는 기능이 사라진 것으로
+                // 이해한다. 대신 현재 목록 배지가 저장된 조건을 사용하고 있음을 빠른 진단 카드에 알린다.
                 var quick = document.querySelector('.quick-check');
-                if (quick && shown) quick.hidden = true;
+                if (quick && shown) {
+                    quick.classList.add('has-saved-profile');
+                    var quickNote = quick.querySelector('.quick-profile-note');
+                    if (quickNote) quickNote.hidden = false;
+                }
                 var note = document.getElementById('myBadgeNote');
                 if (note && shown) {
                     // 가능 0곳인데 정보 부족이 섞여 있으면 "0곳"은 틀린 결론처럼 읽힌다 — 채울 것을 먼저 말한다
@@ -1676,6 +1690,10 @@
             <input type="number" min="0" name="childCount" placeholder="0">
         </label>
         <button type="submit" class="btn btn-primary">진단하기</button>
+    </div>
+    <div class="quick-profile-note" hidden>
+        저장된 내 조건으로 공고 자격도 함께 표시하고 있어요.
+        <a th:href="@{/my-profile}">조건 수정·삭제</a>
     </div>
 </form>
 
