@@ -16,6 +16,11 @@
             <div class="sub">무주택 기간 + 부양가족 수 + 청약통장 가입 기간을 합산한 결과입니다.</div>
         </div>
     </div>
+    <!--/* 저장은 myScoreScript 가 한다 — 저장에 성공했을 때만 이 안내를 보인다 */-->
+    <p class="muted" th:if="${score.complete}" th:attr="data-my-score-save=${score.total}" hidden
+       style="margin:8px 0 0;font-size:.86rem">
+        이 점수를 <strong>이 브라우저에만</strong> 저장해, 민영 분양 공고 상세의 "최근 당첨 기록"에 함께 표시합니다. 서버로 보내지 않습니다.
+        <button type="button" class="text-btn" data-my-score-clear>저장 지우기</button></p>
     <div th:unless="${score.complete}" class="result-hero bad">
         <div class="result-icon">⚠️</div>
         <div class="result-body">
@@ -107,6 +112,7 @@
         이 계산기는 입력값을 그대로 표에 대입한 것이며, 실제 인정 여부는 청약홈·공고문을 따르세요.
     </div>
 </main>
+<script th:replace="~{fragments/common :: myScoreScript}"></script>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>
 </body>

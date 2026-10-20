@@ -319,6 +319,12 @@
         .sr-median { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--text-muted); }
         .sr-me { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
             background: var(--brand); border: 2px solid var(--surface, #fff); box-shadow: 0 0 0 1px var(--brand); }
+        /* 내 가점(이 브라우저에 저장, myScoreScript) — 공고 상세의 최근 당첨 기록 표 안 */
+        .text-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--brand); text-decoration: underline; cursor: pointer; }
+        .my-score-line { margin: 0 0 8px; font-size: .86rem; color: var(--text-muted); }
+        .my-score-cmp { margin-top: 4px; font-size: .78rem; color: var(--text-muted); }
+        .my-score-cmp .sr-track { height: 6px; margin: 6px 0 2px; min-width: 110px; }
+        .my-score-cmp .sr-me { width: 12px; height: 12px; margin: -6px 0 0 -6px; }
         .sr-axis { display: flex; justify-content: space-between; font-size: .74rem; color: var(--text-subtle); margin-top: 4px; }
         .sr-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8rem; color: var(--text-muted); margin-top: 4px; }
         .sr-key { display: inline-block; width: 12px; height: 8px; margin-right: 5px; vertical-align: 1px; border-radius: 3px; }
@@ -2152,6 +2158,98 @@
 <!-- ── 오늘 본 공고 — 상세 화면을 열면 기록하고, 오늘 것만 우측 패널로 보여준다.
      찜과 마찬가지로 이 브라우저(localStorage)에만 남고 서버는 전혀 모른다.
      공고명은 DB 값이라 textContent 로만 넣는다(innerHTML 금지 — 스크립트 주입 방지). ── -->
+<!-- 내 가점 (#34 후속) — 가점 계산 결과를 이 브라우저(localStorage)에만 두고 민영 공고 상세의 "최근 당첨 기록"과 견준다.
+     서버로 보내지 않는다. 비교는 지난 기록의 건수일 뿐 확률이 아니다 — 퍼센트를 쓰지 않는다(가점 결과 화면과 같은 말투). -->
+<script th:fragment="myScoreScript">
+    (function () {
+        var KEY = 'chungyak:myScore';
+
+        function load() {
+            try {
+                var v = JSON.parse(localStorage.getItem(KEY) || 'null');
+                return v && typeof v.total === 'number' && v.total >= 0 && v.total <= 84 ? v : null;
+            } catch (e) { return null; }
+        }
+
+        function clear() {
+            try { localStorage.removeItem(KEY); } catch (e) { /* 무시 */ }
+        }
+
+        function shortDate(iso) {
+            var m = /^\d{4}-(\d{2})-(\d{2})$/.exec(iso || '');
+            return m ? m[1] + '.' + m[2] : '';
+        }
+
+        // 가점 결과 화면 — 총점이 나왔을 때만 저장한다
+        var saver = document.querySelector('[data-my-score-save]');
+        if (saver) {
+            var d = new Date();
+            var today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            try {
+                localStorage.setItem(KEY, JSON.stringify({ total: Number(saver.getAttribute('data-my-score-save')), at: today }));
+                saver.hidden = false;
+            } catch (e) { /* 저장이 막힌 브라우저 — 안내도 띄우지 않는다 */ }
+        }
+
+        // 공고 상세 — 저장된 가점이 있으면 면적대 줄·비슷한 공고 줄에 견줘 적는다
+        var box = document.querySelector('[data-my-score-compare]');
+        var mine = box ? load() : null;
+        if (box && mine) {
+            var line = box.querySelector('[data-my-score-line]');
+            line.querySelector('[data-my-score-value]').textContent = mine.total + '점';
+            var at = shortDate(mine.at);
+            line.querySelector('[data-my-score-date]').textContent = at ? '(' + at + ' 계산)' : '';
+            line.hidden = false;
+            box.querySelectorAll('[data-my-score-cta]').forEach(function (el) { el.hidden = true; });
+
+            box.querySelectorAll('[data-lows]').forEach(function (cell) {
+                var lows = cell.getAttribute('data-lows').split(',').map(Number).filter(function (v) { return v > 0; });
+                if (!lows.length) return;
+                var below = lows.filter(function (v) { return v <= mine.total; }).length;
+                var min = lows[0], max = lows[lows.length - 1];
+                var out = document.createElement('div');
+                out.className = 'my-score-cmp';
+                out.textContent = '최저가점이 내 가점 이하 ' + below + '건 / ' + lows.length + '건';
+                var track = document.createElement('div');
+                track.className = 'sr-track';
+                track.setAttribute('role', 'img');
+                track.setAttribute('aria-label', '최저 당첨가점 ' + min + '~' + max + '점, 내 가점 ' + mine.total + '점');
+                var band = document.createElement('span');
+                band.className = 'sr-band';
+                band.style.left = (min * 100 / 84) + '%';
+                band.style.width = ((max - min) * 100 / 84) + '%';
+                var me = document.createElement('span');
+                me.className = 'sr-me';
+                me.style.left = (mine.total * 100 / 84) + '%';
+                track.appendChild(band);
+                track.appendChild(me);
+                out.appendChild(track);
+                cell.appendChild(out);
+            });
+
+            box.querySelectorAll('[data-lowest]').forEach(function (cell) {
+                var low = Number(cell.getAttribute('data-lowest'));
+                if (!(low > 0)) return;
+                var gap = low - mine.total;
+                var out = document.createElement('div');
+                out.className = 'my-score-cmp';
+                out.textContent = gap <= 0 ? '내 가점 이하' : '내 가점보다 ' + gap + '점 높음';
+                cell.appendChild(out);
+            });
+        }
+
+        document.querySelectorAll('[data-my-score-clear]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                clear();
+                // 상세는 붙인 비교 줄을 하나하나 걷어내지 않고 새로 읽는다
+                if (box) { location.reload(); return; }
+                var note = btn.closest('[data-my-score-save]');
+                if (note) note.textContent = '저장한 가점을 지웠습니다.';
+            });
+        });
+    })();
+</script>
+
 <script th:fragment="recentViewsScript">
     (function () {
         var KEY = 'chungyak:recentViews';

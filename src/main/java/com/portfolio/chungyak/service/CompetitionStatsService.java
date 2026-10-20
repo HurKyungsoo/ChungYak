@@ -62,9 +62,16 @@ public class CompetitionStatsService {
      * @param rateNotices    숫자 경쟁률이 있는(경쟁이 있던) 공고 수 — medianRate 의 표본. 미달 공고는 빠진다
      * @param undersubscribed 1순위 <b>최종</b>(기타지역 신청까지 받고)에서도 못 채운 주택형이 있고, 해당지역 숫자 경쟁률은
      *                        없는 공고 수 — rateNotices 와 겹치지 않는다. 해당지역만 미달이고 기타지역으로 다 채운 공고는 세지 않는다
+     * @param lows           공고별 최저가점(오름차순, notices 개) — 화면이 이 기기에 저장된 내 가점과 견준다(브라우저에서만)
      */
     public record BandStat(String band, int months, int total, int notices, int minLowest, int medianLowest, int maxLowest,
-                           Double medianRate, int rateNotices, int undersubscribed) {}
+                           Double medianRate, int rateNotices, int undersubscribed, List<Integer> lows) {
+
+        /** data 속성용 "32,40,47" */
+        public String lowsCsv() {
+            return String.join(",", lows.stream().map(String::valueOf).toList());
+        }
+    }
 
     /**
      * "비슷한 최근 공고" 하나 — 묶음 범위(시도 단위라 넓다)보다 구체적인 비교 대상.
@@ -209,7 +216,7 @@ public class CompetitionStatsService {
         if (lows.size() < MIN_NOTICES) return null;
         lows.sort(Integer::compare);
         return new BandStat(band, months, byNotice.size(), lows.size(), lows.get(0), (int) Math.round(median(lows.stream().map(Integer::doubleValue).toList())),
-                lows.get(lows.size() - 1), rates.isEmpty() ? null : median(rates), rates.size(), under);
+                lows.get(lows.size() - 1), rates.isEmpty() ? null : median(rates), rates.size(), under, List.copyOf(lows));
     }
 
     static final int SIMILAR_COUNT = 3;

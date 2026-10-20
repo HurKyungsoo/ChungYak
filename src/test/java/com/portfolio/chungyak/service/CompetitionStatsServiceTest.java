@@ -57,6 +57,7 @@ class CompetitionStatsServiceTest {
         assertThat(b.minLowest()).isEqualTo(33);
         assertThat(b.medianLowest()).isEqualTo(48);
         assertThat(b.maxLowest()).isEqualTo(61);
+        assertThat(b.lowsCsv()).isEqualTo("33,48,61");   // 화면이 저장된 내 가점과 견주는 값 — 오름차순, 0 뺀 공고별 최저
         assertThat(b.medianRate()).isEqualTo((9.25 + 1234.5) / 2);   // 공고별 중앙값(A 9.25, B 1,234.5)의 중앙값
         assertThat(b.rateNotices()).isEqualTo(2);
         assertThat(b.undersubscribed()).isEqualTo(1);   // E 만 — B 는 경쟁 있던 공고에 센다
