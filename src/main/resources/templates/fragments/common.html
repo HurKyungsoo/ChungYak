@@ -2191,7 +2191,7 @@
             } catch (e) { /* 저장이 막힌 브라우저 — 안내도 띄우지 않는다 */ }
         }
 
-        // 공고 상세 — 저장된 가점이 있으면 면적대 줄·비슷한 공고 줄에 견줘 적는다
+        // 공고 상세 — 저장된 가점이 있으면 면적대 줄마다 한 줄로 견준다(비슷한 공고 줄엔 붙이지 않는다 — 화면이 복잡해진다)
         var box = document.querySelector('[data-my-score-compare]');
         var mine = box ? load() : null;
         if (box && mine) {
@@ -2209,7 +2209,7 @@
                 var min = lows[0], max = lows[lows.length - 1];
                 var out = document.createElement('div');
                 out.className = 'my-score-cmp';
-                out.textContent = '최저가점이 내 가점 이하 ' + below + '건 / ' + lows.length + '건';
+                out.textContent = '내 가점 이하 ' + below + '건 / ' + lows.length + '건';
                 var track = document.createElement('div');
                 track.className = 'sr-track';
                 track.setAttribute('role', 'img');
@@ -2227,15 +2227,6 @@
                 cell.appendChild(out);
             });
 
-            box.querySelectorAll('[data-lowest]').forEach(function (cell) {
-                var low = Number(cell.getAttribute('data-lowest'));
-                if (!(low > 0)) return;
-                var gap = low - mine.total;
-                var out = document.createElement('div');
-                out.className = 'my-score-cmp';
-                out.textContent = gap <= 0 ? '내 가점 이하' : '내 가점보다 ' + gap + '점 높음';
-                cell.appendChild(out);
-            });
         }
 
         document.querySelectorAll('[data-my-score-clear]').forEach(function (btn) {

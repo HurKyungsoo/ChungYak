@@ -471,7 +471,7 @@
                             <div class="subtle" style="font-size:.78rem" th:if="${n.area() != null}" th:text="${n.area()}">화성시</div></td>
                         <td th:text="${#strings.replace(n.month().toString(), '-', '.')}">2026.07</td>
                         <td class="num" th:text="${n.perPyeong() != null} ? |${#numbers.formatInteger(n.perPyeong(), 1, 'COMMA')}만원| : '-'">2,100만원</td>
-                        <td class="num" th:attr="data-lowest=${n.lowest()}"><span th:text="${n.lowest() != null} ? |${n.lowest()}점| : '추첨·미달'">52점</span></td>
+                        <td class="num" th:text="${n.lowest() != null} ? |${n.lowest()}점| : '추첨·미달'">52점</td>
                         <td class="num" th:text="${n.rate()}">12.3 : 1</td>
                     </tr>
                     </tbody>
