@@ -162,13 +162,13 @@ class EligibilityEngineTest {
     }
 
     @Test
-    @DisplayName("공공주택 특공은 자산 요건이 있다 — 총자산 초과면 탈락, 민영은 자산 안 본다")
+    @DisplayName("공공주택 특공은 자산 요건이 있다 — 부동산 가액 초과면 탈락, 민영은 자산 안 본다")
     void publicHousingAssetRequirement() {
         ApplicantProfile richInAssets = ApplicantProfile.builder()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
                 .householdSize(3).monthlyHouseholdIncome(5_000_000)
                 .accountPaymentCount(24).accountDeposit(10_000_000).residenceMonthsInRegion(36)
-                .totalAssets(500_000_000L).carValue(15_000_000)   // 총자산 5억 > 3.79억
+                .realEstateValue(300_000_000L).carValue(15_000_000)   // 부동산 3억 > 2억 1,550만
                 .build();
 
         assertThat(engine.evaluate(richInAssets, publicAnnouncement)
@@ -207,7 +207,7 @@ class EligibilityEngineTest {
     }
 
     @Test
-    @DisplayName("공공주택 특별법 공공분양([별표 6]) — 신혼부부 맞벌이 190% 는 200% 이내라 가능, 같은 사람이 국민주택이면 160% 초과")
+    @DisplayName("공공주택 특별법 공공분양([별표 6]) — 신혼부부 맞벌이 190% 는 200% 이내라 가능, 같은 사람이 국민주택이면 160% 초과(부동산 가액 없으면 정보 필요)")
     void publicHousingNewlywedDualIncome() {
         Announcement specialLaw = announcement(HouseDetailType.PUBLIC, false);
         org.springframework.test.util.ReflectionTestUtils.setField(specialLaw, "regulationFlags",
@@ -215,9 +215,16 @@ class EligibilityEngineTest {
         ApplicantProfile dual190 = passing()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(24).accountPaymentCount(24)
                 .householdSize(3).monthlyHouseholdIncome(13_677_433).dualIncome(true)
+                .realEstateValue(null)   // 국민주택은 소득 초과 시 부동산 가액 추첨 경로가 있어, 비워 둬야 160% 초과가 드러난다
                 .build();
-        assertThat(engine.evaluate(dual190, specialLaw).decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
-        assertThat(engine.evaluate(dual190, publicAnnouncement).decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
+        ApplicantProfile dual190WithRealEstate = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(24).accountPaymentCount(24)
+                .householdSize(3).monthlyHouseholdIncome(13_677_433).dualIncome(true)
+                .build();
+        assertThat(engine.evaluate(dual190WithRealEstate, specialLaw).decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
+        EligibilityDecision national = engine.evaluate(dual190, publicAnnouncement).decisions().get(SpecialSupplyType.NEWLYWED);
+        assertThat(national.isEligible()).isFalse();
+        assertThat(national.getMissingInputs()).anyMatch(r -> r.startsWith("세대 부동산 가액(") && r.contains("소득 기준 초과"));
     }
 
     @Test

@@ -37,7 +37,10 @@ public final class RuleTestSupport {
                             SpecialSupplyType.OLD_PARENTS, new IncomeLimit(120, 200),
                             SpecialSupplyType.NEWBORN, new IncomeLimit(140, 200),
                             SpecialSupplyType.NEWLYWED_HOPE_TOWN, new IncomeLimit(130, 200)),
-                    new AssetLimit(379_000_000L, 37_080_000),
+                    // application.yml special-supply.asset-limit 과 같게(2026년도 공공분양 자산기준)
+                    new AssetLimit(215_500_000L, 45_420_000,
+                            new SpecialSupplyRequirementProperties.AssetAmounts(237_050_000L, 49_960_000),
+                            new SpecialSupplyRequirementProperties.AssetAmounts(258_600_000L, 54_510_000)),
                     // 민영주택 — application.yml special-supply.private-income-limit 과 같게(다자녀·노부모는 소득 기준 없음)
                     Map.of(
                             SpecialSupplyType.NEWLYWED, new IncomeLimit(140, 160),
@@ -86,6 +89,7 @@ public final class RuleTestSupport {
                 .monthlyHouseholdIncome(5_000_000)
                 .householdSize(3)
                 .totalAssets(200_000_000L)
+                .realEstateValue(100_000_000L)
                 .carValue(15_000_000)
                 .accountPaymentCount(24)           // 국민주택 규제지역 기준도 충족
                 .accountDeposit(15_000_000)        // 민영 예치금 기준 충족

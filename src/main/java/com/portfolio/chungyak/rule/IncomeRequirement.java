@@ -131,9 +131,18 @@ public class IncomeRequirement {
      * 그 자녀만 1명이면 one, 2명 이상이거나 1명이고 그 전에 출생한 자녀(미성년 자녀 수 − 그 자녀 수)가 있으면 twoOrMore.
      */
     int birthBonus(ApplicantProfile profile) {
+        return switch (birthTier(profile)) {
+            case 0 -> 0;
+            case 1 -> requirements.birthBonus().one();
+            default -> requirements.birthBonus().twoOrMore();
+        };
+    }
+
+    /** 0: 2023. 3. 28. 이후 출생 자녀 없음, 1: 그 자녀만 1명, 2: 2명 이상이거나 그 전 자녀도 있음 — 소득 가산·자산 완화 공통 */
+    static int birthTier(ApplicantProfile profile) {
         int recent = profile.getChildrenBornSince20230328() == null ? 0 : Math.max(0, profile.getChildrenBornSince20230328());
         if (recent == 0) return 0;
         boolean older = profile.getChildCount() > recent;
-        return recent >= 2 || older ? requirements.birthBonus().twoOrMore() : requirements.birthBonus().one();
+        return recent >= 2 || older ? 2 : 1;
     }
 }

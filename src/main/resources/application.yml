@@ -171,7 +171,7 @@ special-supply:
     first-time:   { single: 130, dual: 200 }   # 다목
     old-parents:  { single: 120, dual: 200 }   # 라목
     newborn:      { single: 140, dual: 200 }   # 마목(2세 미만 자녀)
-    newlywed-hope-town: { single: 130, dual: 200 }   # 표준 신혼부부와 다른 신혼희망타운 전용 기준([별표 6의 3], 미재확인)
+    newlywed-hope-town: { single: 130, dual: 200 }   # 표준 신혼부부와 다른 신혼희망타운 전용 기준([별표 6의 3] 제1호라목, 2026-11-02 원문 확인)
   # 2023-03-28 이후 출생 자녀(태아·입양 포함)가 있으면 공공주택 특별법 소득 기준에 %p 가산 — [별표 6] 제3호가목
   birth-bonus:
     one: 10            # 그 자녀만 1명
@@ -193,9 +193,14 @@ special-supply:
   # (국민건강보험법 시행령 재산등급 29등급 하한·상한 평균 — 매년 바뀐다). 3억 3,100만원 = 2026-10 민영 공고 2건 표기.
   real-estate-limit: 331000000
   real-estate-track: [newlywed, first-time, newborn]
+  # 공공주택 특공(다자녀·노부모·신혼부부·생애최초·신생아) 자산 기준 — 시행규칙 제13조③에 따라 국토부가 매년 정한다.
+  # 출처: LH 청약플러스 공공분양 분양가이드·LH 공공분양(일반) "2026년도 적용 기준"(2026-11-02 확인). 총자산 기준이 아니다.
+  # 예전 값(총자산 3.79억·자동차 3,708만)은 출처가 확인되지 않았다.
   asset-limit:
-    total-assets: 379000000   # 3.79억
-    car-value: 37080000       # 3,708만
+    real-estate: 215500000    # 부동산(토지+건축물) 2억 1,550만
+    car-value: 45420000       # 자동차 4,542만
+    birth-one:          { real-estate: 237050000, car-value: 49960000 }   # 2023.3.28 이후 출생 자녀만 1명(10%p 완화)
+    birth-two-or-more:  { real-estate: 258600000, car-value: 54510000 }   # 2명 이상, 또는 1명 + 그 전 자녀(20%p 완화)
 
 # 신혼희망타운(HOUSE_SECD=10) 전용 자산기준 — 총자산+자동차가액을 하나로 합산해 비교한다
 # (위 special-supply.asset-limit 은 표준 공공주택 특공용이라 따로 둔다).

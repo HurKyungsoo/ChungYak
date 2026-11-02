@@ -34,6 +34,10 @@ public final class ProfileChips {
             String won = Prices.formatManwon((int) Math.min(Integer.MAX_VALUE, f.getTotalAssets() / 10_000));
             if (won != null) chips.add("총자산 " + won);
         }
+        if (f.getRealEstateValue() != null) {
+            String won = Prices.formatManwon((int) Math.min(Integer.MAX_VALUE, f.getRealEstateValue() / 10_000));
+            if (won != null) chips.add("부동산 " + won);
+        }
         if (f.isSupportingOldParents()) chips.add("노부모 부양");
         if (f.isEverWonSpecialSupply()) chips.add("특공 당첨 이력");
         return chips;

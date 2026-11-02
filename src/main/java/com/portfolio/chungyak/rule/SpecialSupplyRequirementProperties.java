@@ -22,7 +22,7 @@ import java.util.Set;
  *   <li>{@code realEstateLimit}·{@code realEstateTrack} — 민영·국민주택 신혼부부·생애최초·신생아는 소득 기준을 넘어도 세대 부동산
  *       가액이 이 금액 이하면 추첨공급 대상(제41조·제43조·제35조의3, 재산등급 29등급 하한·상한 평균 — 매년 바뀜)</li>
  *   <li>{@code birthBonus} — 공공주택 특별법: 2023. 3. 28. 이후 출생 자녀가 있으면 소득 기준에 %p 가산([별표 6] 제3호가목)</li>
- *   <li>{@code assetLimit} — 자산 상한(공공주택 특공에만 적용)</li>
+ *   <li>{@code assetLimit} — 부동산·자동차 상한(공공주택 특공에만 적용), 출생 자녀 완화 금액 포함</li>
  * </ul>
  */
 @ConfigurationProperties(prefix = "special-supply")
@@ -53,8 +53,21 @@ public record SpecialSupplyRequirementProperties(
     /** 소득 상한 — 도시근로자 대비 %. single: 단독, dual: 본인·배우자 모두 소득(맞벌이). */
     public record IncomeLimit(int single, int dual) {}
 
-    /** 자산 상한 (원). 공공주택 특별공급에만 적용. */
-    public record AssetLimit(long totalAssets, int carValue) {}
+    /**
+     * 자산 상한 (원). 공공주택 특별공급(다자녀·노부모·신혼부부·생애최초·신생아)에만 적용 — 공공주택 특별법 시행규칙
+     * 제13조③에 따라 국토부가 해마다 정한다. 2023. 3. 28. 이후 출생 자녀가 있으면 완화 금액(birthOne·birthTwoOrMore).
+     */
+    public record AssetLimit(long realEstate, int carValue, AssetAmounts birthOne, AssetAmounts birthTwoOrMore) {
+
+        /** 출생 가산 구분(0 없음, 1 그 자녀만 1명, 2 그 밖) — {@link IncomeRequirement#birthTier}. 완화 금액이 없으면 기본 금액 */
+        public AssetAmounts forBirthTier(int tier) {
+            AssetAmounts relaxed = tier >= 2 ? birthTwoOrMore : tier == 1 ? birthOne : null;
+            return relaxed != null ? relaxed : new AssetAmounts(realEstate, carValue);
+        }
+    }
+
+    /** 부동산(토지+건축물)·자동차 상한 (원) */
+    public record AssetAmounts(long realEstate, int carValue) {}
 
     /**
      * 2023. 3. 28. 이후 출생 자녀 가산(%p) — 공공주택 특별법 시행규칙 [별표 6] 제3호가목.
