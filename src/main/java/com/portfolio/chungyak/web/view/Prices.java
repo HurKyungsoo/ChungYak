@@ -37,6 +37,24 @@ public final class Prices {
         return (int) Math.round(manwon / (area / M2_PER_PYEONG));
     }
 
+    /**
+     * 목록 카드처럼 좁은 자리용 — 1억 이상은 억 단위 소수 한 자리(87000 → "8.7억", 50000 → "5억"),
+     * 그 아래는 만원(5000 → "5,000만"). 값이 없으면 {@code null}.
+     */
+    public static String compactManwon(Integer manwon) {
+        if (manwon == null || manwon <= 0) return null;
+        if (manwon < 10_000) return COMMA.format(manwon) + "만";
+        return java.math.BigDecimal.valueOf(manwon).movePointLeft(4)
+                .setScale(1, java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString() + "억";
+    }
+
+    /** 최저~최고 — 같으면 하나. 둘 다 없으면 {@code null} */
+    public static String compactRange(Integer min, Integer max) {
+        String lo = compactManwon(min), hi = compactManwon(max);
+        if (lo == null || hi == null) return lo != null ? lo : hi;
+        return lo.equals(hi) ? lo : lo + "~" + hi;
+    }
+
     /** 값이 없으면 {@code null} — 화면에서 "-" 로 대신한다. 지어내지 않는다. */
     public static String formatManwon(Integer manwon) {
         if (manwon == null || manwon <= 0) return null;

@@ -45,13 +45,20 @@ public class EligibilityResultAssembler {
     }
 
     /**
-     * 근거 카드 순서 — 충족 → 정보 필요 → 미충족. 안정 정렬이라 같은 묶음 안에서는 엔진 순서를 지킨다.
-     * 판정을 바꾸는 게 아니라 "넣을 수 있는 것"을 먼저 보이게 줄만 세운다.
+     * 근거 카드 순서 — 충족 → 정보 필요 → 미충족 → 이 공고에 배정이 없는 유형. 안정 정렬이라 같은 묶음 안에서는 엔진 순서를 지킨다.
+     * 판정을 바꾸는 게 아니라 "넣을 수 있는 것"을 먼저 보이게 줄만 세운다. 배정 없는 유형은 화면이 접어 둔다
+     * (민영 공고의 신혼희망타운처럼 이 공고와 상관없는 입력을 요구하는 카드가 앞에 섞였다).
      */
-    private static int cardOrder(EligibilityResultView.TypeDecision d) {
+    static int cardOrder(EligibilityResultView.TypeDecision d) {
+        if (noSupply(d)) return 3;
         if (d.eligible()) return 0;
         if (d.undetermined()) return 1;
         return 2;
+    }
+
+    /** 세대수를 아는 공고에서 이 유형 배정이 0 — 세대수를 모르는 공고(LH, null)는 해당 없음 */
+    public static boolean noSupply(EligibilityResultView.TypeDecision d) {
+        return d.allocatedInAnnouncement() != null && d.allocatedInAnnouncement() == 0;
     }
 
     private EligibilityResultView.MatchedUnitType toMatchedUnitType(UnitMatch match) {
@@ -66,7 +73,8 @@ public class EligibilityResultAssembler {
                 match.unitType().getSupplyArea(),
                 match.allocationCountKnown(),
                 match.totalAllocated(),
-                allocated);
+                allocated,
+                match.unitType().getTopAmount());
     }
 
     /**

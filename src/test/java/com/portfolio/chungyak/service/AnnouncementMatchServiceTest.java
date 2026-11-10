@@ -146,6 +146,39 @@ class AnnouncementMatchServiceTest {
         assertThat(matchService.badges(newlywedProfile())).isEmpty();
     }
 
+    @Test
+    @DisplayName("0건일 때 막은 요건: '그 요건 하나만 풀리면' 되는 유형이 있는 공고를 센다 — 처음부터 해당 없는 유형의 사유는 섞지 않는다")
+    void blockersCountPerRequirementKind() {
+        Announcement a = announcement("서울 신혼 A", LocalDate.now(CLOCK).plusDays(10));
+        a.addUnitType(unitType("084A", SupplyBreakdown.builder().newlywed(30).build()));
+        Announcement b = announcement("서울 신혼 B", LocalDate.now(CLOCK).plusDays(12));
+        b.addUnitType(unitType("084A", SupplyBreakdown.builder().newlywed(20).build()));
+        Announcement c = announcement("서울 다자녀만", LocalDate.now(CLOCK).plusDays(14));
+        c.addUnitType(unitType("114A", SupplyBreakdown.builder().multiChild(10).build()));
+        matchService = serviceWith(a, b, c);
+
+        ApplicantProfile busan = RuleTestSupport.passingIncomeAndAssets()
+                .married(true).monthsSinceMarriage(24).houseless(true).accountMonths(30)
+                .residenceRegion("부산").residenceMonthsInRegion(36)
+                .build();
+        assertThat(matchService.findMatching(busan)).isEmpty();
+
+        var blockers = matchService.blockers(busan);
+
+        assertThat(blockers.announcements()).isEqualTo(3);
+        // A·B: 신혼부부가 거주 하나만 걸린다
+        assertThat(blockers.blockers().get(0).label()).isEqualTo("거주");
+        assertThat(blockers.blockers().get(0).count()).isEqualTo(2);
+        assertThat(blockers.blockers().get(0).example()).contains("부산").contains("해당지역 거주자가 아닙니다");
+        // C: 다자녀는 자녀 수와 거주가 함께 걸려 요건 하나로 풀리지 않는다
+        assertThat(blockers.blockers())
+                .anySatisfy(x -> {
+                    assertThat(x.label()).isEqualTo(AnnouncementMatchService.SEVERAL);
+                    assertThat(x.count()).isEqualTo(1);
+                })
+                .noneMatch(x -> x.label().equals(AnnouncementMatchService.OWN_CONDITION));
+    }
+
     private AnnouncementMatchService serviceWith(Announcement... announcements) {
         AnnouncementRepository repo = mock(AnnouncementRepository.class);
         when(repo.findOpenWithUnitTypes(any())).thenReturn(List.of(announcements));

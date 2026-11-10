@@ -108,9 +108,9 @@
                       th:classappend="${row.status == '접수중'} ? 'open' : (${row.status == '접수예정'} ? 'soon' : '')"
                       th:text="${row.status}">접수중</span>
                 <span class="meta" th:unless="${row.lh}"
-                      th:text="|${row.regionName ?: '-'} · ${row.houseDetailTypeLabel}|">서울 · 민영</span>
+                      th:text="|${row.regionName ?: '-'}${row.district != null ? ' ' + row.district : ''} · ${row.houseDetailTypeLabel}|">서울 서초구 · 민영</span>
                 <span class="meta" th:if="${row.lh}"
-                      th:text="|${row.regionName ?: '-'} · LH ${row.supplyTypeName ?: row.houseDetailTypeLabel}|">경기도 · LH 국민임대</span>
+                      th:text="|${row.regionName ?: '-'}${row.district != null ? ' ' + row.district : ''} · LH ${row.supplyTypeName ?: row.houseDetailTypeLabel}|">경기 남양주시 · LH 국민임대</span>
                 <button type="button" class="scrap-btn" th:attr="data-ann-id=${row.id}" aria-label="찜하기"></button>
                 <span class="dday" th:if="${row.ddayLabel != null}"
                       th:classappend="${row.ddayUrgent} ? 'soon' : ''"
@@ -121,6 +121,8 @@
                  LH 는 특공 유형별 세대수를 원천이 주지 않아 합계 0 이 "물량 없음"이 아니다 —
                  특공 대신 구분·대기자 모집 여부·모집 세대수를 보여 준다. -->
             <div class="facts">
+                <!--/* 주택형마다 '최고' 공급금액이라(층·향 무관) 범위도 최고가들의 범위다 — CLAUDE.md 분양가 */-->
+                <span class="fact" th:if="${row.priceRange != null}" th:text="|분양가(최고) ${row.priceRange}|">분양가(최고) 5.2억~8.7억</span>
                 <span class="fact" th:if="${row.receptBeginDate != null}">접수
                     <span th:text="${row.receptBeginDate}">2026-01-01</span> ~
                     <span th:text="${row.receptEndDate} ?: '?'">2026-01-05</span>

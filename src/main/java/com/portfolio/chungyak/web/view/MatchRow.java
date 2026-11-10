@@ -1,6 +1,7 @@
 package com.portfolio.chungyak.web.view;
 
 import com.portfolio.chungyak.domain.Announcement;
+import com.portfolio.chungyak.domain.RegionNames;
 import com.portfolio.chungyak.rule.EligibilityEngine.MatchResult;
 import com.portfolio.chungyak.rule.EligibilityEngine.UnitMatch;
 
@@ -43,7 +44,7 @@ public record MatchRow(
         return new MatchRow(
                 a.getId(),
                 a.getDisplayName(),
-                a.getRegionName(),
+                RegionNames.canonical(a.getRegionName()),   // LH "경기도" → "경기" — 지역 필터와 같은 표기
                 a.getHouseDetailType() == null ? "-" : a.getHouseDetailType().getLabel(),
                 a.getReceptBeginDate(),
                 a.getReceptEndDate(),

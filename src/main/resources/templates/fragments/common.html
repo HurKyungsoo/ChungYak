@@ -857,6 +857,9 @@
         tbody td.wrap { white-space: normal; min-width: 200px; }
         /* "어느 유형으로" 참고 표 — 열이 셋뿐이라 좁은 화면에서도 줄바꿈해 한눈에 보이게 */
         .type-compare thead th, .type-compare tbody td { white-space: normal; padding: 10px 8px; }
+        /* 판정 근거 — 이 공고에 배정이 없는 유형 카드는 버튼으로 펼친다(스크립트가 이 클래스를 붙인다) */
+        .decision-grid.hide-no-supply .no-supply { display: none; }
+        #noSupplyToggle[hidden] { display: none; }
         tbody tr:last-child td { border-bottom: 0; }
         tbody tr:hover { background: var(--surface-2); }
         td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }

@@ -29,7 +29,9 @@ public record EligibilityResultView(
             String supplyArea,
             boolean allocationCountKnown,
             int totalAllocated,
-            List<AllocatedType> applicableTypes) {}
+            List<AllocatedType> applicableTypes,
+            /** 분양가(최고, 만원) — 없으면 null. 판정과 무관한 공고 데이터 */
+            Integer topAmount) {}
 
     public record AllocatedType(String typeLabel, int allocatedCount) {}
 

@@ -2,10 +2,13 @@ package com.portfolio.chungyak.service;
 
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.rule.ApplicantProfile;
+import com.portfolio.chungyak.rule.CommonRequirements;
 import com.portfolio.chungyak.rule.EligibilityEngine;
 import com.portfolio.chungyak.rule.EligibilityEngine.MatchResult;
+import com.portfolio.chungyak.rule.RequirementCheck;
 import com.portfolio.chungyak.web.view.FixableGroup;
 import com.portfolio.chungyak.web.view.ListBadge;
+import com.portfolio.chungyak.web.view.MatchBlockers;
 import com.portfolio.chungyak.web.view.MatchRow;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -81,6 +84,72 @@ public class AnnouncementMatchService {
                 .map(e -> new FixableGroup(e.getKey(), mergeTypesPerAnnouncement(e.getValue())))
                 .sorted(Comparator.comparingInt(FixableGroup::count).reversed())
                 .toList();
+    }
+
+    static final String OWN_CONDITION = "유형별 조건(혼인 기간·자녀 수·무주택 등)";
+    static final String MISSING_INPUT = "입력이 빠져 판정 보류";
+    static final String SEVERAL = "여러 요건이 함께 걸림";
+
+    /**
+     * 신청 가능한 공고가 없을 때 무엇이 막았는지(→ {@link MatchBlockers}). 이 공고에 물량이 있는 유형마다 걸린 요건 종류를
+     * 모아, <b>그 요건 하나만 풀리면 신청 가능해지는 유형</b>이 있는 공고를 그 요건으로 센다. 걸린 요건을 전부 세면
+     * "다자녀 아님"처럼 처음부터 해당 없는 유형의 사유가 실제로 막은 요건(예: 거주)과 같은 무게로 섞인다.
+     * 어느 유형도 요건 하나로 풀리지 않는 공고는 {@link #SEVERAL}. 판정은 엔진 결과 그대로다.
+     */
+    public MatchBlockers blockers(ApplicantProfile profile) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        Map<String, String> examples = new LinkedHashMap<>();
+        int total = 0;
+        for (Announcement announcement : queryService.findOpenOrUpcoming(null, null, null)) {
+            if (!announcement.isEligibilityTarget()) continue;
+            MatchResult result = eligibilityEngine.evaluate(profile, announcement);
+            if (result.hasAnyMatch()) continue;
+            var offered = java.util.Set.copyOf(announcement.visibleSupplyTypes());
+            if (offered.isEmpty()) continue;
+            total++;
+            Map<String, String> sole = new LinkedHashMap<>();   // 그것 하나만 걸린 요건 → 대표 문장
+            Map<String, String> any = new LinkedHashMap<>();
+            result.decisions().forEach((type, decision) -> {
+                if (!offered.contains(type) || decision.isEligible()) return;
+                Map<String, String> found = blockersOf(decision);
+                found.forEach(any::putIfAbsent);
+                if (found.size() == 1) found.forEach(sole::putIfAbsent);
+            });
+            Map<String, String> counted = sole.isEmpty()
+                    ? Map.of(SEVERAL, any.isEmpty() ? "" : any.values().iterator().next())
+                    : sole;
+            counted.forEach((label, example) -> {
+                counts.merge(label, 1, Integer::sum);
+                examples.putIfAbsent(label, example);
+            });
+        }
+        List<MatchBlockers.Blocker> list = counts.entrySet().stream()
+                .map(e -> new MatchBlockers.Blocker(e.getKey(), e.getValue(), examples.get(e.getKey())))
+                .sorted(Comparator.comparingInt(MatchBlockers.Blocker::count).reversed())
+                .toList();
+        return new MatchBlockers(total, list);
+    }
+
+    /** 한 유형 판정에서 걸린 요건 종류 → 대표 사유(엔진 문장). 공통 요건은 {@link CommonRequirements#KIND_ORDER} 순서로 이름을 붙인다. */
+    private static Map<String, String> blockersOf(com.portfolio.chungyak.rule.EligibilityDecision decision) {
+        Map<String, String> found = new LinkedHashMap<>();
+        List<RequirementCheck> common = decision.getCommonChecks();
+        java.util.Set<String> commonReasons = new java.util.HashSet<>();
+        for (int i = 0; i < common.size() && i < CommonRequirements.KIND_ORDER.size(); i++) {
+            RequirementCheck c = common.get(i);
+            commonReasons.add(c.reason());
+            if (c.status() == RequirementCheck.Status.FAIL) {
+                found.putIfAbsent(CommonRequirements.KIND_ORDER.get(i).getLabel(), c.reason());
+            }
+        }
+        decision.getFailedReasons().stream()
+                .filter(r -> !commonReasons.contains(r))
+                .findFirst()
+                .ifPresent(r -> found.putIfAbsent(OWN_CONDITION, r));
+        if (decision.isUndetermined()) {
+            found.putIfAbsent(MISSING_INPUT, decision.getMissingInputs().get(0));
+        }
+        return found;
     }
 
     /** 같은 보완으로 한 공고의 여러 유형이 열리면 한 줄로 — "A 공고 · 신혼부부, 생애최초" */

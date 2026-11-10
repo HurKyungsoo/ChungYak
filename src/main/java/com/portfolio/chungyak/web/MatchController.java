@@ -5,6 +5,7 @@ import com.portfolio.chungyak.llm.ProfileExtractionService;
 import com.portfolio.chungyak.rule.ApplicantProfile;
 import com.portfolio.chungyak.service.AnnouncementMatchService;
 import com.portfolio.chungyak.web.form.EligibilityForm;
+import com.portfolio.chungyak.web.view.MatchBlockers;
 import com.portfolio.chungyak.web.view.MatchRow;
 import com.portfolio.chungyak.web.view.MatchRowFilter;
 import lombok.RequiredArgsConstructor;
@@ -111,6 +112,8 @@ public class MatchController {
         model.addAttribute("rows", rows);
         model.addAttribute("matchedCount", matched.size());
         model.addAttribute("fixableGroups", matchService.fixableGroups(profile));
+        // 0건이면 무엇이 막았는지 — 집계는 서비스가, 여기는 언제 보일지만 정한다
+        model.addAttribute("blockers", matched.isEmpty() ? matchService.blockers(profile) : MatchBlockers.empty());
         model.addAttribute("regions", MatchRowFilter.regionsOf(matched));
         model.addAttribute("detailTypes", MatchRowFilter.typesOf(matched));
         model.addAttribute("sorts", MatchRowFilter.Sort.values());

@@ -43,7 +43,7 @@
                     <span>신청 가능한 주택형을 바로 확인하세요:</span>
                     <span class="unit-shortcuts" th:each="m, it : ${result.matchedUnitTypes}">
                         <a class="unit-shortcut" th:href="'#unit-' + ${m.typeName}"
-                           th:text="${m.typeName} + (${m.supplyArea != null} ? ' · ' + ${m.supplyArea} + '㎡' : '')">084.9730A · 84.97㎡</a>
+                           th:text="${T(com.portfolio.chungyak.web.view.UnitTypeLabels).shortName(m.typeName)} + (${m.topAmount != null} ? ' · ' + ${T(com.portfolio.chungyak.web.view.Prices).formatManwon(m.topAmount)} : '')">84A · 8억 7,000만원</a>
                         <span class="muted" th:unless="${it.last}">·</span>
                     </span>
                     <span th:if="${sc.applicable.?[count == null].size() > 0}">LH 공고는 유형별 세대수를 공개하지 않아 세대수를 적지 않았습니다.</span>
@@ -184,12 +184,17 @@
     <div class="table-scroll" th:if="${!result.matchedUnitTypes.isEmpty()}">
         <table>
             <thead>
-            <tr><th>주택형</th><th class="num">공급면적 <button type="button" class="area-toggle" data-area-toggle aria-label="면적 단위 바꾸기 (㎡/평)">㎡</button></th><th>신청 가능 유형 · 배정 세대</th><th class="num">합계</th></tr>
+            <tr><th>주택형</th><th class="num">공급면적 <button type="button" class="area-toggle" data-area-toggle aria-label="면적 단위 바꾸기 (㎡/평)">㎡</button></th><th class="num">분양가(최고)</th><th>신청 가능 유형 · 배정 세대</th><th class="num">합계</th></tr>
             </thead>
             <tbody>
             <tr th:each="m : ${result.matchedUnitTypes}" class="matched-unit-row" th:id="'unit-' + ${m.typeName}">
-                <td><strong th:text="${m.typeName}">084.9730A</strong><span class="unit-eligible-badge">내 조건 신청 가능</span></td>
-                <td class="num" th:attr="data-m2=${m.supplyArea}" th:text="${m.supplyArea} ?: '-'">84.97</td>
+                <td th:with="L=${T(com.portfolio.chungyak.web.view.UnitTypeLabels)}">
+                    <strong th:text="${L.shortName(m.typeName)}">84A</strong>
+                    <span class="muted" style="font-size:.75rem" th:if="${L.shortened(m.typeName)}" th:text="${m.typeName}">084.9730A</span>
+                    <span class="unit-eligible-badge">내 조건 신청 가능</span></td>
+                <td class="num" th:with="area=${T(com.portfolio.chungyak.web.view.UnitTypeLabels).area(m.supplyArea)}"
+                    th:attr="data-m2=${area}" th:text="${area} ?: '-'">113.13</td>
+                <td class="num" th:text="${T(com.portfolio.chungyak.web.view.Prices).formatManwon(m.topAmount)} ?: '-'">8억 7,000만원</td>
                 <td>
                     <span th:each="t, it : ${m.applicableTypes}" th:with="sep=${it.last} ? '' : ',  '">
                         <span th:if="${m.allocationCountKnown}"
@@ -292,9 +297,9 @@
     <!-- 근거 카드 (#19-1). 배지는 엔진 판정 그대로다: 자격 충족 / 정보 필요 / 지금은 불가 / 자격 미충족.
          "지금은 불가"는 엔진의 EligibilityDecision.isFixable()(미충족이 전부 기간·선택으로 메울 수 있음)일
          때만 — 화면이 미충족을 다시 나누지 않는다 (#19-1b). -->
-    <div class="decision-grid">
+    <div class="decision-grid" id="decisionGrid">
     <div th:each="d : ${result.allDecisions}" class="card decision-card" th:id="'decision-' + ${d.typeName}"
-         th:classappend="${d.undetermined} ? 'needs-info' : ''"
+         th:classappend="|${d.undetermined ? 'needs-info' : ''} ${T(com.portfolio.chungyak.web.view.EligibilityResultAssembler).noSupply(d) ? 'no-supply' : ''}|"
          th:with="blockedByCommon=${!d.eligible and !d.undetermined and d.ownFailedReasons.isEmpty() and d.ownMissingInputs.isEmpty()}">
         <div class="head">
             <strong th:text="${d.typeLabel}">유형</strong>
@@ -369,6 +374,35 @@
            class="muted" style="margin:6px 0 0">표시할 판정 근거가 없습니다.</p>
     </div>
     </div>
+    <!--/* 이 공고에 배정이 없는 유형은 접어 둔다 — 스크립트가 없으면 그대로 다 보인다 */-->
+    <th:block th:with="noSupplyCount=${result.allDecisions.?[allocatedInAnnouncement != null and allocatedInAnnouncement == 0].size()}">
+    <button type="button" class="btn btn-ghost" id="noSupplyToggle" hidden th:if="${noSupplyCount > 0}"
+            th:attr="data-count=${noSupplyCount}"
+            th:text="|이 공고에 배정이 없는 유형 ${noSupplyCount}개 보기|">이 공고에 배정이 없는 유형 2개 보기</button>
+    </th:block>
+    <script>
+        (function () {
+            var grid = document.getElementById('decisionGrid');
+            var toggle = document.getElementById('noSupplyToggle');
+            if (!grid || !toggle) return;
+            function show(hidden) {
+                grid.classList.toggle('hide-no-supply', hidden);
+                toggle.textContent = hidden
+                        ? '이 공고에 배정이 없는 유형 ' + toggle.dataset.count + '개 보기'
+                        : '배정이 없는 유형 접기';
+            }
+            // 위 요약의 #decision-… 링크가 접힌 카드를 가리키면 펼친다
+            function openIfTargeted() {
+                var t = location.hash && document.getElementById(location.hash.slice(1));
+                if (t && t.classList.contains('no-supply')) { show(false); t.scrollIntoView(); }
+            }
+            toggle.hidden = false;
+            show(true);
+            toggle.addEventListener('click', function () { show(!grid.classList.contains('hide-no-supply')); });
+            window.addEventListener('hashchange', openIfTargeted);
+            openIfTargeted();
+        })();
+    </script>
 
 
     <!-- ── 다음 단계 추천 (Next Steps CTA) ── -->

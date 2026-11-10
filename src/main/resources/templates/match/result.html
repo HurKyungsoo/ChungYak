@@ -61,10 +61,9 @@
             <div class="title"><span class="tag-revision" th:if="${row.corrected}">정정</span><span th:text="${row.houseName}">공고명</span></div>
             <div class="facts">
                 <span class="fact hl" th:each="label : ${row.matchedTypeLabels}" th:text="${label}">신혼부부</span>
-                <span class="fact" th:if="${row.bestUnitTypeName != null}"
-                      th:text="|가장 유리한 주택형: ${T(com.portfolio.chungyak.web.view.UnitTypeLabels).shortName(row.bestUnitTypeName)}|">가장 유리한 주택형: 084A</span>
-                <span class="fact" th:if="${row.allocationCountKnown}"
-                      th:text="|배정 ${#numbers.formatInteger(row.totalAllocated, 1, 'COMMA')}세대|">배정 35세대</span>
+                <!--/* 배정 세대가 가장 많은 주택형(EligibilityEngine.bestMatch) — 당첨 가능성·가격과는 무관해 "유리한"이라 부르지 않는다 */-->
+                <span class="fact" th:if="${row.bestUnitTypeName != null and row.allocationCountKnown}"
+                      th:text="|배정 최다 ${T(com.portfolio.chungyak.web.view.UnitTypeLabels).shortName(row.bestUnitTypeName)} · ${#numbers.formatInteger(row.totalAllocated, 1, 'COMMA')}세대|">배정 최다 84A · 35세대</span>
                 <span class="fact" th:if="${row.bestUnitTypeName != null and !row.allocationCountKnown}">배정 세대수 미상(LH)</span>
                 <span class="fact" th:if="${row.receptBeginDate != null}">접수
                     <span th:text="${row.receptBeginDate}">2026-01-01</span> ~
@@ -81,6 +80,22 @@
         입력하신 조건으로 지금 접수중·접수예정인 공고 중 신청 가능한 곳이 없습니다.
         조건을 다시 확인하거나, <a th:href="@{/announcements}">전체 공고 목록</a>에서 직접 살펴보세요.
     </div>
+    <!--/* 0건일 때 무엇이 막았는지 — 엔진이 남긴 미충족·판정 보류를 요건 종류별로 센 것(AnnouncementMatchService.blockers) */-->
+    <section class="card match-blockers" th:if="${rows.isEmpty() and matchedCount == 0 and !blockers.blockers().isEmpty()}">
+        <h3 style="margin:0 0 4px">무엇이 막았나요?</h3>
+        <p class="muted" style="margin:0 0 10px"
+           th:text="|접수중·접수예정 공고 ${blockers.announcements()}곳 중, 그 요건 하나만 풀리면 신청 가능한 유형이 생기는 공고 수입니다.|">…</p>
+        <ul class="reasons">
+            <li th:each="b : ${blockers.blockers()}" class="r-no">
+                <strong th:text="${b.label()}">거주</strong>
+                <span th:text="| · ${b.count()}곳|"> · 9곳</span>
+                <div class="muted" style="font-size:.8rem" th:text="|예: ${b.example()}|">예: …</div>
+            </li>
+        </ul>
+        <div class="btn-row" style="margin-top:10px">
+            <a th:href="@{/match}" class="btn btn-ghost">조건 다시 입력</a>
+        </div>
+    </section>
     <div class="empty" th:if="${rows.isEmpty() and matchedCount > 0}">
         신청 가능한 공고는 <strong th:text="${matchedCount}">3</strong>건 있지만 지금 고른 조건에는 맞는 게 없습니다.
         <div class="btn-row" style="justify-content:center;margin-top:12px">

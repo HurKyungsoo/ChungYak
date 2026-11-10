@@ -42,7 +42,7 @@ class ResultSummaryCardTest {
     private static MatchedUnitType unit(String typeName, boolean known, AllocatedType... types) {
         int total = 0;
         for (AllocatedType t : types) total += t.allocatedCount();
-        return new MatchedUnitType(typeName, "109.57", known, total, List.of(types));
+        return new MatchedUnitType(typeName, "109.57", known, total, List.of(types), null);
     }
 
     private static EligibilityResultView view(List<MatchedUnitType> units, List<TypeDecision> qbu,

@@ -199,7 +199,7 @@ class EligibilityResultAssemblerTest {
     }
 
     @Test
-    @DisplayName("근거 카드 순서: 충족 → 정보 필요 → 미충족 (판정 자체는 그대로, 개수도 그대로)")
+    @DisplayName("근거 카드 순서: 충족 → 정보 필요 → 미충족 → 이 공고 배정 없음 (판정 자체는 그대로, 개수도 그대로)")
     void ordersCardsEligibleFirst() {
         ApplicantProfile profile = passing()
                 .married(true).monthsSinceMarriage(100)   // 신혼부부 미충족
@@ -212,9 +212,10 @@ class EligibilityResultAssemblerTest {
 
         assertThat(view.allDecisions()).hasSize(result.decisions().size());
         List<Integer> ranks = view.allDecisions().stream()
-                .map(d -> d.eligible() ? 0 : d.undetermined() ? 1 : 2)
+                .map(d -> EligibilityResultAssembler.noSupply(d) ? 3 : d.eligible() ? 0 : d.undetermined() ? 1 : 2)
                 .toList();
         assertThat(ranks).isSorted();
-        assertThat(ranks).contains(0, 2);
+        assertThat(ranks).contains(0, 2, 3);   // 이 공고엔 청년·신혼희망타운 배정이 없다 → 맨 뒤
+        assertThat(view.allDecisions().get(view.allDecisions().size() - 1).allocatedInAnnouncement()).isZero();
     }
 }
