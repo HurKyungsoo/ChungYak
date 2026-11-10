@@ -109,6 +109,14 @@ class SpecialSupplyCompareServiceTest {
     }
 
     @Test
+    @DisplayName("충족 유형 어느 것도 지난 기록이 없으면(수집 전) 표를 만들지 않는다")
+    void noHistoryAtAll() {
+        when(mapper.pastSpecialSupplies(any(), any(), any(), any())).thenReturn(List.of());
+        assertThat(service.compare(announcement("X"), view(
+                decision("NEWLYWED", "신혼부부", true, 25), decision("FIRST_TIME", "생애최초", true, 21)))).isEmpty();
+    }
+
+    @Test
     @DisplayName("기록 조회가 실패해도 결과 화면은 표 없이 나온다")
     void mapperFailureHidesTable() {
         when(mapper.pastSpecialSupplies(any(), any(), any(), any())).thenThrow(new RuntimeException("db down"));

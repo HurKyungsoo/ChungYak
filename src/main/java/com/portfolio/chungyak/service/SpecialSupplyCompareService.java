@@ -86,6 +86,9 @@ public class SpecialSupplyCompareService {
                     enough ? median(r) : null, enough ? r.get(0) : null, enough ? r.get(r.size() - 1) : null,
                     r.size(), false));
         }
+        // 기록이 하나도 없으면(수집 전·기록 없는 지역) 표가 "기록 없음"만 늘어놓는다 — 빼고 결과만 보여 준다
+        if (rows.stream().allMatch(x -> x.samples() == 0)) return Optional.empty();
+
         List<Row> withMedian = rows.stream().filter(x -> x.median() != null).toList();
         if (withMedian.size() >= 2) {
             Row low = withMedian.stream().min(Comparator.comparingDouble(Row::median)).orElseThrow();
