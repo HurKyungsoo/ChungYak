@@ -346,6 +346,25 @@ class EligibilityEngineTest {
     }
 
     @Test
+    @DisplayName("다른 시·도에 살면 거주 기간이 길어도 해당지역 우선공급 대상이 아니다")
+    void otherSidoResidentIsNotLocal() {
+        ApplicantProfile seoul = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(24)
+                .residenceRegion("서울").residenceMonthsInRegion(36).build();
+        ApplicantProfile busan = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(24)
+                .residenceRegion("부산").residenceMonthsInRegion(36).build();
+
+        assertThat(engine.evaluate(seoul, regulatedAnnouncement)   // 서울·투기과열
+                .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
+        assertThat(engine.evaluate(busan, regulatedAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
+        assertThat(engine.evaluate(busan, regulatedAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED).getFailedReasons())
+                .anyMatch(r -> r.contains("부산") && r.contains("해당지역 거주자가 아닙니다"));
+    }
+
+    @Test
     @DisplayName("소득 정보가 없으면 판정 불가 — 무엇이 빠졌는지 알린다")
     void missingIncomeIsUndetermined() {
         ApplicantProfile noIncome = ApplicantProfile.builder()

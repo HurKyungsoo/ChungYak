@@ -103,6 +103,13 @@
                 <label class="field"><span class="lbl">가구원 수 (본인 포함) <span class="req-badge">필수</span></span>
                     <input type="number" min="1" th:field="*{householdSize}" placeholder="예: 3">
                 </label>
+                <label class="field"><span class="lbl">지금 사는 시·도</span>
+                    <select th:field="*{residenceRegion}">
+                        <option value="">선택 안 함</option>
+                        <option th:each="r : ${T(com.portfolio.chungyak.domain.RegionNames).SIDO}" th:value="${r}" th:text="${r}">서울</option>
+                    </select>
+                    <span class="hint">고르면 다른 시·도 공고는 해당지역 우선공급 대상이 아닌 것으로 봅니다 — 비우면 아래 거주 기간을 모든 공고에 똑같이 적용합니다</span>
+                </label>
                 <label class="field"><span class="lbl">해당 공급지역 계속 거주 기간 (개월) <span class="req-badge cond">규제지역 필수</span></span>
                     <input type="number" min="0" th:field="*{residenceMonthsInRegion}" data-since="이 지역 전입일" placeholder="예: 24">
                     <span class="hint">규제지역 공고는 24개월(투기과열 등), 그 외는 12개월 — 지금 실제로 거주 중인 지역 기준으로 적어주세요</span>

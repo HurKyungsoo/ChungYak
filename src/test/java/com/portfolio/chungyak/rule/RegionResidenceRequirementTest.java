@@ -71,4 +71,31 @@ class RegionResidenceRequirementTest {
         assertThat(req.check(residence(6), announcement("서울", true)).reason())
                 .contains("기타지역");
     }
+
+    private static ApplicantProfile livingIn(String region, Integer months) {
+        return ApplicantProfile.builder().residenceRegion(region).residenceMonthsInRegion(months).build();
+    }
+
+    @Test
+    @DisplayName("사는 시·도가 공고와 다르면 거주 기간과 상관없이 FAIL — 비규제·비수도권 공고도")
+    void otherSidoFailsEvenOutsideMetro() {
+        RequirementCheck c = req.check(livingIn("서울", 120), announcement("광주", false));
+        assertThat(c.status()).isEqualTo(Status.FAIL);
+        assertThat(c.reason()).contains("서울").contains("광주").contains("기타지역");
+    }
+
+    @Test
+    @DisplayName("같은 시·도에 살면 예전 규칙 그대로 — 비수도권은 확인하지 않고, 규제지역은 24개월 경계")
+    void sameSidoKeepsExistingRule() {
+        assertThat(req.check(livingIn("광주", null), announcement("광주", false)).status())
+                .isEqualTo(Status.PASS);
+        assertThat(req.check(livingIn("서울", 23), announcement("서울", true)).passed()).isFalse();
+        assertThat(req.check(livingIn("서울", 24), announcement("서울", true)).passed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("공고 지역이 긴 표기(LH '경기도')여도 같은 시·도로 본다")
+    void longRegionNameIsSameSido() {
+        assertThat(req.check(livingIn("경기", 12), announcement("경기도", false)).passed()).isTrue();
+    }
 }

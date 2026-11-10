@@ -59,6 +59,9 @@ public class EligibilityForm {
     /** 세대주 여부 */
     private boolean householdHead;
 
+    /** 지금 사는 시·도 ("서울", "경기" — 공고 지역과 같은 표기). 비우면 거주 기간만 본다. */
+    private String residenceRegion;
+
     /** 해당 공급지역 계속 거주 기간 (개월) */
     private Integer residenceMonthsInRegion;
 
@@ -128,6 +131,7 @@ public class EligibilityForm {
                 .everOwnedHouseOnlySpouseBeforeMarriage(everOwnedHouse && everOwnedHouseOnlySpouseBeforeMarriage)
                 .supportingOldParents(supportingOldParents)
                 .householdHead(householdHead)
+                .residenceRegion(residenceRegion == null || residenceRegion.isBlank() ? null : residenceRegion)
                 .residenceMonthsInRegion(residenceMonthsInRegion)
                 .monthlyHouseholdIncome(monthlyHouseholdIncome)
                 .householdSize(householdSize)
@@ -178,6 +182,9 @@ public class EligibilityForm {
 
     public boolean isHouseholdHead() { return householdHead; }
     public void setHouseholdHead(boolean householdHead) { this.householdHead = householdHead; }
+
+    public String getResidenceRegion() { return residenceRegion; }
+    public void setResidenceRegion(String residenceRegion) { this.residenceRegion = residenceRegion; }
 
     public Integer getResidenceMonthsInRegion() { return residenceMonthsInRegion; }
     public void setResidenceMonthsInRegion(Integer residenceMonthsInRegion) { this.residenceMonthsInRegion = residenceMonthsInRegion; }
