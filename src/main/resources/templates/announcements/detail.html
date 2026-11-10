@@ -108,9 +108,12 @@
     <section class="card tint" th:if="${announcement.notJudgedReason() != null}" aria-label="판정 대상 아님 안내"
              th:with="why=${announcement.notJudgedReason().name()}">
         <h2 style="margin:0 0 6px" th:if="${why == 'REMAINDER'}" th:text="${announcement.houseType.label} + ' 공고입니다'">무순위 공고입니다</h2>
+        <h2 style="margin:0 0 6px" th:if="${why == 'RENTAL'}">임대주택 공고입니다</h2>
         <h2 style="margin:0 0 6px" th:if="${why == 'OPEN_SALE'}">일반매각·선착순 공급입니다</h2>
         <h2 style="margin:0 0 6px" th:if="${why == 'REQUIREMENTS_WAIVED'}">소득·자산을 보지 않는 공급입니다</h2>
         <p style="margin:0 0 6px" th:if="${why == 'REMAINDER'}">무순위·잔여세대 공고는 <strong>특별공급이 없어</strong> 이 서비스의 특별공급 자격 판정 대상이 아닙니다.</p>
+        <p style="margin:0 0 6px" th:if="${why == 'RENTAL'}">임대주택은 소득·자산 기준과 입주자 선정 방식(순위·배점·순번)이
+            분양 특별공급과 달라 <strong>이 서비스가 자격을 판정하지 않습니다</strong>.</p>
         <p style="margin:0 0 6px" th:if="${why == 'OPEN_SALE'}">청약 순위·특별공급 없이 파는 공고라 <strong>소득·자산·청약통장 요건이 없습니다</strong> —
             이 서비스의 특별공급 자격 판정 대상이 아닙니다.</p>
         <p style="margin:0 0 6px" th:if="${why == 'REQUIREMENTS_WAIVED'}">공고문에 <strong>소득·자산 요건(과 청약저축·당첨 이력)을 불문</strong>한다고

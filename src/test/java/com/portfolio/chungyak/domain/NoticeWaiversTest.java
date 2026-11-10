@@ -49,7 +49,7 @@ class NoticeWaiversTest {
     }
 
     @Test
-    @DisplayName("판정 대상: 무순위·LH 일반매각·선착순·소득자산 불문 공고는 빠지고, 청약홈 공고 제목의 '선착순'은 보지 않는다")
+    @DisplayName("판정 대상: 무순위·임대·LH 일반매각·선착순·소득자산 불문 공고는 빠지고, 청약홈 공고 제목의 '선착순'은 보지 않는다")
     void eligibilityTarget() {
         Announcement lhSale = Announcement.builder().externalId("LH-1").houseName("중동 경남아너스빌 잔여세대 일반매각 공고(선착순)").build();
         Announcement applyhome = Announcement.builder().externalId("2026000001").houseName("○○ 선착순 분양").build();
@@ -62,6 +62,15 @@ class NoticeWaiversTest {
         assertThat(applyhome.isEligibilityTarget()).isTrue();
         assertThat(waived.notJudgedReason()).isEqualTo(Announcement.NotJudgedReason.REQUIREMENTS_WAIVED);
         assertThat(remainder.notJudgedReason()).isEqualTo(Announcement.NotJudgedReason.REMAINDER);
+        Announcement rental = Announcement.builder().externalId("LH-4").houseName("광주두암4 영구임대주택 예비입주자모집")
+                .supplyCategory(SupplyCategory.RENTAL).supplyTypeName("영구임대").build();
+        Announcement hopeRental = Announcement.builder().externalId("LH-5").houseName("구리갈매역세권 A-1BL 신혼희망타운 행복주택")
+                .supplyCategory(SupplyCategory.HOPE_TOWN).supplyTypeName("행복주택(신혼희망)").build();
+        Announcement hopeSale = Announcement.builder().externalId("LH-6").houseName("안산신길2 A-6블록 신혼희망타운(공공분양)")
+                .supplyCategory(SupplyCategory.HOPE_TOWN).supplyTypeName("공공분양(신혼희망)").build();
+        assertThat(rental.notJudgedReason()).isEqualTo(Announcement.NotJudgedReason.RENTAL);
+        assertThat(hopeRental.notJudgedReason()).isEqualTo(Announcement.NotJudgedReason.RENTAL);   // 상위 구분은 신혼희망이지만 임대
+        assertThat(hopeSale.isEligibilityTarget()).isTrue();
         Announcement unchecked = Announcement.builder().externalId("LH-3").houseName("남양주왕숙 A-2블록 신혼희망타운 잔여세대 추가입주자모집공고").build();
         assertThat(unchecked.isEligibilityTarget()).isTrue();   // 공고문을 아직 못 봤으면(null) 예전처럼 판정한다
     }

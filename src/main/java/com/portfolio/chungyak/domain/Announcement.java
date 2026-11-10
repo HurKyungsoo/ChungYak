@@ -293,12 +293,23 @@ public class Announcement {
     /** 판정 대상이 아닌 이유 — 화면 안내용. 판정 대상이면 null */
     public NotJudgedReason notJudgedReason() {
         if (isRemainder()) return NotJudgedReason.REMAINDER;
+        if (isRental()) return NotJudgedReason.RENTAL;
         if (isLh() && NoticeWaivers.isOpenSaleTitle(houseName)) return NotJudgedReason.OPEN_SALE;
         if (Boolean.TRUE.equals(requirementsWaived)) return NotJudgedReason.REQUIREMENTS_WAIVED;
         return null;
     }
 
-    public enum NotJudgedReason { REMAINDER, OPEN_SALE, REQUIREMENTS_WAIVED }
+    public enum NotJudgedReason { REMAINDER, RENTAL, OPEN_SALE, REQUIREMENTS_WAIVED }
+
+    /**
+     * 임대주택 공고인지 — 국민·영구·행복·공공·매입·통합공공임대. 임대는 소득·자산 기준과 선정 방식(순위·배점·순번)이 분양
+     * 특별공급과 달라 이 서비스의 규칙으로 판정하면 틀린다(CLAUDE.md: 임대 판정 규칙 미구현). LH 상위 코드 39(신혼희망) 아래
+     * "행복주택(신혼희망)"은 구분이 신혼희망타운으로 오므로 세부 유형 이름으로도 본다.
+     */
+    public boolean isRental() {
+        if (supplyCategory == SupplyCategory.RENTAL) return true;
+        return isLh() && supplyTypeName != null && (supplyTypeName.contains("임대") || supplyTypeName.contains("행복주택"));
+    }
 
     /**
      * 자격 판단 기준일 — 공고문의 입주자모집공고일이 있으면 그것, 없으면 공고일. 매년 바뀌는 기준 금액(YearlyFigure)과
