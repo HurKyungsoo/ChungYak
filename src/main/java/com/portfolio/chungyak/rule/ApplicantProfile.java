@@ -79,6 +79,20 @@ public class ApplicantProfile {
     /** 맞벌이 여부. 맞벌이는 소득 기준이 완화된다(예: 100% → 120%). */
     private final boolean dualIncome;
 
+    // ── 청년 특별공급 — 본인 기준으로 본다(YouthRule). 비우면 1인 가구일 때만 가구 값을 본인 값으로 쓴다 ──
+
+    /** 본인 월평균소득 (원, 세전) */
+    private final Integer personalMonthlyIncome;
+
+    /** 본인 총자산 (원, 부동산·자동차·금융·일반자산 − 부채) */
+    private final Long personalTotalAssets;
+
+    /** 부모 총자산 (원, 부동산·자동차·금융·일반자산 − 부채) */
+    private final Long parentsTotalAssets;
+
+    /** 본인 명의로 주택을 가진 적이 없다 — 세대원(부모 등)이 주택을 가져도 청년 특공에선 본인만 본다 */
+    private final boolean selfNeverOwnedHouse;
+
     /** 총자산 (원). 공공주택 특별공급만 자산 요건이 있다(민영은 소득만). */
     private final Long totalAssets;
 

@@ -70,8 +70,14 @@ public final class RuleTestSupport {
             new CommonRequirements(RE_WIN, INCOME, ASSET, ACCOUNT, RESIDENCE);
     public static final NewlywedHopeTownProperties HOPE_TOWN = new NewlywedHopeTownProperties(362_000_000L);
 
+    /** application.yml youth-supply 와 같게(2026-10 공고문 2건) */
+    public static final YouthSupplyProperties YOUTH = new YouthSupplyProperties(19, 39, 140,
+            new YouthSupplyProperties.Amounts(3_813_363L, 276_000_000L, 1_035_000_000L, 311_000_000L, 345_000_000L,
+                    "2026년도", null, null));
+
     public static List<EligibilityRule> allRules() {
         return List.of(
+                new com.portfolio.chungyak.rule.rules.YouthRule(YOUTH, REQUIREMENTS, RE_WIN, RESIDENCE),
                 new NewlywedRule(COMMON),
                 new FirstTimeRule(COMMON),
                 new MultiChildRule(COMMON),

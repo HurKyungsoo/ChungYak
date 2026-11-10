@@ -65,6 +65,18 @@ public class EligibilityForm {
     /** 해당 공급지역 계속 거주 기간 (개월) */
     private Integer residenceMonthsInRegion;
 
+    // ── 청년 특별공급(본인 기준) ──
+    /** 만 나이 */
+    private Integer age;
+    /** 본인 월평균소득 (원, 세전) */
+    private Integer personalMonthlyIncome;
+    /** 본인 총자산 (원) */
+    private Long personalTotalAssets;
+    /** 부모 총자산 (원) */
+    private Long parentsTotalAssets;
+    /** 본인 명의로 주택을 가진 적이 없다 */
+    private boolean selfNeverOwnedHouse;
+
     /** 가구 월평균소득 (원, 세전) */
     private Integer monthlyHouseholdIncome;
 
@@ -133,6 +145,11 @@ public class EligibilityForm {
                 .householdHead(householdHead)
                 .residenceRegion(residenceRegion == null || residenceRegion.isBlank() ? null : residenceRegion)
                 .residenceMonthsInRegion(residenceMonthsInRegion)
+                .age(age)
+                .personalMonthlyIncome(personalMonthlyIncome)
+                .personalTotalAssets(personalTotalAssets)
+                .parentsTotalAssets(parentsTotalAssets)
+                .selfNeverOwnedHouse(selfNeverOwnedHouse)
                 .monthlyHouseholdIncome(monthlyHouseholdIncome)
                 .householdSize(householdSize)
                 .dualIncome(dualIncome)
@@ -185,6 +202,21 @@ public class EligibilityForm {
 
     public String getResidenceRegion() { return residenceRegion; }
     public void setResidenceRegion(String residenceRegion) { this.residenceRegion = residenceRegion; }
+
+    public Integer getAge() { return age; }
+    public void setAge(Integer age) { this.age = age; }
+
+    public Integer getPersonalMonthlyIncome() { return personalMonthlyIncome; }
+    public void setPersonalMonthlyIncome(Integer personalMonthlyIncome) { this.personalMonthlyIncome = personalMonthlyIncome; }
+
+    public Long getPersonalTotalAssets() { return personalTotalAssets; }
+    public void setPersonalTotalAssets(Long personalTotalAssets) { this.personalTotalAssets = personalTotalAssets; }
+
+    public Long getParentsTotalAssets() { return parentsTotalAssets; }
+    public void setParentsTotalAssets(Long parentsTotalAssets) { this.parentsTotalAssets = parentsTotalAssets; }
+
+    public boolean isSelfNeverOwnedHouse() { return selfNeverOwnedHouse; }
+    public void setSelfNeverOwnedHouse(boolean selfNeverOwnedHouse) { this.selfNeverOwnedHouse = selfNeverOwnedHouse; }
 
     public Integer getResidenceMonthsInRegion() { return residenceMonthsInRegion; }
     public void setResidenceMonthsInRegion(Integer residenceMonthsInRegion) { this.residenceMonthsInRegion = residenceMonthsInRegion; }

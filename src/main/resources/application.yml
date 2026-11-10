@@ -226,6 +226,28 @@ newlywed-hope-town:
   # previous:
   #   - { amount: 362000000, basis: "2026년도" }
 
+# 청년 특별공급(공공주택 특별법 공공분양) — rule/rules/YouthRule. 본인 소득·본인/부모 총자산으로 본다.
+# 출처: 2026-10 청약홈 공공분양 공고문 2건(제주 삼도이동 토지임대부 2026000435 · 경기 광교 지분적립형 2026000527) 원문 —
+# "19세 이상~39세 이하로 혼인 중이 아니며, 과거 주택을 소유한 사실이 없는 무주택자", 본인 소득 ≤ 도시근로자 1인 가구 140%
+# (5,338,708원), 총자산 본인 276백만원·부모 1,035백만원(출생 자녀 1명 311백만원, 2명 이상 345백만원). 두 공고가 같다.
+# 출생 자녀 소득 가산(+10/+20%p)은 special-supply.birth-bonus 를 같이 쓴다.
+youth-supply:
+  age-min: 19
+  age-max: 39
+  income-percent: 140
+  amounts:
+    single-person-monthly-average: 3813363     # 2025년도 도시근로자 1인 가구 월평균소득 100% (140% = 5,338,708원)
+    self-asset-limit: 276000000
+    parents-asset-limit: 1035000000
+    birth-one-self-asset-limit: 311000000
+    birth-two-or-more-self-asset-limit: 345000000
+    basis: "2026년도"
+    # 새 해 금액: 지금 값을 previous 로 옮기고 applies-from 에 새 값을 쓰기 시작한 공고일(rule/YearlyFigure)
+    # applies-from: 2027-03-01
+    # previous:
+    #   - { single-person-monthly-average: 3813363, self-asset-limit: 276000000, parents-asset-limit: 1035000000,
+    #       birth-one-self-asset-limit: 311000000, birth-two-or-more-self-asset-limit: 345000000, basis: "2026년도" }
+
 # 재당첨 제한 기간 (주택공급규칙 제54조). 개월.
 re-win-restriction:
   speculation-area-months: 120   # 투기과열지구·청약과열지역 당첨 10년

@@ -154,7 +154,7 @@ public class IncomeRequirement {
     }
 
     /** 0: 2023. 3. 28. 이후 출생 자녀 없음, 1: 그 자녀만 1명, 2: 2명 이상이거나 그 전 자녀도 있음 — 소득 가산·자산 완화 공통 */
-    static int birthTier(ApplicantProfile profile) {
+    public static int birthTier(ApplicantProfile profile) {
         int recent = profile.getChildrenBornSince20230328() == null ? 0 : Math.max(0, profile.getChildrenBornSince20230328());
         if (recent == 0) return 0;
         boolean older = profile.getChildCount() > recent;

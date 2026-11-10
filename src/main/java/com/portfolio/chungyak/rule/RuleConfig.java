@@ -14,7 +14,8 @@ import org.springframework.context.annotation.Configuration;
         AccountRequirementProperties.class,
         RegionResidenceRequirementProperties.class,
         NewlywedHopeTownProperties.class,
-        GeneralSupplyLotteryProperties.class
+        GeneralSupplyLotteryProperties.class,
+        YouthSupplyProperties.class
 })
 public class RuleConfig {
 }

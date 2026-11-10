@@ -1758,7 +1758,8 @@
         try { draft = JSON.parse(localStorage.getItem('chungyak:profileDraft') || 'null'); } catch (e) { return; }
         if (!draft) return;
 
-        var MONEY = ['monthlyHouseholdIncome', 'totalAssets', 'realEstateValue', 'carValue', 'accountDeposit'];
+        var MONEY = ['monthlyHouseholdIncome', 'totalAssets', 'realEstateValue', 'carValue', 'accountDeposit',
+                     'personalMonthlyIncome', 'personalTotalAssets', 'parentsTotalAssets'];
         var body = new URLSearchParams();
         Object.keys(draft).forEach(function (name) {
             var v = draft[name];
@@ -1850,7 +1851,8 @@
         try { draft = JSON.parse(localStorage.getItem('chungyak:profileDraft') || 'null'); } catch (e) { return; }
         if (!draft) return;
 
-        var MONEY = ['monthlyHouseholdIncome', 'totalAssets', 'realEstateValue', 'carValue', 'accountDeposit'];
+        var MONEY = ['monthlyHouseholdIncome', 'totalAssets', 'realEstateValue', 'carValue', 'accountDeposit',
+                     'personalMonthlyIncome', 'personalTotalAssets', 'parentsTotalAssets'];
         var body = new URLSearchParams();
         Object.keys(draft).forEach(function (name) {
             var v = draft[name];

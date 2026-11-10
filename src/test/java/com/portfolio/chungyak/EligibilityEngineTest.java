@@ -365,6 +365,28 @@ class EligibilityEngineTest {
     }
 
     @Test
+    @DisplayName("청년 특별공급 — 공공 공고에 청년 배정이 있으면 미혼 1인 가구 청년이 신청 가능, 혼인 중이면 아니다")
+    void youthSupply() {
+        Announcement youthAnn = Announcement.builder()
+                .externalId("Y").houseManageNo("Y").pblancNo("Y").houseName("청년 배정 공공분양")
+                .houseType(HouseType.APT).houseDetailType(HouseDetailType.PUBLIC).regionName("제주")
+                .regulationFlags(RegulationFlags.builder().publicHousingSpecialLaw(true).build())
+                .build();
+        youthAnn.addUnitType(UnitType.builder().modelNo("01").typeName("059.9900A")
+                .specialSupplyCount(6).supplyBreakdown(SupplyBreakdown.builder().youth(6).build()).build());
+        ApplicantProfile youth = ApplicantProfile.builder()
+                .married(false).age(29).houseless(true).accountMonths(12).accountPaymentCount(12)
+                .householdSize(1).monthlyHouseholdIncome(4_000_000).totalAssets(100_000_000L).parentsTotalAssets(500_000_000L)
+                .build();
+
+        assertThat(engine.evaluate(youth, youthAnn).decisions().get(SpecialSupplyType.YOUTH).isEligible()).isTrue();
+        assertThat(engine.evaluate(youth, youthAnn).hasAnyMatch()).isTrue();
+        ApplicantProfile married = ApplicantProfile.builder().married(true).monthsSinceMarriage(12).age(29).houseless(true)
+                .accountMonths(12).accountPaymentCount(12).householdSize(2).monthlyHouseholdIncome(4_000_000).build();
+        assertThat(engine.evaluate(married, youthAnn).decisions().get(SpecialSupplyType.YOUTH).isEligible()).isFalse();
+    }
+
+    @Test
     @DisplayName("소득 정보가 없으면 판정 불가 — 무엇이 빠졌는지 알린다")
     void missingIncomeIsUndetermined() {
         ApplicantProfile noIncome = ApplicantProfile.builder()

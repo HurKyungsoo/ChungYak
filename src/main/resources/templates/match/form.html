@@ -143,6 +143,36 @@
                 <span>맞벌이다 <span class="hint" style="display:inline">— 소득 기준이 완화됨</span></span></label>
         </fieldset>
 
+        <!--/* 청년 특별공급(공공분양 일부) — 본인·부모 기준이라 따로 묻는다. 해당 없으면 펼치지 않아도 된다 */-->
+        <fieldset data-match-step="3">
+            <details>
+                <summary><strong>청년 특별공급</strong> <span class="muted">— 19~39세이고 혼인 중이 아니면 펼쳐 주세요</span></summary>
+            <p class="muted" style="margin:2px 0 10px">19~39세이고 혼인 중이 아닌 분만 해당합니다. 청년 특별공급은 세대가 아니라
+                <strong>본인</strong>의 소득·주택, <strong>본인과 부모</strong>의 총자산을 따로 봅니다 — 1인 가구면 위 가구 소득·총자산을 본인 값으로 씁니다.</p>
+            <label class="check"><input type="checkbox" th:field="*{selfNeverOwnedHouse}">
+                <span>본인 명의로 주택을 가진 적이 없다 <span class="hint" style="display:inline">— 부모 등 세대원이 주택을 가져도 본인 명의가 아니면 해당</span></span></label>
+            <div class="field-grid">
+                <label class="field"><span class="lbl">만 나이</span>
+                    <input type="number" min="0" th:field="*{age}" placeholder="예: 29">
+                </label>
+                <label class="field"><span class="lbl">본인 월평균소득 (원, 세전)</span>
+                    <input type="text" inputmode="numeric" th:field="*{personalMonthlyIncome}" placeholder="예: 3,500,000" class="currency-input">
+                    <span class="currency-helper"></span>
+                </label>
+                <label class="field"><span class="lbl">본인 총자산 (원)</span>
+                    <input type="text" inputmode="numeric" th:field="*{personalTotalAssets}" placeholder="예: 50,000,000" class="currency-input">
+                    <span class="currency-helper"></span>
+                    <span class="hint">부동산·자동차·금융·일반자산 − 부채</span>
+                </label>
+                <label class="field"><span class="lbl">부모 총자산 (원)</span>
+                    <input type="text" inputmode="numeric" th:field="*{parentsTotalAssets}" placeholder="예: 600,000,000" class="currency-input">
+                    <span class="currency-helper"></span>
+                    <span class="hint">부모 두 분 합계 — 부동산·자동차·금융·일반자산 − 부채</span>
+                </label>
+            </div>
+            </details>
+        </fieldset>
+
         <!-- 재당첨 제한은 해당자가 드물어 접어 둔다 (#46). 접혀 있어도 칸은 폼에 그대로 있고 기본값(당첨 이력 없음)으로
              판정된다 — 규칙 엔진 입력의 뜻은 바뀌지 않는다. 값이 있으면(되돌아옴·저장된 조건·AI 채움) 펼친다. -->
         <fieldset data-match-step="3">
