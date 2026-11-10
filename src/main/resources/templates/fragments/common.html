@@ -855,6 +855,8 @@
         tbody td { padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: top;
                    white-space: nowrap; }
         tbody td.wrap { white-space: normal; min-width: 200px; }
+        /* "어느 유형으로" 참고 표 — 열이 셋뿐이라 좁은 화면에서도 줄바꿈해 한눈에 보이게 */
+        .type-compare thead th, .type-compare tbody td { white-space: normal; padding: 10px 8px; }
         tbody tr:last-child td { border-bottom: 0; }
         tbody tr:hover { background: var(--surface-2); }
         td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }

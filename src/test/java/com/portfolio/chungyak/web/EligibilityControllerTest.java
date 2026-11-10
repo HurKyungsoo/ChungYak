@@ -69,7 +69,8 @@ class EligibilityControllerTest {
 
         mockMvc = MockMvcBuilders.standaloneSetup(new EligibilityController(
                 queryService, engine, assembler, extraction, explanationService, incomeReference,
-                new EligibilityResultStore(), applicationService)).build();
+                new EligibilityResultStore(), applicationService,
+                org.mockito.Mockito.mock(com.portfolio.chungyak.service.SpecialSupplyCompareService.class))).build();
     }
 
     @Test

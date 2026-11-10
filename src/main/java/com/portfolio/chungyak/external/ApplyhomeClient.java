@@ -278,7 +278,8 @@ public class ApplyhomeClient implements AnnouncementSource {
      * 특공 유형 ↔ 신청현황 필드 접미사 (CLAUDE.md "데이터에서 확인된 사실"). 배정은 {@code <접미사>_HSHLDCO},
      * 신청은 {@code CRSPAREA_/CTPRVN_/ETC_AREA_<접미사>_CNT}. 노부모만 배정 필드 이름이 다르다.
      */
-    private static final Map<SpecialSupplyType, String[]> SPSPLY_FIELDS = Map.of(
+    // package-private: 특공 신청현황 기록 수집(ApplyhomeCompetitionClient)도 같은 대응표를 쓴다
+    static final Map<SpecialSupplyType, String[]> SPSPLY_FIELDS = Map.of(
             SpecialSupplyType.MULTI_CHILD, new String[]{"MNYCH_HSHLDCO", "MNYCH_CNT"},
             SpecialSupplyType.NEWLYWED, new String[]{"NWWDS_NMTW_HSHLDCO", "NWWDS_NMTW_CNT"},
             SpecialSupplyType.FIRST_TIME, new String[]{"LFE_FRST_HSHLDCO", "LFE_FRST_CNT"},

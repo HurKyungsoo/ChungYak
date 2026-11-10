@@ -244,6 +244,35 @@
     </div>
     </th:block>
 
+    <!--/* 충족 유형이 여럿일 때 "어느 유형으로 넣을까" — 과거 기록(청약홈 특공 신청현황)일 뿐 판정·추천이 아니다 */-->
+    <section class="type-compare" th:if="${typeCompare != null}">
+        <h2>어느 유형으로 넣을까요? <span class="badge">참고</span></h2>
+        <p class="muted">특별공급은 한 공고에 <strong>한 유형으로만</strong> 신청합니다. 충족한 유형마다 이 공고의 배정 세대와,
+            <span th:text="|최근 ${typeCompare.months()}개월 ${typeCompare.region()} ${typeCompare.scope()} 공고|">최근 12개월 서울 민영 공고</span>에서
+            유형별로 배정 1세대에 몇 건이 신청했는지(신청 ÷ 배정)를 나란히 보여 드립니다.</p>
+        <div class="table-scroll">
+            <table>
+                <thead><tr><th>유형</th><th class="num">이번 배정</th><th class="num">지난 기록 (중앙값)</th></tr></thead>
+                <tbody>
+                <tr th:each="r : ${typeCompare.rows()}">
+                    <td><strong th:text="${r.typeLabel()}">신혼부부</strong>
+                        <br th:if="${r.lowest()}"><span class="chip hl" th:if="${r.lowest()}">가장 낮음</span></td>
+                    <td class="num" th:text="|${#numbers.formatInteger(r.allocated(), 1, 'COMMA')}세대|">25세대</td>
+                    <td class="num" th:if="${r.median() != null}">
+                        <strong th:text="|${#numbers.formatDecimal(r.median(), 1, 'COMMA', 1, 'POINT')}배|">12.3배</strong><br>
+                        <span class="muted" style="font-size:.78rem"
+                              th:text="|${#numbers.formatDecimal(r.min(), 1, 'COMMA', 1, 'POINT')}~${#numbers.formatDecimal(r.max(), 1, 'COMMA', 1, 'POINT')}배 · 공고 ${r.samples()}개|">4.1~30.2배 · 공고 8개</span></td>
+                    <td class="num muted" th:if="${r.median() == null}"
+                        th:text="${r.samples() == 0} ? '기록 없음' : |기록 부족 (공고 ${r.samples()}개)|">기록 부족</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="muted" style="font-size:.8rem">청약홈 특별공급 신청현황 집계(해당·시도·기타지역 신청 합)입니다. 유형마다 당첨자를 고르는 방식
+            (가점·추첨·소득 우선 등)이 달라 배수가 낮다고 당첨이 쉽다는 뜻은 아니고, 단지마다 차이가 큽니다(중앙값 아래 범위 참고).
+            판정과는 무관하며 공고문의 유형별 선정 방식을 함께 확인하세요.</p>
+    </section>
+
     <h2>판정 근거</h2>
     <!--/* 설명 두 문단은 접어 둔다(#46 "표 읽는 법"과 같은 방식) — 카드가 먼저 보이게 */-->
     <details class="table-help">

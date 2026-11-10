@@ -4,6 +4,7 @@ import com.portfolio.chungyak.external.ApplyhomeCompetitionClient;
 import com.portfolio.chungyak.external.ApplyhomeCompetitionClient.Page;
 import com.portfolio.chungyak.external.CompetitionRecords.Rate;
 import com.portfolio.chungyak.external.CompetitionRecords.Score;
+import com.portfolio.chungyak.external.CompetitionRecords.SpecialSupply;
 import com.portfolio.chungyak.external.PublicDataProperties;
 import com.portfolio.chungyak.mapper.CompetitionMapper;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
- * 당첨가점·경쟁률 기록 수집 (#34) — 매일 04:30(공고 수집 04:00 뒤). 표가 비어 있으면 전체(≈86회 호출), 아니면 최신 몇 페이지만.
+ * 당첨가점·경쟁률·특공 신청현황 기록 수집 (#34) — 매일 04:30(공고 수집 04:00 뒤). 표가 비어 있으면 전체(≈86회 호출), 아니면 최신 몇 페이지만.
  *
  * API 는 최신 공고 순이다. 받은 공고는 그 공고의 행을 통째로 바꾼다(발표 뒤 값이 채워지거나 고쳐진다). 마지막 페이지 끝에
  * 걸친 공고는 행이 잘렸을 수 있어 이번엔 건드리지 않는다 — 다음 배치나 전체 수집이 채운다.
@@ -39,7 +40,7 @@ public class CompetitionSyncService {
     private final PublicDataProperties properties;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
-    public record Report(int scoreRows, int rateRows, int houses, boolean full) {}
+    public record Report(int scoreRows, int rateRows, int houses, boolean full, int specialSupplyRows) {}
 
     @Scheduled(cron = "0 30 4 * * *", zone = "Asia/Seoul")
     public void syncDaily() {
@@ -53,7 +54,7 @@ public class CompetitionSyncService {
 
     @Transactional
     public Report sync() {
-        if (!client.isEnabled() || !running.compareAndSet(false, true)) return new Report(0, 0, 0, false);
+        if (!client.isEnabled() || !running.compareAndSet(false, true)) return new Report(0, 0, 0, false, 0);
         try {
             boolean full = mapper.countScores() == 0;
             var a = properties.getApplyhome();
@@ -63,11 +64,18 @@ public class CompetitionSyncService {
             Map<String, List<Score>> scores = collect(client::fetchScores, Score::houseManageNo, maxPages, perPage);
             Map<String, List<Rate>> rates = collect(client::fetchRates, Rate::houseManageNo, maxPages, perPage);
 
+            // 특공 신청현황은 표가 따로 비어 있을 수 있다(나중에 추가된 표) — 비었으면 이것만 전체(≈13회 호출)
+            int specialPages = mapper.countSpecialSupplies() == 0 ? Integer.MAX_VALUE : maxPages;
+            Map<String, List<SpecialSupply>> specials =
+                    collect(client::fetchSpecialSupplies, SpecialSupply::houseManageNo, specialPages, perPage);
+
             replace(scores, mapper::deleteScores, mapper::insertScores);
             replace(rates, mapper::deleteRates, mapper::insertRates);
+            replace(specials, mapper::deleteSpecialSupplies, mapper::insertSpecialSupplies);
             int scoreRows = scores.values().stream().mapToInt(List::size).sum();
             int rateRows = rates.values().stream().mapToInt(List::size).sum();
-            return new Report(scoreRows, rateRows, scores.size(), full);
+            int specialRows = specials.values().stream().mapToInt(List::size).sum();
+            return new Report(scoreRows, rateRows, scores.size(), full, specialRows);
         } finally {
             running.set(false);
         }

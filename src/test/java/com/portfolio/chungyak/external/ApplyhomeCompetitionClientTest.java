@@ -58,4 +58,29 @@ class ApplyhomeCompetitionClientTest {
         assertThat(client.isEnabled()).isFalse();
         assertThat(client.fetchScores(1, 100).rows()).isEmpty();
     }
+
+    @Test
+    @DisplayName("특공 신청현황 — 유형마다 한 행, 신청은 해당·시도·기타지역 합, 문자열 숫자도 읽고 빈 유형은 뺀다")
+    void specialSupplies() throws Exception {
+        byte[] body = java.nio.file.Files.readAllBytes(
+                java.nio.file.Path.of("src/test/resources/fixtures/applyhome-spsply-status.json"));
+
+        var rows = client.parseSpecialSupplies(body).rows();
+
+        // 2026000374 051.9931B 생애최초 1세대에 2,461 + 0 + 489 = 2,950건 (CLAUDE.md 라이브 확인 예)
+        assertThat(rows).anySatisfy(r -> {
+            assertThat(r.houseType()).isEqualTo("051.9931B");
+            assertThat(r.supplyType()).isEqualTo("FIRST_TIME");
+            assertThat(r.households()).isEqualTo(1);
+            assertThat(r.applications()).isEqualTo(2950);
+        });
+        // "120"(문자열) + 30
+        assertThat(rows).anySatisfy(r -> {
+            assertThat(r.houseType()).isEqualTo("059.9800A");
+            assertThat(r.supplyType()).isEqualTo("FIRST_TIME");
+            assertThat(r.applications()).isEqualTo(150);
+        });
+        assertThat(rows).noneMatch(r -> r.houseType().equals("084.9700C"));   // 유형 값이 하나도 없는 주택형
+        assertThat(rows).allMatch(r -> r.houseManageNo().equals("2026000374"));
+    }
 }

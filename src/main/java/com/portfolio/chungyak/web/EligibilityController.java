@@ -10,6 +10,7 @@ import com.portfolio.chungyak.rule.EligibilityEngine.MatchResult;
 import com.portfolio.chungyak.rule.IncomeReference;
 import com.portfolio.chungyak.service.AnnouncementQueryService;
 import com.portfolio.chungyak.service.SpecialSupplyApplicationService;
+import com.portfolio.chungyak.service.SpecialSupplyCompareService;
 import com.portfolio.chungyak.web.form.EligibilityForm;
 import com.portfolio.chungyak.web.view.CommonRequirementRail;
 import com.portfolio.chungyak.web.view.EligibilityResultAssembler;
@@ -63,6 +64,7 @@ public class EligibilityController {
     private final IncomeReference incomeReference;
     private final EligibilityResultStore resultStore;
     private final SpecialSupplyApplicationService applicationService;
+    private final SpecialSupplyCompareService compareService;
 
     @GetMapping("/announcements/{id}/eligibility")
     public String form(@PathVariable Long id, Model model) {
@@ -181,6 +183,8 @@ public class EligibilityController {
         model.addAttribute("incomeBasisYear", incomeReference.basisYear());
         // 특공 유형별 신청 현황 — 판정과 무관한 참고 정보(#33). 접수 전·LH 는 비어 있다.
         model.addAttribute("applications", applicationService.forAnnouncement(announcement));
+        // 충족 유형이 여럿일 때 "어느 유형으로" 참고 표 — 과거 기록일 뿐, 판정·추천이 아니다
+        model.addAttribute("typeCompare", compareService.compare(announcement, view).orElse(null));
         return "announcements/eligibility-result";
     }
 

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.portfolio.chungyak.external.CompetitionRecords.Rate;
 import com.portfolio.chungyak.external.CompetitionRecords.Score;
+import com.portfolio.chungyak.external.CompetitionRecords.SpecialSupply;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -52,6 +53,13 @@ public class ApplyhomeCompetitionClient {
 
     public Page<Rate> fetchRates(int page, int perPage) {
         return fetch(properties.getApplyhome().getCompetitionRateUrl(), page, perPage, this::parseRates);
+    }
+
+    /** 특공 신청현황 전체(최신 공고 순) — 공고 하나씩 묻는 {@link ApplyhomeClient#fetchSpecialSupplyApplications} 와 같은 API */
+    public Page<SpecialSupply> fetchSpecialSupplies(int page, int perPage) {
+        String url = properties.getApplyhome().getSpecialSupplyStatusUrl();
+        if (!notBlank(url)) return Page.empty();
+        return fetch(url, page, perPage, this::parseSpecialSupplies);
     }
 
     private interface Parser<T> {
@@ -103,6 +111,39 @@ public class ApplyhomeCompetitionClient {
             }
         }
         return new Page<>(out, root.path("totalCount").asInt(0));
+    }
+
+    /** 유형마다 한 행 — 배정·신청이 모두 0 인 유형은 뺀다. 숫자가 아닌 값이 있으면 그 주택형만 스킵. */
+    Page<SpecialSupply> parseSpecialSupplies(byte[] body) throws Exception {
+        JsonNode root = objectMapper.readTree(body);
+        List<SpecialSupply> out = new ArrayList<>();
+        for (JsonNode r : root.path("data")) {
+            try {
+                String house = text(r, "HOUSE_MANAGE_NO");
+                String type = text(r, "HOUSE_TY");
+                List<SpecialSupply> rows = new ArrayList<>();
+                ApplyhomeClient.SPSPLY_FIELDS.forEach((supplyType, f) -> {
+                    int households = number(r, f[0]);
+                    int applications = number(r, "CRSPAREA_" + f[1]) + number(r, "CTPRVN_" + f[1]) + number(r, "ETC_AREA_" + f[1]);
+                    if (households > 0 || applications > 0) {
+                        rows.add(new SpecialSupply(house, type, supplyType.name(), households, applications));
+                    }
+                });
+                out.addAll(rows);
+            } catch (RuntimeException e) {
+                log.debug("특공 신청현황 행 스킵: {}", e.getMessage());
+            }
+        }
+        return new Page<>(out, root.path("totalCount").asInt(0));
+    }
+
+    /** 숫자 또는 숫자 문자열 → int. 없거나 빈 값은 0, 숫자가 아니면 예외(그 행 스킵). */
+    private static int number(JsonNode r, String field) {
+        JsonNode v = r.path(field);
+        if (v.isMissingNode() || v.isNull()) return 0;
+        if (v.isNumber()) return v.asInt();
+        String t = v.asText().replace(",", "").strip();
+        return t.isEmpty() ? 0 : Integer.parseInt(t);
     }
 
     private static String text(JsonNode r, String field) {

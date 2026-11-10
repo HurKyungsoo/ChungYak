@@ -2,6 +2,7 @@ package com.portfolio.chungyak.mapper;
 
 import com.portfolio.chungyak.external.CompetitionRecords.Rate;
 import com.portfolio.chungyak.external.CompetitionRecords.Score;
+import com.portfolio.chungyak.external.CompetitionRecords.SpecialSupply;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -109,4 +110,47 @@ public interface CompetitionMapper {
                AND a.revision_state = 'CURRENT'
                AND a.notice_date >= #{from} AND a.notice_date < #{to}""")
     List<PastNoticeUnit> pastNoticeUnits(@Param("region") String region, @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    // ── 특별공급 신청현황 기록 — 판정 결과의 "어느 유형으로 넣을지" 참고 ──
+
+    @Select("SELECT COUNT(*) FROM special_supply_history")
+    long countSpecialSupplies();
+
+    @Delete("""
+            <script>
+            DELETE FROM special_supply_history WHERE house_manage_no IN
+            <foreach item="h" collection="houses" open="(" separator="," close=")">#{h}</foreach>
+            </script>""")
+    int deleteSpecialSupplies(@Param("houses") Collection<String> houseManageNos);
+
+    @Insert("""
+            <script>
+            INSERT INTO special_supply_history (house_manage_no, house_type, supply_type, households, applications) VALUES
+            <foreach item="s" collection="rows" separator=",">
+            (#{s.houseManageNo}, #{s.houseType}, #{s.supplyType}, #{s.households}, #{s.applications})
+            </foreach>
+            </script>""")
+    int insertSpecialSupplies(@Param("rows") List<SpecialSupply> rows);
+
+    /** 과거 공고 하나의 유형별 합계(주택형을 더한 값) */
+    record PastSpecialSupply(String houseManageNo, String supplyType, int households, int applications) {}
+
+    /**
+     * 같은 시도·같은 공고 구분(민영/국민)에서 [from, to) 사이에 나온 청약홈 공고(무순위·정정 전·취소 제외)의
+     * 특공 유형별 배정·신청 합계. 민영과 국민은 소득 기준·배정 구조가 달라 섞지 않는다.
+     */
+    @Select("""
+            SELECT a.house_manage_no AS houseManageNo, h.supply_type AS supplyType,
+                   SUM(h.households) AS households, SUM(h.applications) AS applications
+              FROM announcement a
+              JOIN special_supply_history h ON h.house_manage_no = a.house_manage_no
+             WHERE a.external_id NOT LIKE 'LH-%'
+               AND a.region_name = #{region}
+               AND a.house_detail_type = #{detailType}
+               AND (a.supply_category IS NULL OR a.supply_category <> 'REMAINDER')
+               AND a.revision_state = 'CURRENT'
+               AND a.notice_date >= #{from} AND a.notice_date < #{to}
+             GROUP BY a.house_manage_no, h.supply_type""")
+    List<PastSpecialSupply> pastSpecialSupplies(@Param("region") String region, @Param("detailType") String detailType,
+                                                @Param("from") LocalDate from, @Param("to") LocalDate to);
 }

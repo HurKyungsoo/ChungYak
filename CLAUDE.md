@@ -181,6 +181,9 @@
     저장은 `competition_score`·`competition_rate`(V12, **첫 MyBatis 매퍼** `mapper/CompetitionMapper`), 수집은
     `CompetitionSyncService` 매일 04:30(표가 비면 전체 ≈86회, 아니면 최신 3페이지) · 수동 `POST /api/admin/competition/sync`.
     화면은 청약홈 민영 분양 공고 상세의 "○○ 최근 당첨 기록 (참고)" — 판정(`rule/`)과 무관.
+    특공 신청현황도 같은 배치로 `special_supply_history`(V14, 주택형 × 유형 배정·신청)에 쌓는다(표가 비면 전체 ≈13회).
+    판정 결과에서 충족 유형이 2개 이상이면 `SpecialSupplyCompareService` 가 같은 시도 × 같은 공고 구분(민영/국민) × 12개월
+    공고별 "신청 ÷ 배정" 중앙값·범위를 보여 준다("어느 유형으로 넣을까요? 참고", 공고 3개 미만은 기록 부족) — 판정·추천 아님.
 - **LH 공급 API 의 금액 필드는 유형에 따라 다르다** (2026-10-13 라이브, 최근 공고 400건 유형별 3건씩):
   10년 공공임대(`SPL_INF_TP_CD=060`, `dsList02`)만 주택형별 `LS_GMY`(임대보증금, 원)·`MM_RFE`(월임대료, 원)가 숫자.
   분양(050)·신혼희망 분양(390)은 `SIL_AMT`(분양가, 원 → `topAmount` 만원으로 이미 수집). 국민·영구·행복·통합공공임대·
