@@ -45,7 +45,7 @@
             <label class="check"><input type="checkbox" th:field="*{married}" id="marriedCheck"> <span>혼인 중이다</span></label>
             <div class="field-grid">
                 <label class="field" id="marriageMonthsField"><span class="lbl">혼인신고일로부터 경과 개월 <span class="req-badge">필수</span></span>
-                    <input type="number" min="0" th:field="*{monthsSinceMarriage}" placeholder="예: 36">
+                    <input type="number" min="0" th:field="*{monthsSinceMarriage}" data-since="혼인신고일" placeholder="예: 36">
                     <span class="hint">신혼부부 특공은 84개월 이내 — 비우면 신혼부부만 판정 불가</span>
                 </label>
                 <label class="field"><span class="lbl">미성년 자녀 수</span>
@@ -79,7 +79,7 @@
             <legend>청약통장</legend>
             <div class="field-grid">
                 <label class="field"><span class="lbl">가입 기간 (개월) <span class="req-badge">필수</span></span>
-                    <input type="number" min="0" th:field="*{accountMonths}" placeholder="예: 12">
+                    <input type="number" min="0" th:field="*{accountMonths}" data-since="통장 가입일" placeholder="예: 12">
                     <span class="hint">비규제 6개월 / 규제지역 24개월 — 신생아 특공은 확인하지 않음</span>
                 </label>
                 <label class="field"><span class="lbl">납입 횟수 <span class="req-badge cond">국민주택 필수</span></span>
@@ -104,7 +104,7 @@
                     <input type="number" min="1" th:field="*{householdSize}" placeholder="예: 3">
                 </label>
                 <label class="field"><span class="lbl">해당 공급지역 계속 거주 기간 (개월) <span class="req-badge cond">규제지역 필수</span></span>
-                    <input type="number" min="0" th:field="*{residenceMonthsInRegion}" placeholder="예: 24">
+                    <input type="number" min="0" th:field="*{residenceMonthsInRegion}" data-since="이 지역 전입일" placeholder="예: 24">
                     <span class="hint">규제지역 공고는 24개월(투기과열 등), 그 외는 12개월 — 지금 실제로 거주 중인 지역 기준으로 적어주세요</span>
                 </label>
             </div>
@@ -115,7 +115,7 @@
             <p class="muted" style="margin:2px 0 10px">금액은 서버에 30분만 머물고 지워집니다(다시 채우려고 이 브라우저에는 저장).</p>
             <div class="field-grid">
                 <label class="field"><span class="lbl">가구 월평균소득 (원, 세전) <span class="req-badge">필수</span></span>
-                    <input type="text" inputmode="numeric" th:field="*{monthlyHouseholdIncome}" placeholder="예: 6,000,000" class="currency-input">
+                    <input type="text" inputmode="numeric" th:field="*{monthlyHouseholdIncome}" data-annual-helper placeholder="예: 6,000,000" class="currency-input">
                     <span class="currency-helper"></span>
                 </label>
                 <label class="field"><span class="lbl">세대 부동산 가액 (원) <span class="req-badge cond">공공주택 필수</span></span>
@@ -160,7 +160,7 @@
                 <span>과거 당첨 주택이 투기과열지구·청약과열지역이었다
                     <span class="hint" style="display:inline">— 제한 기간 10년</span></span></label>
             <label class="field" id="lastWinMonthsField" style="max-width:280px"><span class="lbl">마지막 당첨일로부터 경과 개월 <span class="req-badge cond">투기과열지구 체크 시 필수</span></span>
-                <input type="number" min="0" th:field="*{monthsSinceLastWin}" placeholder="예: 40">
+                <input type="number" min="0" th:field="*{monthsSinceLastWin}" data-since="마지막 당첨일" placeholder="예: 40">
                 <span class="hint">투기과열지구를 체크했다면 채워 주세요 — 비우면 판정 불가</span>
             </label>
             </details>
@@ -184,6 +184,7 @@
 </main>
 
 <script th:replace="~{fragments/common :: currencyInputScript}"></script>
+<script th:replace="~{fragments/common :: periodIncomeHelperScript}"></script>
 <script>
     (function () {
         var form = document.getElementById('matchForm');

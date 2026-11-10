@@ -705,6 +705,13 @@
             margin-top: 2px; display: block; min-height: 1.1em;
         }
 
+        /* ── 기간·연봉 보조 입력 (periodIncomeHelperScript) ─────────── */
+        .alt-input { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
+                     margin-top: 6px; font-size: .8rem; color: var(--text-muted); }
+        .alt-input input { width: auto; min-width: 150px; padding: 6px 8px; font-size: .85rem; }
+        .alt-input output { flex-basis: 100%; color: var(--brand); font-weight: 650; min-height: 1.1em; }
+        .alt-input output.warn { color: var(--warn); }
+
         /* ── buttons ───────────────────────────────────────────────── */
         .btn {
             display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -2445,6 +2452,116 @@
                 inputs.forEach(function (i) {
                     if (i.form === form && i.name) e.formData.set(i.name, digitsOf(i.value));
                 });
+            });
+        });
+    })();
+</script>
+
+<!-- ── 기간·연봉 보조 입력 ──
+     사람들은 "2022년 5월 혼인신고", "연봉 7,200만원"으로 기억하는데 폼은 개월 수·월소득을 받는다.
+     날짜·연봉 칸을 덧붙여 개월 수·월소득을 계산해 원래 칸에 채워 줄 뿐이다 — 서버로 가는 값과 판정은 그대로다.
+     보조 칸에는 name 이 없어 제출·임시 저장되지 않는다. 계산 결과는 원래 칸에 보이므로 사용자가 확인·수정한다.
+     기준일: 폼의 data-period-base(공고별 판정 = 모집공고일). 없으면 오늘 — 여러 공고를 보는 조건 찾기. ── -->
+<script th:fragment="periodIncomeHelperScript">
+    (function () {
+        function pad(n) { return (n < 10 ? '0' : '') + n; }
+        function isoOf(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+        function parseIso(v) {
+            var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || '');
+            return m ? { y: +m[1], m: +m[2], d: +m[3] } : null;
+        }
+        /** 꽉 찬 개월 수 — 기준일의 '일'이 시작일의 '일'보다 앞이면 한 달이 덜 찼다 */
+        function fullMonths(from, to) {
+            var months = (to.y - from.y) * 12 + (to.m - from.m);
+            if (to.d < from.d) months--;
+            return months;
+        }
+        function digitsOf(v) { return String(v == null ? '' : v).replace(/[^0-9]/g, ''); }
+        function withCommas(d) { return d ? Number(d).toLocaleString('ko-KR') : ''; }
+        function fire(input) { input.dispatchEvent(new Event('input', { bubbles: true })); }
+
+        document.querySelectorAll('input[data-since]').forEach(function (target) {
+            var form = target.form;
+            var baseIso = form && form.getAttribute('data-period-base');
+            var base = parseIso(baseIso) || parseIso(isoOf(new Date()));
+            var baseText = parseIso(baseIso) ? '모집공고일(' + baseIso + ') 기준' : '오늘 기준';
+
+            var box = document.createElement('span');
+            box.className = 'alt-input';
+            var caption = document.createElement('span');
+            caption.textContent = '또는 ' + target.getAttribute('data-since') + ' 날짜로:';
+            var date = document.createElement('input');
+            date.type = 'date';
+            date.max = base.y + '-' + pad(base.m) + '-' + pad(base.d);
+            date.setAttribute('aria-label', target.getAttribute('data-since'));
+            var out = document.createElement('output');
+            box.appendChild(caption); box.appendChild(date); box.appendChild(out);
+            target.insertAdjacentElement('afterend', box);
+
+            var filling = false;
+            var filledByDate = false;
+            function setTarget(value) {
+                filling = true;
+                target.value = value;
+                fire(target);
+                filling = false;
+            }
+            date.addEventListener('change', function () {
+                var from = parseIso(date.value);
+                var months = from ? fullMonths(from, base) : null;
+                out.classList.remove('warn');
+                if (months == null || months < 0) {
+                    // 앞서 날짜로 채운 값이 남으면 경고와 다른 숫자가 제출된다 — 그 값만 비운다
+                    if (filledByDate) { setTarget(''); filledByDate = false; }
+                    out.textContent = months == null ? '' : '기준일보다 뒤의 날짜예요';
+                    if (months != null) out.classList.add('warn');
+                    return;
+                }
+                setTarget(months);
+                filledByDate = true;
+                out.textContent = '→ ' + months + '개월로 채웠어요 (' + baseText + ')';
+            });
+            // 개월 칸을 손으로 고치면 날짜와 어긋나므로 날짜 쪽을 비운다
+            target.addEventListener('input', function () {
+                if (filling) return;
+                filledByDate = false;
+                if (!date.value) return;
+                date.value = '';
+                out.textContent = '';
+            });
+        });
+
+        document.querySelectorAll('input[data-annual-helper]').forEach(function (target) {
+            var box = document.createElement('span');
+            box.className = 'alt-input';
+            var caption = document.createElement('span');
+            caption.textContent = '또는 연봉으로(가구 합계, 세전):';
+            var annual = document.createElement('input');
+            annual.type = 'text';
+            annual.inputMode = 'numeric';
+            annual.placeholder = '예: 72,000,000';
+            annual.setAttribute('aria-label', '가구 연소득');
+            var out = document.createElement('output');
+            box.appendChild(caption); box.appendChild(annual); box.appendChild(out);
+            var helper = target.parentElement.querySelector('.currency-helper');
+            (helper || target).insertAdjacentElement('afterend', box);
+
+            var filling = false;
+            annual.addEventListener('input', function () {
+                var digits = digitsOf(annual.value);
+                annual.value = withCommas(digits);
+                if (!digits) { out.textContent = ''; return; }
+                var monthly = Math.round(Number(digits) / 12);
+                filling = true;
+                target.value = withCommas(String(monthly));
+                fire(target);
+                filling = false;
+                out.textContent = '→ 월평균 ' + withCommas(String(monthly)) + '원으로 채웠어요 (÷12)';
+            });
+            target.addEventListener('input', function () {
+                if (filling || !annual.value) return;
+                annual.value = '';
+                out.textContent = '';
             });
         });
     })();
