@@ -179,6 +179,26 @@ class AnnouncementMatchServiceTest {
                 .noneMatch(x -> x.label().equals(AnnouncementMatchService.OWN_CONDITION));
     }
 
+    @Test
+    @DisplayName("판정하지 않은 공고를 사유별로 센다 — 많은 순")
+    void countsNotJudged() {
+        Announcement sale = announcement("분양", LocalDate.now(CLOCK).plusDays(10));
+        sale.addUnitType(unitType("084A", SupplyBreakdown.builder().newlywed(10).build()));
+        Announcement rental1 = Announcement.builder().externalId("LH-1").houseName("국민임대").supplyCategory(SupplyCategory.RENTAL)
+                .receptEndDate(LocalDate.now(CLOCK).plusDays(5)).build();
+        Announcement rental2 = Announcement.builder().externalId("LH-2").houseName("영구임대").supplyCategory(SupplyCategory.RENTAL)
+                .receptEndDate(LocalDate.now(CLOCK).plusDays(5)).build();
+        Announcement remainder = Announcement.builder().externalId("R").houseName("무순위").supplyCategory(SupplyCategory.REMAINDER)
+                .receptEndDate(LocalDate.now(CLOCK).plusDays(5)).build();
+        matchService = serviceWith(sale, rental1, rental2, remainder);
+
+        var counts = matchService.notJudgedCounts();
+
+        assertThat(counts).containsExactly(
+                java.util.Map.entry(Announcement.NotJudgedReason.RENTAL, 2L),
+                java.util.Map.entry(Announcement.NotJudgedReason.REMAINDER, 1L));
+    }
+
     private AnnouncementMatchService serviceWith(Announcement... announcements) {
         AnnouncementRepository repo = mock(AnnouncementRepository.class);
         when(repo.findOpenWithUnitTypes(any())).thenReturn(List.of(announcements));

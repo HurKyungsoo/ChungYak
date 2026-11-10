@@ -129,6 +129,21 @@
         </div>
     </section>
 
+    <!--/* 판정하지 않은 공고 — 결과에서 조용히 빠지지 않게 사유별로 밝힌다(AnnouncementMatchService.notJudgedCounts).
+         임대·무순위·선착순은 자격 기준이 분양 특별공급과 달라 이 서비스가 판정하지 않는다 */-->
+    <section class="card not-judged" th:if="${notJudged != null and !notJudged.isEmpty()}" aria-label="판정하지 않은 공고"
+             th:with="total=${#aggregates.sum(notJudged.values())}">
+        <h3 style="margin:0 0 4px" th:text="|판정하지 않은 공고 ${total}건|">판정하지 않은 공고 69건</h3>
+        <p class="muted" style="margin:0 0 10px">접수중·접수예정 공고 중 아래는 자격 기준이 분양 특별공급과 달라 위 결과에 넣지 않았습니다 —
+            공고문에서 직접 확인하세요.</p>
+        <div class="chips">
+            <a class="chip" th:each="e : ${notJudged}"
+               th:href="${e.key.name() == 'RENTAL'} ? @{/announcements(category='RENTAL')} + '#list'
+                        : (${e.key.name() == 'REMAINDER'} ? @{/announcements(category='REMAINDER')} + '#list' : @{/announcements} + '#list')"
+               th:text="|${e.key.label} ${e.value}건|">임대 45건</a>
+        </div>
+    </section>
+
     <div th:replace="~{fragments/common :: disclaimer}"></div>
 </main>
 

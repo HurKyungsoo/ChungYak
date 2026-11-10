@@ -38,7 +38,9 @@ public record AnnouncementListRow(
         /** 시·군·구 (주소에서) — 없으면 null */
         String district,
         /** 주택형별 분양가(최고)의 최저~최고, "5.2억~8.7억" — 값이 없으면 null */
-        String priceRange) {
+        String priceRange,
+        /** 특별공급 판정 대상이 아니면 그 이유(임대·무순위 등) — 카드에 "판정 안 함"을 밝혀 배지가 없는 까닭을 알린다 */
+        String notJudgedLabel) {
 
     public static AnnouncementListRow of(Announcement a, String status, LocalDate today) {
         int specialSum = a.getUnitTypes().stream()
@@ -72,6 +74,7 @@ public record AnnouncementListRow(
                 a.isRemainder(),
                 a.isCorrection(),
                 Addresses.district(a.getAddress()),
-                prices.getCount() == 0 ? null : Prices.compactRange(prices.getMin(), prices.getMax()));
+                prices.getCount() == 0 ? null : Prices.compactRange(prices.getMin(), prices.getMax()),
+                a.notJudgedReason() == null ? null : a.notJudgedReason().getLabel());
     }
 }

@@ -11,8 +11,8 @@
             <span class="eyebrow"><i class="live-dot" aria-hidden="true"></i>스마트 청약 자격 진단</span>
             <h1>내 조건에 맞는 청약 공고를<br>찾아드립니다</h1>
             <p class="lead">
-                특별공급부터 일반공급·임대·무순위까지, 내 조건에 맞는 공고를 한눈에 확인하세요.
-                판정은 AI 추측이 아니라 공식 청약 기준대로 합니다.
+                분양 공고의 특별공급 자격을 내 조건으로 판정하고, 임대·무순위 공고도 한곳에서 확인하세요.
+                판정은 AI 추측이 아니라 공식 청약 기준대로 합니다 — 임대·무순위·선착순은 기준이 달라 판정하지 않고 공고문으로 안내합니다.
             </p>
             <!-- 주 행동 하나만 (#46). 캘린더·가점 계산은 머리 메뉴(넓은 화면)·아래 탭바(좁은 화면)에 늘 있어
                  여기서 한 번 더 늘어놓지 않는다. -->
@@ -123,6 +123,8 @@
             <div class="facts">
                 <!--/* 주택형마다 '최고' 공급금액이라(층·향 무관) 범위도 최고가들의 범위다 — CLAUDE.md 분양가 */-->
                 <span class="fact" th:if="${row.priceRange != null}" th:text="|분양가(최고) ${row.priceRange}|">분양가(최고) 5.2억~8.7억</span>
+                <!--/* 판정 대상이 아닌 공고(Announcement.notJudgedReason) — 내 자격 배지가 붙지 않는 까닭 */-->
+                <span class="fact zero" th:if="${row.notJudgedLabel != null}" th:text="|자격 판정 안 함 · ${row.notJudgedLabel}|">자격 판정 안 함 · 임대</span>
                 <span class="fact" th:if="${row.receptBeginDate != null}">접수
                     <span th:text="${row.receptBeginDate}">2026-01-01</span> ~
                     <span th:text="${row.receptEndDate} ?: '?'">2026-01-05</span>

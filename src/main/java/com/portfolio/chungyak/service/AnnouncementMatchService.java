@@ -86,6 +86,23 @@ public class AnnouncementMatchService {
                 .toList();
     }
 
+    /**
+     * 접수중·접수예정 공고 중 특별공급 판정 대상이 아닌 것 — 사유별 개수(많은 순). 조건 찾기 결과에서 빠진 공고를
+     * 조용히 숨기지 않고 "판정하지 않은 공고 N건"으로 밝히려고. 판정이 아니라 공고 구분만 센다.
+     */
+    public Map<Announcement.NotJudgedReason, Long> notJudgedCounts() {
+        Map<Announcement.NotJudgedReason, Long> counts = new java.util.EnumMap<>(Announcement.NotJudgedReason.class);
+        for (Announcement a : queryService.findOpenOrUpcoming(null, null, null)) {
+            var reason = a.notJudgedReason();
+            if (reason != null) counts.merge(reason, 1L, Long::sum);
+        }
+        Map<Announcement.NotJudgedReason, Long> sorted = new LinkedHashMap<>();
+        counts.entrySet().stream()
+                .sorted(Map.Entry.<Announcement.NotJudgedReason, Long>comparingByValue().reversed())
+                .forEach(e -> sorted.put(e.getKey(), e.getValue()));
+        return sorted;
+    }
+
     static final String OWN_CONDITION = "유형별 조건(혼인 기간·자녀 수·무주택 등)";
     static final String MISSING_INPUT = "입력이 빠져 판정 보류";
     static final String SEVERAL = "여러 요건이 함께 걸림";

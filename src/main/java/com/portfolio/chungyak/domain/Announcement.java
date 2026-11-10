@@ -299,7 +299,23 @@ public class Announcement {
         return null;
     }
 
-    public enum NotJudgedReason { REMAINDER, RENTAL, OPEN_SALE, REQUIREMENTS_WAIVED }
+    /** 판정 대상이 아닌 이유 — label 은 목록·조건 찾기에 그대로 쓴다 */
+    public enum NotJudgedReason {
+        REMAINDER("무순위·잔여세대"),
+        RENTAL("임대"),
+        OPEN_SALE("일반매각·선착순"),
+        REQUIREMENTS_WAIVED("소득·자산 불문 추가모집");
+
+        private final String label;
+
+        NotJudgedReason(String label) {
+            this.label = label;
+        }
+
+        public String getLabel() {
+            return label;
+        }
+    }
 
     /**
      * 임대주택 공고인지 — 국민·영구·행복·공공·매입·통합공공임대. 임대는 소득·자산 기준과 선정 방식(순위·배점·순번)이 분양

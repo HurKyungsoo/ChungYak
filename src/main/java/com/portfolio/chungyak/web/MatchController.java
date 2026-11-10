@@ -114,6 +114,8 @@ public class MatchController {
         model.addAttribute("fixableGroups", matchService.fixableGroups(profile));
         // 0건이면 무엇이 막았는지 — 집계는 서비스가, 여기는 언제 보일지만 정한다
         model.addAttribute("blockers", matched.isEmpty() ? matchService.blockers(profile) : MatchBlockers.empty());
+        // 판정하지 않은 공고(임대·무순위 등)를 결과에서 조용히 빼지 않고 밝힌다
+        model.addAttribute("notJudged", matchService.notJudgedCounts());
         model.addAttribute("regions", MatchRowFilter.regionsOf(matched));
         model.addAttribute("detailTypes", MatchRowFilter.typesOf(matched));
         model.addAttribute("sorts", MatchRowFilter.Sort.values());
