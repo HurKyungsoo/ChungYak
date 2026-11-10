@@ -1,6 +1,10 @@
 package com.portfolio.chungyak.rule;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
+
+import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 신혼희망타운(HOUSE_SECD=10) 전용 자산기준.
@@ -14,5 +18,29 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * (2026-09-05 확인, "2026년도 적용 기준" 3억 6,200만원). 공고 시즌마다 재확인할 것.
  */
 @ConfigurationProperties(prefix = "newlywed-hope-town")
-public record NewlywedHopeTownProperties(Long assetLimit) {
+public record NewlywedHopeTownProperties(Long assetLimit, String basis, LocalDate appliesFrom,
+                                         List<SpecialSupplyRequirementProperties.AmountVersion> previous) {
+
+    @ConstructorBinding
+    public NewlywedHopeTownProperties {
+        previous = previous == null ? List.of() : List.copyOf(previous);
+        if (assetLimit != null) versions(assetLimit, basis, appliesFrom, previous);   // 설정 검증 — 어긋나면 기동 때 실패
+    }
+
+    /** 버전 없이(시작일 미확인 한 벌) */
+    public NewlywedHopeTownProperties(Long assetLimit) {
+        this(assetLimit, null, null, null);
+    }
+
+    /** 공고일에 맞는 자산 상한({@link YearlyFigure}). 상한이 없으면 null */
+    public YearlyFigure.Pick<Long> assetLimitFor(LocalDate noticeDate) {
+        if (assetLimit == null) return null;
+        return YearlyFigure.pick(versions(assetLimit, basis, appliesFrom, previous), noticeDate);
+    }
+
+    private static List<YearlyFigure<Long>> versions(Long amount, String basis, LocalDate appliesFrom,
+                                                     List<SpecialSupplyRequirementProperties.AmountVersion> previous) {
+        return YearlyFigure.of(new YearlyFigure<>(amount, basis, appliesFrom),
+                previous.stream().map(SpecialSupplyRequirementProperties.AmountVersion::toFigure).toList());
+    }
 }

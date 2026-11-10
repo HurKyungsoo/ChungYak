@@ -4,8 +4,10 @@ import com.portfolio.chungyak.domain.SpecialSupplyType;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
+import java.time.LocalDate;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,7 +35,11 @@ public record SpecialSupplyRequirementProperties(
         Long realEstateLimit,
         Set<SpecialSupplyType> realEstateTrack,
         Map<SpecialSupplyType, IncomeLimit> nationalIncomeLimit,
-        BirthBonus birthBonus) {
+        BirthBonus birthBonus,
+        /** 부동산 추첨 기준 금액의 기준 이름·적용 시작 공고일·예전 값 — {@link YearlyFigure} */
+        String realEstateLimitBasis,
+        LocalDate realEstateLimitAppliesFrom,
+        List<AmountVersion> realEstateLimitPrevious) {
 
     @ConstructorBinding
     public SpecialSupplyRequirementProperties {
@@ -43,11 +49,45 @@ public record SpecialSupplyRequirementProperties(
         realEstateTrack = realEstateTrack == null || realEstateTrack.isEmpty()
                 ? Set.of() : EnumSet.copyOf(realEstateTrack);
         if (birthBonus == null) birthBonus = new BirthBonus(0, 0);
+        realEstateLimitPrevious = realEstateLimitPrevious == null ? List.of() : List.copyOf(realEstateLimitPrevious);
+        if (realEstateLimit != null) {   // 설정 검증 — 어긋나면 기동 때 실패
+            YearlyFigure.of(new YearlyFigure<>(realEstateLimit, realEstateLimitBasis, realEstateLimitAppliesFrom),
+                    realEstateLimitPrevious.stream().map(AmountVersion::toFigure).toList());
+        }
+    }
+
+    /** 부동산 추첨 기준 버전 없이(시작일 미확인 한 벌) */
+    public SpecialSupplyRequirementProperties(Map<SpecialSupplyType, IncomeLimit> incomeLimit, AssetLimit assetLimit,
+                                              Map<SpecialSupplyType, IncomeLimit> privateIncomeLimit, Long realEstateLimit,
+                                              Set<SpecialSupplyType> realEstateTrack,
+                                              Map<SpecialSupplyType, IncomeLimit> nationalIncomeLimit, BirthBonus birthBonus) {
+        this(incomeLimit, assetLimit, privateIncomeLimit, realEstateLimit, realEstateTrack, nationalIncomeLimit, birthBonus,
+                null, null, null);
     }
 
     /** 예전 두 칸짜리 — 민영·국민도 공공과 같은 상한, 부동산 추첨 경로·출생 가산 없음 */
     public SpecialSupplyRequirementProperties(Map<SpecialSupplyType, IncomeLimit> incomeLimit, AssetLimit assetLimit) {
-        this(incomeLimit, assetLimit, null, null, null, null, null);
+        this(incomeLimit, assetLimit, null, null, null, null, null, null, null, null);
+    }
+
+    /** 예전 금액 한 벌 — 원 단위 금액 하나짜리 기준(부동산 추첨 기준 등) */
+    public record AmountVersion(long amount, String basis, LocalDate appliesFrom) {
+        YearlyFigure<Long> toFigure() {
+            return new YearlyFigure<>(amount, basis, appliesFrom);
+        }
+    }
+
+    /** 공고일에 맞는 부동산 추첨 기준 금액. {@link #hasRealEstateTrack} 이 참일 때만 부른다 */
+    public YearlyFigure.Pick<Long> realEstateLimitFor(LocalDate noticeDate) {
+        return YearlyFigure.pick(YearlyFigure.of(new YearlyFigure<>(realEstateLimit, realEstateLimitBasis, realEstateLimitAppliesFrom),
+                realEstateLimitPrevious.stream().map(AmountVersion::toFigure).toList()), noticeDate);
+    }
+
+    /** 공고일에 맞는 공공 특공 자산 기준. 자산 기준이 없으면 null */
+    public YearlyFigure.Pick<AssetLimit> assetLimitFor(LocalDate noticeDate) {
+        if (assetLimit == null) return null;
+        return YearlyFigure.pick(YearlyFigure.of(new YearlyFigure<>(assetLimit, assetLimit.basis(), assetLimit.appliesFrom()),
+                assetLimit.previous().stream().map(p -> new YearlyFigure<>(p, p.basis(), p.appliesFrom())).toList()), noticeDate);
     }
 
     /** 소득 상한 — 도시근로자 대비 %. single: 단독, dual: 본인·배우자 모두 소득(맞벌이). */
@@ -57,7 +97,19 @@ public record SpecialSupplyRequirementProperties(
      * 자산 상한 (원). 공공주택 특별공급(다자녀·노부모·신혼부부·생애최초·신생아)에만 적용 — 공공주택 특별법 시행규칙
      * 제13조③에 따라 국토부가 해마다 정한다. 2023. 3. 28. 이후 출생 자녀가 있으면 완화 금액(birthOne·birthTwoOrMore).
      */
-    public record AssetLimit(long realEstate, int carValue, AssetAmounts birthOne, AssetAmounts birthTwoOrMore) {
+    public record AssetLimit(long realEstate, int carValue, AssetAmounts birthOne, AssetAmounts birthTwoOrMore,
+                             /** 기준 이름("2026년도")·적용 시작 공고일·예전 기준 — {@link YearlyFigure} */
+                             String basis, LocalDate appliesFrom, List<AssetLimit> previous) {
+
+        @ConstructorBinding
+        public AssetLimit {
+            previous = previous == null ? List.of() : List.copyOf(previous);
+        }
+
+        /** 버전 없이(시작일 미확인 한 벌) */
+        public AssetLimit(long realEstate, int carValue, AssetAmounts birthOne, AssetAmounts birthTwoOrMore) {
+            this(realEstate, carValue, birthOne, birthTwoOrMore, null, null, null);
+        }
 
         /** 출생 가산 구분(0 없음, 1 그 자녀만 1명, 2 그 밖) — {@link IncomeRequirement#birthTier}. 완화 금액이 없으면 기본 금액 */
         public AssetAmounts forBirthTier(int tier) {

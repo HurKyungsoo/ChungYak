@@ -72,8 +72,9 @@ public class NewlywedHopeTownRule implements EligibilityRule {
         RequirementCheck houseless = checkHouseless(profile);
         RequirementCheck accountMonths = checkAccountMonths(profile);
         RequirementCheck accountCount = checkAccountPaymentCount(profile);
-        RequirementCheck asset = checkAsset(profile);
-        RequirementCheck income = incomeRequirement.check(profile, supportedType());
+        RequirementCheck asset = checkAsset(profile, announcement);
+        RequirementCheck income = incomeRequirement.checkPublicHousing(profile, supportedType(),
+                announcement == null ? null : announcement.getNoticeDate());
         RequirementCheck reWin = reWinRequirement.check(profile, supportedType());
         RequirementCheck residence = regionResidenceRequirement.check(profile, announcement);
 
@@ -149,11 +150,14 @@ public class NewlywedHopeTownRule implements EligibilityRule {
     }
 
     /** 총자산+자동차가액 합산 상한 — LH 공식 산정식(부동산+금융+기타+자동차-부채)과 같은 모양. */
-    private RequirementCheck checkAsset(ApplicantProfile profile) {
-        Long limit = properties.assetLimit();
-        if (limit == null) {
+    private RequirementCheck checkAsset(ApplicantProfile profile, Announcement announcement) {
+        // 공고일에 맞는 해의 기준(YearlyFigure) — 새 해 기준으로 바꿔도 그 전 공고는 예전 기준
+        var pick = properties.assetLimitFor(announcement == null ? null : announcement.getNoticeDate());
+        if (pick == null) {
             return RequirementCheck.pass("신혼희망타운 자산 상한이 설정돼 있지 않습니다.");
         }
+        long limit = pick.value();
+        String basis = pick.basis() != null ? ", " + pick.basis() + " 기준" : "";
 
         Long totalAssets = profile.getTotalAssets();
         Integer carValue = profile.getCarValue();
@@ -164,9 +168,9 @@ public class NewlywedHopeTownRule implements EligibilityRule {
         long combined = totalAssets + carValue;
         if (combined <= limit) {
             return RequirementCheck.pass("총자산+자동차가액 " + AssetRequirement.won(combined)
-                    + "으로 신혼희망타운 자산 요건(" + AssetRequirement.won(limit) + " 이하)을 충족합니다.");
+                    + "으로 신혼희망타운 자산 요건(" + AssetRequirement.won(limit) + " 이하" + basis + ")을 충족합니다." + pick.note());
         }
         return RequirementCheck.fail("총자산+자동차가액 " + AssetRequirement.won(combined)
-                + "이 신혼희망타운 자산 요건(" + AssetRequirement.won(limit) + " 이하)을 초과합니다.");
+                + "이 신혼희망타운 자산 요건(" + AssetRequirement.won(limit) + " 이하" + basis + ")을 초과합니다." + pick.note());
     }
 }

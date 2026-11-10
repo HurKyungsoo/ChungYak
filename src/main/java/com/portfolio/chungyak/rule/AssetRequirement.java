@@ -26,13 +26,17 @@ public class AssetRequirement {
             return RequirementCheck.pass("민영주택은 특별공급 자산 요건이 없습니다.");
         }
 
-        SpecialSupplyRequirementProperties.AssetLimit limit = requirements.assetLimit();
-        if (limit == null) {
+        // 공고일에 맞는 해의 기준 — 새 해 기준으로 바꿔도 그 전에 나온 공고는 예전 기준으로 판정한다(YearlyFigure)
+        var pick = requirements.assetLimitFor(announcement.getNoticeDate());
+        if (pick == null) {
             return RequirementCheck.pass("자산 상한이 설정돼 있지 않습니다.");
         }
+        SpecialSupplyRequirementProperties.AssetLimit limit = pick.value();
         int tier = IncomeRequirement.birthTier(profile);
         SpecialSupplyRequirementProperties.AssetAmounts amounts = limit.forBirthTier(tier);
-        String relaxed = tier > 0 ? ", 2023.3.28 이후 출생 자녀 완화 기준" : "";
+        String relaxed = (pick.basis() != null ? ", " + pick.basis() + " 기준" : "")
+                + (tier > 0 ? ", 2023.3.28 이후 출생 자녀 완화 기준" : "");
+        String note = pick.note();
 
         if (profile.getRealEstateValue() == null) {
             return RequirementCheck.missing("세대 부동산 가액");
@@ -40,7 +44,7 @@ public class AssetRequirement {
         if (profile.getRealEstateValue() > amounts.realEstate()) {
             return RequirementCheck.fail("세대 부동산 가액 " + won(profile.getRealEstateValue())
                     + "이 공공주택 특별공급 요건(" + won(amounts.realEstate()) + " 이하" + relaxed + ")을 초과합니다 — "
-                    + won(profile.getRealEstateValue() - amounts.realEstate()) + " 초과.");
+                    + won(profile.getRealEstateValue() - amounts.realEstate()) + " 초과." + note);
         }
 
         if (profile.getCarValue() == null) {
@@ -49,11 +53,11 @@ public class AssetRequirement {
         if (profile.getCarValue() > amounts.carValue()) {
             return RequirementCheck.fail("자동차가액 " + won(profile.getCarValue())
                     + "이 요건(" + won(amounts.carValue()) + " 이하" + relaxed + ")을 초과합니다 — "
-                    + won(profile.getCarValue() - amounts.carValue()) + " 초과.");
+                    + won(profile.getCarValue() - amounts.carValue()) + " 초과." + note);
         }
 
         return RequirementCheck.pass("세대 부동산 가액·자동차가액이 공공주택 특별공급 자산 요건("
-                + won(amounts.realEstate()) + "·" + won(amounts.carValue()) + " 이하" + relaxed + ")을 충족합니다.");
+                + won(amounts.realEstate()) + "·" + won(amounts.carValue()) + " 이하" + relaxed + ")을 충족합니다." + note);
     }
 
     /** 원 → "3억 7,900만원" 같은 읽기 쉬운 문자열 */

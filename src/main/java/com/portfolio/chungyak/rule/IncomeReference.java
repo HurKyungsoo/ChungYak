@@ -2,6 +2,8 @@ package com.portfolio.chungyak.rule;
 
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -14,23 +16,36 @@ import java.util.Map;
 public class IncomeReference {
 
     private final IncomeReferenceProperties properties;
+    private final List<YearlyFigure<Map<Integer, Long>>> versions;
 
     public IncomeReference(IncomeReferenceProperties properties) {
         this.properties = properties;
+        this.versions = properties.versions();
     }
 
+    /** 가장 최근 표의 기준 연도 — 공고와 무관한 화면 안내용 */
     public String basisYear() {
         return properties.basisYear();
+    }
+
+    /** 공고일에 맞는 표(→ {@link YearlyFigure#pick}). 공고일을 모르면 가장 최근 표 */
+    public YearlyFigure.Pick<Map<Integer, Long>> tableFor(LocalDate noticeDate) {
+        return YearlyFigure.pick(versions, noticeDate);
     }
 
     /**
      * @return 도시근로자 월평균소득 대비 % (반올림). 입력이 부족하거나 기준표가 없으면 null.
      */
     public Integer percentOf(Integer monthlyHouseholdIncome, Integer householdSize) {
+        return percentOf(monthlyHouseholdIncome, householdSize, tableFor(null).value());
+    }
+
+    /** 고른 표({@link #tableFor})로 환산 */
+    public Integer percentOf(Integer monthlyHouseholdIncome, Integer householdSize, Map<Integer, Long> table) {
         if (monthlyHouseholdIncome == null || householdSize == null || householdSize < 1) {
             return null;
         }
-        Long base = baseFor(householdSize);
+        Long base = baseFor(table, householdSize);
         if (base == null || base <= 0) {
             return null;
         }
@@ -42,8 +57,13 @@ public class IncomeReference {
      * percentOf 와 같은 표·같은 산수(기준 × % / 100)라 새 제도 수치를 만들지 않는다. 기준표가 없으면 null.
      */
     public Long limitAmount(Integer householdSize, int percent) {
+        return limitAmount(householdSize, percent, tableFor(null).value());
+    }
+
+    /** 고른 표({@link #tableFor})로 상한 금액 */
+    public Long limitAmount(Integer householdSize, int percent, Map<Integer, Long> table) {
         if (householdSize == null || householdSize < 1) return null;
-        Long base = baseFor(householdSize);
+        Long base = baseFor(table, householdSize);
         if (base == null || base <= 0) return null;
         return Math.round(base * percent / 100.0);
     }
@@ -53,8 +73,11 @@ public class IncomeReference {
      * (통계청 방식: 8인 초과 시 1인 증가마다 (8인-7인) 만큼 가산).
      */
     Long baseFor(int householdSize) {
-        Map<Integer, Long> table = properties.monthlyAverage();
-        if (table.isEmpty()) {
+        return baseFor(tableFor(null).value(), householdSize);
+    }
+
+    static Long baseFor(Map<Integer, Long> table, int householdSize) {
+        if (table == null || table.isEmpty()) {
             return null;
         }
         Long exact = table.get(householdSize);

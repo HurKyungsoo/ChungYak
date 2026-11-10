@@ -5,6 +5,8 @@ import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.SpecialSupplyType;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+
 /**
  * 특별공급 소득 요건 확인 — 유형별 상한(도시근로자 대비 %)과 신청자 소득을 비교.
  *
@@ -61,11 +63,19 @@ public class IncomeRequirement {
 
     /** 공고 구분을 모를 때(신혼희망타운 — 늘 공공) — 공공주택 특별법 기준 */
     public RequirementCheck check(ApplicantProfile profile, SpecialSupplyType type) {
-        return check(profile, type, null);
+        return check(profile, type, HousingRule.PUBLIC_HOUSING, null);
+    }
+
+    /** 신혼희망타운 — 늘 공공주택 특별법 기준이지만 소득표는 공고일에 맞는 해의 것 */
+    public RequirementCheck checkPublicHousing(ApplicantProfile profile, SpecialSupplyType type, LocalDate noticeDate) {
+        return check(profile, type, HousingRule.PUBLIC_HOUSING, noticeDate);
     }
 
     public RequirementCheck check(ApplicantProfile profile, SpecialSupplyType type, Announcement announcement) {
-        HousingRule rule = housingRuleOf(announcement);
+        return check(profile, type, housingRuleOf(announcement), announcement == null ? null : announcement.getNoticeDate());
+    }
+
+    private RequirementCheck check(ApplicantProfile profile, SpecialSupplyType type, HousingRule rule, LocalDate noticeDate) {
         Integer base = limitFor(rule, type, profile.isDualIncome());
         if (base == null) {
             return RequirementCheck.pass(rule == HousingRule.PRIVATE
@@ -75,14 +85,17 @@ public class IncomeRequirement {
         int bonus = rule == HousingRule.PUBLIC_HOUSING ? birthBonus(profile) : 0;
         int limit = base + bonus;
 
+        // 공고일에 맞는 소득표 — 새 해 표로 바꿔도 그 전에 나온 공고는 예전 표로 판정한다(YearlyFigure)
+        var table = incomeReference.tableFor(noticeDate);
         Integer percent = incomeReference.percentOf(
-                profile.getMonthlyHouseholdIncome(), profile.getHouseholdSize());
+                profile.getMonthlyHouseholdIncome(), profile.getHouseholdSize(), table.value());
         if (percent == null) {
             return RequirementCheck.missing("가구 월평균소득·가구원 수");
         }
 
-        String basis = "가구 소득이 도시근로자 월평균소득(" + incomeReference.basisYear() + "년 기준) 대비 "
+        String basis = "가구 소득이 도시근로자 월평균소득(" + table.basis() + "년 기준) 대비 "
                 + percent + "%";
+        String note = table.note();
         Integer single = limitFor(rule, type, false);
         boolean dualRelaxed = profile.isDualIncome() && single != null && !single.equals(base);
         String bound = "요건(" + limit + "% 이하"
@@ -90,32 +103,34 @@ public class IncomeRequirement {
                 + (bonus > 0 ? ", 2023.3.28 이후 출생 자녀 +" + bonus + "%p" : "") + ")";
 
         if (percent <= limit) {
-            return RequirementCheck.pass(basis + "로 " + bound + "을 충족합니다.");
+            return RequirementCheck.pass(basis + "로 " + bound + "을 충족합니다." + note);
         }
 
         // 민영·국민주택 신혼부부·생애최초·신생아 — 소득을 넘어도 부동산 가액 기준 이하면 추첨공급 대상
         if (rule != HousingRule.PUBLIC_HOUSING && requirements.hasRealEstateTrack(type)) {
-            long reLimit = requirements.realEstateLimit();
+            var reLimitPick = requirements.realEstateLimitFor(noticeDate);
+            long reLimit = reLimitPick.value();
             Long realEstate = profile.getRealEstateValue();
             String track = "소득 " + bound + "은 넘지만, 세대 부동산 가액이 " + AssetRequirement.won(reLimit)
-                    + " 이하면 추첨공급 대상입니다";
+                    + "(" + reLimitPick.basis() + " 기준) 이하면 추첨공급 대상입니다";
+            note = note + reLimitPick.note();
             if (realEstate == null) {
                 return RequirementCheck.missing("세대 부동산 가액(" + basis + "로 소득 기준 초과 — "
                         + AssetRequirement.won(reLimit) + " 이하면 추첨공급 대상)");
             }
             return realEstate <= reLimit
                     ? RequirementCheck.pass(basis + "로 " + track + " — 부동산 가액 " + AssetRequirement.won(realEstate)
-                            + "로 충족합니다(추첨공급).")
+                            + "로 충족합니다(추첨공급)." + note)
                     : RequirementCheck.fail(basis + "로 " + track + " — 부동산 가액 " + AssetRequirement.won(realEstate)
-                            + "로 기준을 넘습니다.");
+                            + "로 기준을 넘습니다." + note);
         }
 
         // 얼마나 넘었는지 금액으로도 — 같은 기준표에서 상한 금액을 구해 차이만 적는다(#19-1b)
-        Long limitWon = incomeReference.limitAmount(profile.getHouseholdSize(), limit);
+        Long limitWon = incomeReference.limitAmount(profile.getHouseholdSize(), limit, table.value());
         String gap = limitWon == null ? ""
                 : " 상한은 월 " + AssetRequirement.won(limitWon) + "으로 월 "
                   + AssetRequirement.won(profile.getMonthlyHouseholdIncome() - limitWon) + " 초과입니다.";
-        return RequirementCheck.fail(basis + "로 " + bound + "을 초과합니다." + gap);
+        return RequirementCheck.fail(basis + "로 " + bound + "을 초과합니다." + gap + note);
     }
 
     private Integer limitFor(HousingRule rule, SpecialSupplyType type, boolean dual) {
