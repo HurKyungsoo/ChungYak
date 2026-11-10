@@ -2,6 +2,7 @@ package com.portfolio.chungyak.service;
 
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.AnnouncementDocument;
+import com.portfolio.chungyak.domain.NoticeWaivers;
 import com.portfolio.chungyak.domain.NoticeKind;
 import com.portfolio.chungyak.domain.NoticeLineage;
 import com.portfolio.chungyak.domain.RegulationFlags;
@@ -150,6 +151,8 @@ public class AnnouncementSyncService {
 
         String source = external.getExternalId() != null && external.getExternalId().startsWith("LH")
                 ? "LH" : "APPLYHOME";
+        // "소득·자산 … 불문" 공고(추가모집 등)는 특별공급 판정 대상에서 뺀다 — Announcement.isEligibilityTarget
+        saved.markRequirementsWaived(NoticeWaivers.waivesIncomeAndAssets(content));
         documentRepository.findByAnnouncementId(saved.getId())
                 .ifPresentOrElse(
                         doc -> doc.replaceText(content, clock.instant()),

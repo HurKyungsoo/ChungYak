@@ -116,6 +116,13 @@ public class Announcement {
     @Column(length = 30)
     private String supplyTypeName;
 
+    /**
+     * 공고문이 "소득·자산 … 불문"이라고 밝혔는지({@link NoticeWaivers}) — 공고문 저장 때 채운다. null = 아직 확인 안 함(공고문 없음 포함).
+     * 판정 대상인지만 가르고 판정 자체에는 쓰지 않는다.
+     */
+    @Column(name = "requirements_waived")
+    private Boolean requirementsWaived;
+
     /** 입주자모집공고문 PDF 내려받기 링크 (LH 상세 dsAhflInfo). 없으면 noticeUrl 로 안내한다. */
     @Column(length = 500)
     private String noticePdfUrl;
@@ -272,9 +279,26 @@ public class Announcement {
     /**
      * 특별공급 자격 판정(규칙 엔진) 대상인지. 무순위·잔여세대는 특별공급 구조가 없어 엔진에 넣으면
      * "신청 가능한 유형 없음" 같은 틀린 결론이 나온다 — 판정·매칭·알림·목록 배지에서 모두 뺀다.
+     * LH 일반매각·선착순, 공고문이 소득·자산을 불문한다고 밝힌 추가모집도 같다 — 소득·자산으로 판정하면
+     * "자산 초과로 불가"처럼 틀린 안내가 된다({@link NoticeWaivers}).
      */
     public boolean isEligibilityTarget() {
-        return !isRemainder();
+        return notJudgedReason() == null;
+    }
+
+    /** 판정 대상이 아닌 이유 — 화면 안내용. 판정 대상이면 null */
+    public NotJudgedReason notJudgedReason() {
+        if (isRemainder()) return NotJudgedReason.REMAINDER;
+        if (isLh() && NoticeWaivers.isOpenSaleTitle(houseName)) return NotJudgedReason.OPEN_SALE;
+        if (Boolean.TRUE.equals(requirementsWaived)) return NotJudgedReason.REQUIREMENTS_WAIVED;
+        return null;
+    }
+
+    public enum NotJudgedReason { REMAINDER, OPEN_SALE, REQUIREMENTS_WAIVED }
+
+    /** 공고문 원문으로 판별한 결과를 남긴다({@link NoticeWaivers#waivesIncomeAndAssets}) */
+    public void markRequirementsWaived(boolean waived) {
+        this.requirementsWaived = waived;
     }
 
     /** LH 공고인지 — 청약홈과 화면 구성이 다르다(규제·특공 세대수 정보가 원천에 없다). */
