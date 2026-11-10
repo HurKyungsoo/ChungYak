@@ -140,6 +140,11 @@ gunzip -c ~/backups/chungyak-20261013-0330.sql.gz \
 
 ## 모니터링
 
+- **제도 금액 감시** — 매일 04:50 열린 분양 공고의 공고문 금액(소득표·자산 기준)을 `application.yml` 과 대조한다.
+  어긋나면 `제도 금액 감시` ERROR 로그. 지금 바로 보려면
+  `curl -u admin:$ADMIN_PASSWORD https://$DOMAIN/api/admin/figures/check` — `findings` 가 비어 있으면 일치,
+  `certain: true` 면 설정 갱신이 필요하다(방법은 CLAUDE.md 절대 규칙 6 — 덮어쓰지 말고 `previous` 로 옮긴 뒤 `applies-from`).
+
 - `GET /actuator/health/liveness` — 앱 프로세스 생존. Caddy·compose 헬스체크가 이걸 본다.
 - `GET /actuator/health` — 전체 상태. **수집이 실패·저조·30시간 이상 오래되면 DOWN(503)** 이 되므로
   uptime 모니터(UptimeRobot 등)를 여기에 걸어두면 데이터가 낡을 때 알림이 온다.
