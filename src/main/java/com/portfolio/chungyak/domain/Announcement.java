@@ -123,6 +123,10 @@ public class Announcement {
     @Column(name = "requirements_waived")
     private Boolean requirementsWaived;
 
+    /** 공고문의 "입주자모집공고일"(자격 판단 기준일, {@link NoticeBaseDate}) — 못 읽었으면 null. {@link #eligibilityBaseDate()} */
+    @Column(name = "notice_base_date")
+    private LocalDate noticeBaseDate;
+
     /** 입주자모집공고문 PDF 내려받기 링크 (LH 상세 dsAhflInfo). 없으면 noticeUrl 로 안내한다. */
     @Column(length = 500)
     private String noticePdfUrl;
@@ -295,6 +299,24 @@ public class Announcement {
     }
 
     public enum NotJudgedReason { REMAINDER, OPEN_SALE, REQUIREMENTS_WAIVED }
+
+    /**
+     * 자격 판단 기준일 — 공고문의 입주자모집공고일이 있으면 그것, 없으면 공고일. 매년 바뀌는 기준 금액(YearlyFigure)과
+     * 기간 계산은 이 날짜로 한다. LH 정정·추가 공고는 공고일(이번 게시일)과 다를 수 있다.
+     */
+    public LocalDate eligibilityBaseDate() {
+        return noticeBaseDate != null ? noticeBaseDate : noticeDate;
+    }
+
+    /**
+     * 공고문에서 읽은 입주자모집공고일을 남긴다. 공고일보다 뒤면 잘못 읽은 것이라 버린다 — 기준일은 게시일보다 늦을 수 없다.
+     * 못 읽었으면(null) 있던 값을 지우지 않는다.
+     */
+    public void markNoticeBaseDate(LocalDate baseDate) {
+        if (baseDate == null) return;
+        if (noticeDate != null && baseDate.isAfter(noticeDate)) return;
+        this.noticeBaseDate = baseDate;
+    }
 
     /** 공고문 원문으로 판별한 결과를 남긴다({@link NoticeWaivers#waivesIncomeAndAssets}) */
     public void markRequirementsWaived(boolean waived) {

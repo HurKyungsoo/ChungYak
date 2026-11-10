@@ -27,7 +27,7 @@ public class AssetRequirement {
         }
 
         // 공고일에 맞는 해의 기준 — 새 해 기준으로 바꿔도 그 전에 나온 공고는 예전 기준으로 판정한다(YearlyFigure)
-        var pick = requirements.assetLimitFor(announcement.getNoticeDate());
+        var pick = requirements.assetLimitFor(announcement.eligibilityBaseDate());
         if (pick == null) {
             return RequirementCheck.pass("자산 상한이 설정돼 있지 않습니다.");
         }

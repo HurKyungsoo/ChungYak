@@ -245,7 +245,9 @@
   신혼희망타운 자격·소득·자산을 그대로 보는 공고가 있어**(남양주왕숙 A-2) 제목이 아니라 공고문 문구로 가른다.
   `domain/NoticeWaivers` + `announcement.requirements_waived`(V15, 공고문 저장 때·기동 때 백필) → `Announcement.isEligibilityTarget`.
   정정·추가 공고는 LH 날짜(PAN_DT)가 이번 공고일이고 공고문의 "입주자모집공고일"(자격 판단 기준일)은 원래 날짜인 경우가 있다
-  (익산평화: DB 2026-08-12, 공고문 2025.03.05) — `YearlyFigure` 가 공고일로 기준을 고르므로 버전이 쌓이면 문제가 된다(미해결).
+  (익산평화: DB 2026-08-12, 공고문 2025.03.05). → 공고문의 "입주자모집공고일"을 `announcement.notice_base_date`(V16, `domain/NoticeBaseDate`)에
+  저장하고 `Announcement.eligibilityBaseDate()`(공고문 날짜 우선, 없으면 공고일)로 `YearlyFigure`·판정 폼 기간 계산을 한다.
+  공고문 17건 중 17건 읽힘(일반매각의 머리 "공고일 :"은 게시일이라 안 읽는다). 게시일보다 뒤 날짜는 버린다.
 - LH `UPP_AIS_TP_CD=39`(신혼희망) 아래 `AIS_TP_CD=42` 는 **행복주택(임대)** 이다 — 신혼희망타운이 다 분양이 아니다.
 - 분양가(`LTTOT_TOP_AMOUNT` -> `UnitType.topAmount`)는 **만원 단위**이고 주택형 14,713건
   전부 채워져 있다(2026-09-23, 범위 116 ~ 1,600,000). 층·향과 무관한 **최고** 공급금액이라

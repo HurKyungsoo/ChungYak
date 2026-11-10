@@ -2,6 +2,7 @@ package com.portfolio.chungyak.service;
 
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.AnnouncementDocument;
+import com.portfolio.chungyak.domain.NoticeBaseDate;
 import com.portfolio.chungyak.domain.NoticeWaivers;
 import com.portfolio.chungyak.domain.NoticeKind;
 import com.portfolio.chungyak.domain.NoticeLineage;
@@ -153,6 +154,8 @@ public class AnnouncementSyncService {
                 ? "LH" : "APPLYHOME";
         // "소득·자산 … 불문" 공고(추가모집 등)는 특별공급 판정 대상에서 뺀다 — Announcement.isEligibilityTarget
         saved.markRequirementsWaived(NoticeWaivers.waivesIncomeAndAssets(content));
+        // 자격 판단 기준일 — 정정·추가 공고는 게시일과 다를 수 있다(Announcement.eligibilityBaseDate)
+        saved.markNoticeBaseDate(NoticeBaseDate.find(content));
         documentRepository.findByAnnouncementId(saved.getId())
                 .ifPresentOrElse(
                         doc -> doc.replaceText(content, clock.instant()),

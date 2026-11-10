@@ -74,7 +74,7 @@ public class NewlywedHopeTownRule implements EligibilityRule {
         RequirementCheck accountCount = checkAccountPaymentCount(profile);
         RequirementCheck asset = checkAsset(profile, announcement);
         RequirementCheck income = incomeRequirement.checkPublicHousing(profile, supportedType(),
-                announcement == null ? null : announcement.getNoticeDate());
+                announcement == null ? null : announcement.eligibilityBaseDate());
         RequirementCheck reWin = reWinRequirement.check(profile, supportedType());
         RequirementCheck residence = regionResidenceRequirement.check(profile, announcement);
 
@@ -152,7 +152,7 @@ public class NewlywedHopeTownRule implements EligibilityRule {
     /** 총자산+자동차가액 합산 상한 — LH 공식 산정식(부동산+금융+기타+자동차-부채)과 같은 모양. */
     private RequirementCheck checkAsset(ApplicantProfile profile, Announcement announcement) {
         // 공고일에 맞는 해의 기준(YearlyFigure) — 새 해 기준으로 바꿔도 그 전 공고는 예전 기준
-        var pick = properties.assetLimitFor(announcement == null ? null : announcement.getNoticeDate());
+        var pick = properties.assetLimitFor(announcement == null ? null : announcement.eligibilityBaseDate());
         if (pick == null) {
             return RequirementCheck.pass("신혼희망타운 자산 상한이 설정돼 있지 않습니다.");
         }

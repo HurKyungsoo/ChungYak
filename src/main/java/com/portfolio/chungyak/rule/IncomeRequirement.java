@@ -72,7 +72,7 @@ public class IncomeRequirement {
     }
 
     public RequirementCheck check(ApplicantProfile profile, SpecialSupplyType type, Announcement announcement) {
-        return check(profile, type, housingRuleOf(announcement), announcement == null ? null : announcement.getNoticeDate());
+        return check(profile, type, housingRuleOf(announcement), announcement == null ? null : announcement.eligibilityBaseDate());
     }
 
     private RequirementCheck check(ApplicantProfile profile, SpecialSupplyType type, HousingRule rule, LocalDate noticeDate) {
