@@ -413,6 +413,8 @@
             display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
             color: var(--text-muted); font-size: .8rem;
         }
+        /* 위 inline-flex 가 [hidden] 을 이겨 저장된 조건이 없는 첫 방문자에게도 보였다 */
+        .quick-check .quick-profile-note[hidden] { display: none; }
         .quick-check .quick-profile-note::before { content: "✓"; color: var(--ok); font-weight: 800; }
         .quick-check .quick-profile-note a { color: var(--brand); font-weight: 650; }
         /* 체크박스 줄(라벨 없음)과 "혼인 경과" 필드(위에 라벨 있음)가 한 줄에서

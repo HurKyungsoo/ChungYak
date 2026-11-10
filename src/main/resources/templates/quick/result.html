@@ -58,7 +58,7 @@
         </p>
 
         <div class="btn-row" style="margin-top:18px">
-            <a th:href="@{/match}" class="btn btn-primary btn-lg">내 조건으로 자세히 확인하기 →</a>
+            <a th:href="@{/match(married=${married},monthsSinceMarriage=${monthsSinceMarriage},childCount=${childCount},houseless=${houseless})}" class="btn btn-primary btn-lg">내 조건으로 자세히 확인하기 →</a>
             <a th:href="@{/announcements}" class="btn btn-ghost btn-lg">접수 중 공고 보기</a>
         </div>
         <p class="muted" style="margin-top:8px">방금 답하신 세 가지는 상세 확인 화면에 그대로 이어집니다.</p>

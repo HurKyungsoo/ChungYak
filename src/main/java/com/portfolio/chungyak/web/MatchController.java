@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,12 +42,15 @@ public class MatchController {
     private final AnnouncementMatchService matchService;
     private final ProfileExtractionService profileExtractionService;
 
+    /**
+     * 쿼리 파라미터가 있으면 폼에 미리 채운다 — 빠른 진단 결과의 "자세히 확인하기" 링크가
+     * 세 가지 답(혼인·자녀·무주택)을 실어 보낸다. 공유·북마크된 진단 결과로 들어온 사람은
+     * 브라우저에 저장된 조건이 없어서, 링크로 넘기지 않으면 같은 답을 다시 적어야 했다.
+     * 잘못된 값은 BindingResult 가 받아 두고 기본값으로 둔다(폼 화면이 400 으로 막히지 않게).
+     */
     @GetMapping("/match")
-    public String form(Model model) {
+    public String form(@ModelAttribute("form") EligibilityForm form, BindingResult ignored, Model model) {
         model.addAttribute("extractionAvailable", profileExtractionService.isAvailable());
-        if (!model.containsAttribute("form")) {
-            model.addAttribute("form", new EligibilityForm());
-        }
         return "match/form";
     }
 

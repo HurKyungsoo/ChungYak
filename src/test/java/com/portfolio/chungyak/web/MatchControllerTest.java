@@ -14,6 +14,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -84,6 +86,27 @@ class MatchControllerTest {
         mockMvc.perform(get(location)).andExpect(status().isOk());
 
         verify(matchService, times(2)).findMatching(any());
+    }
+
+    @Test
+    @DisplayName("빠른 진단에서 넘어온 세 가지 답은 폼에 미리 채워진다")
+    void formPrefillsFromQuickCheckLink() throws Exception {
+        mockMvc.perform(get("/match")
+                        .param("married", "true").param("monthsSinceMarriage", "36")
+                        .param("childCount", "1").param("houseless", "true"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("form", hasProperty("married", is(true))))
+                .andExpect(model().attribute("form", hasProperty("monthsSinceMarriage", is(36))))
+                .andExpect(model().attribute("form", hasProperty("childCount", is(1))))
+                .andExpect(model().attribute("form", hasProperty("houseless", is(true))));
+    }
+
+    @Test
+    @DisplayName("잘못된 쿼리 값이 와도 폼 화면은 열린다")
+    void formIgnoresMalformedParams() throws Exception {
+        mockMvc.perform(get("/match").param("childCount", "abc"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("match/form"));
     }
 
     @Test
