@@ -79,6 +79,7 @@
         <fieldset>
             <legend>주택 소유</legend>
             <label class="check"><input type="checkbox" th:field="*{houseless}"> <span>현재 무주택이다</span></label>
+            <details th:replace="~{fragments/common :: houselessGuide}"></details>
             <label class="check"><input type="checkbox" th:field="*{everOwnedHouse}">
                 <span>과거에 주택을 소유한 적이 있다 <span class="hint" style="display:inline">— 생애최초 특공은 소유 이력이 없어야 함</span></span>
             </label>
