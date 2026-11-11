@@ -34,11 +34,6 @@ public class SpecialSupplyCompareService {
 
     /** 비교 기간 — 당첨가점 기록(#34)과 같은 12개월 */
     static final int MONTHS = 12;
-    /**
-     * 12개월 표본이 모자란 행만 넓혀 다시 세는 기간. 운영 확인(2026-11-11, 열린 공고 16건·42행)에서 표본 부족은
-     * 지방 민영 신생아 3행뿐이었다 — 전체 기간을 늘리면 표본 많은 지역에 오래된 시장 상황이 섞이므로 그 행만 넓힌다.
-     */
-    static final int WIDE_MONTHS = 24;
     /** 이보다 적은 공고로는 중앙값을 내지 않는다 — 공고 한두 개는 그 단지 사정이다 */
     static final int MIN_SAMPLES = 3;
 
@@ -49,20 +44,10 @@ public class SpecialSupplyCompareService {
      * @param allocated   이 공고의 이 유형 배정 세대
      * @param median      과거 공고별 "신청 ÷ 배정" 중앙값 — 표본이 MIN_SAMPLES 미만이면 null
      * @param samples     과거 공고 수(이 유형 배정이 있던 공고)
-     * @param lowest      이 표에서 중앙값이 가장 낮은 유형인지(같은 기간으로 센 유형이 둘 이상일 때만)
-     * @param months      이 행을 센 기간 — 기본 {@link #MONTHS}, 표본이 모자라 넓혔으면 {@link #WIDE_MONTHS}
+     * @param lowest      이 표에서 중앙값이 가장 낮은 유형인지(표본 충분한 유형이 둘 이상일 때만)
      */
     public record Row(String typeName, String typeLabel, int allocated, Double median, Double min, Double max,
-                      int samples, boolean lowest, int months) {
-
-        public boolean widened() {
-            return months != MONTHS;
-        }
-
-        Row markLowest() {
-            return new Row(typeName, typeLabel, allocated, median, min, max, samples, true, months);
-        }
-    }
+                      int samples, boolean lowest) {}
 
     public record Comparison(String region, String scope, int months, List<Row> rows) {}
 
@@ -80,58 +65,39 @@ public class SpecialSupplyCompareService {
         }
 
         LocalDate to = a.getNoticeDate() != null ? a.getNoticeDate() : LocalDate.now(clock);
-        Map<String, List<Double>> ratios;
-        Map<String, List<Double>> wideRatios = null;
+        List<PastSpecialSupply> past;
         try {
-            Map<String, List<Double>> recent = ratios(a, to.minusMonths(MONTHS), to);
-            ratios = recent;
-            boolean anyShort = eligible.stream().anyMatch(d -> recent.getOrDefault(d.typeName(), List.of()).size() < MIN_SAMPLES);
-            if (anyShort) wideRatios = ratios(a, to.minusMonths(WIDE_MONTHS), to);
+            past = mapper.pastSpecialSupplies(a.getRegionName(), a.getHouseDetailType().name(), to.minusMonths(MONTHS), to);
         } catch (RuntimeException e) {
             log.warn("특공 유형 비교 기록 조회 실패 — 표를 빼고 결과를 보여 준다: {}", e.toString());
             return Optional.empty();
         }
-
-        List<Row> rows = new ArrayList<>();
-        for (TypeDecision d : eligible) {
-            List<Double> r = ratios.getOrDefault(d.typeName(), List.of());
-            int months = MONTHS;
-            if (r.size() < MIN_SAMPLES && wideRatios != null) {
-                List<Double> wide = wideRatios.getOrDefault(d.typeName(), List.of());
-                if (wide.size() > r.size()) {   // 넓혀도 그대로면 12개월 그대로 둔다
-                    r = wide;
-                    months = WIDE_MONTHS;
-                }
-            }
-            boolean enough = r.size() >= MIN_SAMPLES;
-            rows.add(new Row(d.typeName(), d.typeLabel(), d.allocatedInAnnouncement(),
-                    enough ? median(r) : null, enough ? r.get(0) : null, enough ? r.get(r.size() - 1) : null,
-                    r.size(), false, months));
-        }
-        // 기록이 하나도 없으면(수집 전·기록 없는 지역) 표가 "기록 없음"만 늘어놓는다 — 빼고 결과만 보여 준다
-        if (rows.stream().allMatch(x -> x.samples() == 0)) return Optional.empty();
-
-        // "가장 낮음"은 같은 기간으로 센 행끼리만 — 기간이 다르면 시장 상황이 달라 나란히 견줄 수 없다
-        List<Row> withMedian = rows.stream().filter(x -> x.median() != null && !x.widened()).toList();
-        if (withMedian.size() < 2) withMedian = rows.stream().filter(x -> x.median() != null && x.widened()).toList();
-        if (withMedian.size() >= 2) {
-            Row low = withMedian.stream().min(Comparator.comparingDouble(Row::median)).orElseThrow();
-            // 화면은 소수 첫째 자리까지 보여 준다 — 보이는 값이 같은 행이 또 있으면("0.4배" 둘) 한쪽만 "가장 낮음"이면 이상하다
-            boolean tie = withMedian.stream().anyMatch(x -> x != low && shown(x.median()) == shown(low.median()));
-            if (!tie) rows.replaceAll(x -> x == low ? x.markLowest() : x);
-        }
-        return Optional.of(new Comparison(a.getRegionName(), a.getHouseDetailType().getLabel(), MONTHS, rows));
-    }
-
-    /** 유형별 과거 공고 "신청 ÷ 배정" — 오름차순 */
-    private Map<String, List<Double>> ratios(Announcement a, LocalDate from, LocalDate to) {
-        List<PastSpecialSupply> past = mapper.pastSpecialSupplies(a.getRegionName(), a.getHouseDetailType().name(), from, to);
         Map<String, List<Double>> ratios = past.stream()
                 .filter(p -> p.households() > 0)
                 .collect(Collectors.groupingBy(PastSpecialSupply::supplyType,
                         Collectors.mapping(p -> (double) p.applications() / p.households(), Collectors.toList())));
-        ratios.values().forEach(l -> l.sort(Comparator.naturalOrder()));
-        return ratios;
+
+        List<Row> rows = new ArrayList<>();
+        for (TypeDecision d : eligible) {
+            List<Double> r = new ArrayList<>(ratios.getOrDefault(d.typeName(), List.of()));
+            r.sort(Comparator.naturalOrder());
+            boolean enough = r.size() >= MIN_SAMPLES;
+            rows.add(new Row(d.typeName(), d.typeLabel(), d.allocatedInAnnouncement(),
+                    enough ? median(r) : null, enough ? r.get(0) : null, enough ? r.get(r.size() - 1) : null,
+                    r.size(), false));
+        }
+        // 기록이 하나도 없으면(수집 전·기록 없는 지역) 표가 "기록 없음"만 늘어놓는다 — 빼고 결과만 보여 준다
+        if (rows.stream().allMatch(x -> x.samples() == 0)) return Optional.empty();
+
+        List<Row> withMedian = rows.stream().filter(x -> x.median() != null).toList();
+        if (withMedian.size() >= 2) {
+            Row low = withMedian.stream().min(Comparator.comparingDouble(Row::median)).orElseThrow();
+            // 화면은 소수 첫째 자리까지 보여 준다 — 보이는 값이 같은 행이 또 있으면("0.4배" 둘) 한쪽만 "가장 낮음"이면 이상하다
+            boolean tie = withMedian.stream().anyMatch(x -> x != low && shown(x.median()) == shown(low.median()));
+            if (!tie) rows.replaceAll(x -> x == low ? new Row(x.typeName(), x.typeLabel(), x.allocated(), x.median(), x.min(),
+                    x.max(), x.samples(), true) : x);
+        }
+        return Optional.of(new Comparison(a.getRegionName(), a.getHouseDetailType().getLabel(), MONTHS, rows));
     }
 
     /** 화면에 보이는 값 — 소수 첫째 자리 반올림 */

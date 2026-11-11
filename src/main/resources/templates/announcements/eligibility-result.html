@@ -254,8 +254,7 @@
         <h2>어느 유형으로 넣을까요? <span class="badge">참고</span></h2>
         <p class="muted">특별공급은 한 공고에 <strong>한 유형으로만</strong> 신청합니다. 충족한 유형마다 이 공고의 배정 세대와,
             <span th:text="|최근 ${typeCompare.months()}개월 ${typeCompare.region()} ${typeCompare.scope()} 공고|">최근 12개월 서울 민영 공고</span>에서
-            유형별로 배정 1세대에 몇 건이 신청했는지(신청 ÷ 배정)를 나란히 보여 드립니다.
-            <th:block th:if="${#lists.contains(typeCompare.rows().![widened()], true)}">기록이 모자란 유형은 기간을 넓혀 셌고 그 행에 기간을 적었습니다.</th:block></p>
+            유형별로 배정 1세대에 몇 건이 신청했는지(신청 ÷ 배정)를 나란히 보여 드립니다.</p>
         <div class="table-scroll">
             <table>
                 <thead><tr><th>유형</th><th class="num">이번 배정</th><th class="num">지난 기록 (중앙값)</th></tr></thead>
@@ -267,11 +266,9 @@
                     <td class="num" th:if="${r.median() != null}">
                         <strong th:text="|${#numbers.formatDecimal(r.median(), 1, 'COMMA', 1, 'POINT')}배|">12.3배</strong><br>
                         <span class="muted" style="font-size:.78rem"
-                              th:text="|${#numbers.formatDecimal(r.min(), 1, 'COMMA', 1, 'POINT')}~${#numbers.formatDecimal(r.max(), 1, 'COMMA', 1, 'POINT')}배 · 공고 ${r.samples()}개|">4.1~30.2배 · 공고 8개</span>
-                        <!--/* 12개월 표본이 모자라 이 행만 넓혀 셌다 — 다른 행과 기간이 다름을 밝힌다 */-->
-                        <br th:if="${r.widened()}"><span class="chip" th:if="${r.widened()}" th:text="|최근 ${r.months()}개월 기준|">최근 24개월 기준</span></td>
+                              th:text="|${#numbers.formatDecimal(r.min(), 1, 'COMMA', 1, 'POINT')}~${#numbers.formatDecimal(r.max(), 1, 'COMMA', 1, 'POINT')}배 · 공고 ${r.samples()}개|">4.1~30.2배 · 공고 8개</span></td>
                     <td class="num muted" th:if="${r.median() == null}"
-                        th:text="${r.samples() == 0} ? '기록 없음' : (${r.widened()} ? |기록 부족 (${r.months()}개월 공고 ${r.samples()}개)| : |기록 부족 (공고 ${r.samples()}개)|)">기록 부족</td>
+                        th:text="${r.samples() == 0} ? '기록 없음' : |기록 부족 (공고 ${r.samples()}개)|">기록 부족</td>
                 </tr>
                 </tbody>
             </table>

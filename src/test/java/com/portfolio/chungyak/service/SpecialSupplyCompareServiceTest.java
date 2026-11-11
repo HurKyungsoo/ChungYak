@@ -108,68 +108,6 @@ class SpecialSupplyCompareServiceTest {
     }
 
     @Test
-    @DisplayName("12개월 표본이 모자란 행만 24개월로 넓혀 세고, '가장 낮음'은 같은 기간 행끼리만 견준다")
-    void widensShortRowsOnly() {
-        LocalDate to = LocalDate.of(2026, 10, 30);
-        when(mapper.pastSpecialSupplies(eq("서울"), eq("PRIVATE"), eq(LocalDate.of(2025, 10, 30)), eq(to)))
-                .thenReturn(List.of(
-                        past("A", "NEWLYWED", 10, 100), past("B", "NEWLYWED", 10, 300), past("C", "NEWLYWED", 10, 50),
-                        past("A", "FIRST_TIME", 10, 400), past("B", "FIRST_TIME", 10, 600), past("C", "FIRST_TIME", 10, 200),
-                        past("A", "NEWBORN", 10, 10)));
-        when(mapper.pastSpecialSupplies(eq("서울"), eq("PRIVATE"), eq(LocalDate.of(2024, 10, 30)), eq(to)))
-                .thenReturn(List.of(
-                        past("A", "NEWLYWED", 10, 100), past("B", "NEWLYWED", 10, 300), past("C", "NEWLYWED", 10, 50),
-                        past("Z", "NEWLYWED", 10, 999),   // 24개월 값은 12개월로 충분한 행에 섞이면 안 된다
-                        past("A", "NEWBORN", 10, 10), past("Y", "NEWBORN", 10, 20), past("Z", "NEWBORN", 10, 30)));
-
-        var c = service.compare(announcement("X"), view(
-                decision("NEWLYWED", "신혼부부", true, 25),
-                decision("FIRST_TIME", "생애최초", true, 21),
-                decision("NEWBORN", "신생아", true, 9))).orElseThrow();
-
-        Row newlywed = c.rows().get(0), newborn = c.rows().get(2);
-        assertThat(newlywed.months()).isEqualTo(12);
-        assertThat(newlywed.samples()).isEqualTo(3);
-        assertThat(newlywed.median()).isEqualTo(10.0);
-        assertThat(newborn.widened()).isTrue();
-        assertThat(newborn.months()).isEqualTo(24);
-        assertThat(newborn.samples()).isEqualTo(3);
-        assertThat(newborn.median()).isEqualTo(2.0);   // 1, 2, 3 — 가장 작지만 기간이 달라 "가장 낮음" 후보가 아니다
-        assertThat(newborn.lowest()).isFalse();
-        assertThat(newlywed.lowest()).isTrue();
-    }
-
-    @Test
-    @DisplayName("12개월 기록이 아예 없어도 24개월 기록이 있으면 넓힌 행으로 표를 만든다")
-    void widensWhenRecentEmpty() {
-        LocalDate to = LocalDate.of(2026, 10, 30);
-        when(mapper.pastSpecialSupplies(any(), any(), eq(LocalDate.of(2025, 10, 30)), eq(to))).thenReturn(List.of());
-        when(mapper.pastSpecialSupplies(any(), any(), eq(LocalDate.of(2024, 10, 30)), eq(to))).thenReturn(List.of(
-                past("A", "NEWLYWED", 10, 10), past("B", "NEWLYWED", 10, 20), past("C", "NEWLYWED", 10, 30),
-                past("A", "FIRST_TIME", 10, 50)));
-
-        var c = service.compare(announcement("X"), view(
-                decision("NEWLYWED", "신혼부부", true, 25), decision("FIRST_TIME", "생애최초", true, 21))).orElseThrow();
-
-        assertThat(c.rows().get(0).months()).isEqualTo(24);
-        assertThat(c.rows().get(0).median()).isEqualTo(2.0);
-        assertThat(c.rows().get(1).months()).isEqualTo(24);
-        assertThat(c.rows().get(1).median()).isNull();   // 넓혀도 1개 — 기록 부족
-        assertThat(c.rows()).noneMatch(Row::lowest);
-    }
-
-    @Test
-    @DisplayName("12개월 표본이 충분하면 24개월은 조회하지 않는다")
-    void noWideQueryWhenEnough() {
-        when(mapper.pastSpecialSupplies(any(), any(), any(), any())).thenReturn(List.of(
-                past("A", "NEWLYWED", 10, 100), past("B", "NEWLYWED", 10, 300), past("C", "NEWLYWED", 10, 50),
-                past("A", "FIRST_TIME", 10, 400), past("B", "FIRST_TIME", 10, 600), past("C", "FIRST_TIME", 10, 200)));
-        service.compare(announcement("X"), view(
-                decision("NEWLYWED", "신혼부부", true, 25), decision("FIRST_TIME", "생애최초", true, 21)));
-        verify(mapper, never()).pastSpecialSupplies(any(), any(), eq(LocalDate.of(2024, 10, 30)), any());
-    }
-
-    @Test
     @DisplayName("충족 유형이 하나뿐이거나 LH 공고·배정 미상이면 표를 만들지 않는다")
     void notShownWhenNothingToChoose() {
         assertThat(service.compare(announcement("X"), view(
