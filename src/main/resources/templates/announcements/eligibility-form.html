@@ -158,15 +158,14 @@
                     <input type="text" inputmode="numeric" th:field="*{realEstateValue}" placeholder="예: 200,000,000" class="currency-input">
                     <span class="currency-helper"></span>
                     <span class="hint" th:if="${hasAsset}">세대원 모두의 토지(공시지가)·건축물(시가표준액) 합계 — 판정 결과에 기준 금액이 나옵니다</span>
-                    <span class="hint" th:unless="${hasAsset}">신혼부부·생애최초·신생아 특공은 소득 기준을 넘어도 이 금액이 기준(공고문의 "부동산가액 ○억 이하") 이하면 추첨으로 신청할 수 있습니다 — 판정 결과에 기준 금액이 나옵니다</span>
+                    <span class="hint" th:unless="${hasAsset}">소득을 넘어도 이 금액이 기준 이하면 신혼부부·생애최초·신생아는 추첨으로 신청할 수 있습니다</span>
                 </label>
                 <!-- 신혼희망타운(NewlywedHopeTownRule)·토지임대부·지분적립형(AssetRequirement)은 세대 총자산
                      (부동산+금융+기타−부채)에 아래 자동차가액을 더해 본다 -->
                 <label class="field" th:if="${isHopeTown or isTotalAsset}"><span class="lbl">세대 총자산 (원) <span class="req-badge">필수</span></span>
                     <input type="text" inputmode="numeric" th:field="*{totalAssets}" placeholder="예: 3억 (300,000,000)" class="currency-input">
                     <span class="currency-helper"></span>
-                    <span class="hint">세대원 모두의 부동산·예금·주식·전월세 보증금 등 합계에서 대출 등 부채를 뺀 금액(자동차는 아래 칸에 따로)
-                        <th:block th:if="${isTotalAsset}"> — 이 공고는 부동산·자동차를 따로 보지 않고 총자산으로 봅니다</th:block></span>
+                    <span class="hint">부동산·예금·보증금 등 합계 − 부채(자동차는 아래 칸에 따로)</span>
                 </label>
                 <label class="field" th:if="${hasAsset or isHopeTown or isTotalAsset}"><span class="lbl">자동차가액 (원) <span class="req-badge">필수</span></span>
                     <input type="text" inputmode="numeric" th:field="*{carValue}" placeholder="예: 20,000,000" class="currency-input">

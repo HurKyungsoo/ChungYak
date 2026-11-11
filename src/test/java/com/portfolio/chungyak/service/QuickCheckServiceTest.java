@@ -123,4 +123,14 @@ class QuickCheckServiceTest {
         assertThat(view.needsReview()).isEmpty();
         assertThat(view.ruledOut()).isEmpty();
     }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("확인 항목은 화면용으로 묶는다 — 자산 항목들은 하나로, 통장 납입·예치금은 하나로 (E5)")
+    void groupsDisplayedInputs() {
+        assertThat(QuickCheckService.displayGroup("세대 부동산 가액")).isEqualTo("자산(공고 유형에 따라 다름)");
+        assertThat(QuickCheckService.displayGroup("세대 총자산·자동차가액")).isEqualTo("자산(공고 유형에 따라 다름)");
+        assertThat(QuickCheckService.displayGroup("청약통장 예치금")).isEqualTo("청약통장 납입 횟수·예치금");
+        assertThat(QuickCheckService.displayGroup("청약통장 납입 인정 횟수")).isEqualTo("청약통장 납입 횟수·예치금");
+        assertThat(QuickCheckService.displayGroup("청약통장 가입 기간")).isEqualTo("청약통장 가입 기간");
+    }
 }

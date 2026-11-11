@@ -84,12 +84,23 @@ public class QuickCheckService {
                 Set<String> typeInputs = new java.util.LinkedHashSet<>();
                 decisions.stream()
                         .filter(d -> d.getFailedReasons().isEmpty())
-                        .forEach(d -> typeInputs.addAll(d.getMissingInputs()));
+                        .forEach(d -> d.getMissingInputs().forEach(input -> typeInputs.add(displayGroup(input))));
                 needsReview.add(new QuickCheckView.TypeRow(type.getLabel(), null, List.copyOf(typeInputs)));
             }
         }
 
         return QuickCheckView.of(needsReview, ruledOut);
+    }
+
+    /**
+     * 확인할 항목을 화면용 묶음으로 — 공고 유형(공공·국민·민영·뉴홈·신혼희망타운)마다 다른 자산·통장 항목이 다 나열돼
+     * 칩이 7개까지 늘었다(E5). 무엇을 볼지는 공고별 판정 화면이 정확히 묻는다. 판정에는 쓰지 않는 표시용이다.
+     */
+    static String displayGroup(String input) {
+        if (input == null) return null;
+        if (input.contains("총자산") || input.contains("부동산") || input.contains("자동차")) return "자산(공고 유형에 따라 다름)";
+        if (input.contains("납입") || input.contains("예치금")) return "청약통장 납입 횟수·예치금";
+        return input;
     }
 
     private static String firstFailedReason(List<EligibilityDecision> decisions) {
