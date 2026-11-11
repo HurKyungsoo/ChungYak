@@ -200,6 +200,17 @@ class ScreenRenderTest {
     }
 
     @Test
+    @DisplayName("공고 목록 — 기본은 자격 판정 가능한 공고만, '전체'·공고명 검색은 임대·무순위까지 (2026-11 점검)")
+    void listDefaultsToJudgeable() throws Exception {
+        String byDefault = render("/announcements");
+        assertThat(byDefault).contains("렌더링 테스트 아파트").doesNotContain("렌더링 행복주택 예비입주자 모집공고")
+                .doesNotContain("렌더링 무순위 단지").contains("자격 판정 가능 <b>").contains("필터");
+        assertThat(render("/announcements?view=all")).contains("렌더링 행복주택 예비입주자 모집공고").contains("렌더링 무순위 단지");
+        assertThat(render("/announcements?q=행복주택")).contains("렌더링 행복주택 예비입주자 모집공고");
+        assertThat(render("/announcements?category=RENTAL")).contains("렌더링 행복주택 예비입주자 모집공고");
+    }
+
+    @Test
     @DisplayName("빠른 진단 결과 — 유형별 추가 확인 항목과 해당 조건 미충족을 구분해 렌더링")
     void quickCheckResultExplainsNextStepsByType() throws Exception {
         String body = render("/quick?married=true&monthsSinceMarriage=36&childCount=1&houseless=true");

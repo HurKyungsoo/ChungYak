@@ -21,8 +21,9 @@
             </div>
             <!-- 바로 쓸 수 있는 숫자만 — "3일 안에 마감"은 목록 카드의 마감 임박 배지(Dday.urgent)와 같은 기준.
                  "접수중 공고 보기"는 바로 아래 목록으로 가는 앵커라 버튼으로 두지 않고 이 숫자가 맡는다. -->
-            <div class="stat-strip" th:with="closingSoon=${rows.?[status == '접수중' and ddayUrgent].size()}">
-                <a href="#list" class="stat-link"><b th:text="${rows.size()}">9</b> 접수중·접수예정 ↓</a>
+            <div class="stat-strip" th:with="closingSoon=${allRows.?[status == '접수중' and ddayUrgent].size()}">
+                <a th:href="@{/announcements} + '#list'" class="stat-link"><b th:text="${judgeableCount}">21</b> 자격 판정 가능 ↓</a>
+                <a th:href="@{/announcements(view='all')} + '#list'" class="stat-link"><b th:text="${allRows.size()}">9</b> 접수중·접수예정</a>
                 <a th:if="${closingSoon > 0}" href="#list" class="stat-urgent"><b th:text="${closingSoon}">4</b> 3일 안에 마감</a>
                 <span th:if="${totalCount != null}"><b th:text="${#numbers.formatInteger(totalCount, 1, 'COMMA')}">2,861</b> 수집된 전체 공고</span>
             </div>
@@ -41,11 +42,11 @@
     <div th:replace="~{fragments/common :: quickCheckForm}"></div>
 
     <div class="sec-head" id="list">
-        <h2>접수중 · 접수예정</h2>
+        <h2 th:text="${judgeOnly} ? '자격 판정 가능한 공고' : '접수중 · 접수예정'">접수중 · 접수예정</h2>
         <span class="count" id="listCount" th:text="|${rows.size()}건|">9건</span>
         <!-- 무순위·줍줍 바로가기 — 구분 드롭다운 안에만 있으면 그것만 찾는 사람이 못 찾는다. 특별공급 판정 대상이
              아니라 메인 흐름(특공 찾기)에 섞지 않고 칩 하나로만 둔다. 이미 걸러 보는 중이면 전체로 돌아가는 칩. -->
-        <th:block th:with="remainderCount=${rows.?[remainder].size()}">
+        <th:block th:with="remainderCount=${allRows.?[remainder].size()}">
             <a class="chip remainder-chip" th:if="${selectedCategory == null and remainderCount > 0}"
                th:href="@{/announcements(category='REMAINDER')} + '#list'"
                th:text="|무순위·줍줍 ${remainderCount}건 모아보기|">무순위·줍줍 7건 모아보기</a>
@@ -63,9 +64,25 @@
          이미 그렇게 동작해서, 버튼을 따로 눌러야 하는 쪽과 섞이면 어느 쪽인지 알 수 없었다.
          검색어는 엔터로 제출한다(입력 중간에 새로고침되면 안 된다). JS 가 없으면 엔터 한 번으로
          고른 값까지 같이 제출되므로 막히지는 않는다. -->
-    <form class="filter-bar" method="get" th:action="@{/announcements}" data-auto-apply="#list">
+    <!--/* 기본은 자격 판정 가능한 공고만 — 임대·무순위·일반매각 등은 "전체"에서(2026-11 점검). 검색·임대/무순위 구분을 고르면
+         그 공고를 찾는 중이라 탭 없이 전체를 보여 준다(AnnouncementController.list). */-->
+    <nav class="view-tabs" th:if="${viewSwitchable}" aria-label="공고 범위">
+        <a th:href="@{/announcements(region=${selectedRegion},detailType=${selectedDetailType},category=${selectedCategory},sort=${selectedSort})} + '#list'"
+           th:classappend="${judgeOnly} ? 'on'" th:attr="aria-current=${judgeOnly} ? 'page' : null">자격 판정 가능 <b th:text="${judgeableCount}">21</b></a>
+        <a th:href="@{/announcements(region=${selectedRegion},detailType=${selectedDetailType},category=${selectedCategory},sort=${selectedSort},view='all')} + '#list'"
+           th:classappend="${!judgeOnly} ? 'on'" th:attr="aria-current=${!judgeOnly} ? 'page' : null">전체 <b th:text="${allRows.size()}">89</b></a>
+        <span class="muted view-tabs-note" th:if="${!judgeOnly}">임대·무순위·일반매각은 기준이 달라 자격 판정 없이 공고문으로 안내합니다</span>
+    </nav>
+
+    <form class="filter-bar" method="get" th:action="@{/announcements}" data-auto-apply="#list"
+          th:with="anyFilter=${!#strings.isEmpty(selectedRegion) or selectedDetailType != null or selectedCategory != null or selectedSort.name() != 'DEADLINE'}">
+        <input type="hidden" name="view" value="all" th:if="${viewSwitchable and !judgeOnly}">
         <input type="text" name="q" th:value="${selectedKeyword}" placeholder="공고명 검색 (Enter)"
                style="flex:1;min-width:160px;">
+        <!--/* 좁은 화면에서 고르는 칸 4개가 카드 위 230px 를 차지했다 — 접어 두고, 고른 게 있으면 펼친 채로 */-->
+        <button type="button" class="btn btn-ghost filter-toggle" aria-controls="filterMore"
+                th:attr="aria-expanded=${anyFilter}" onclick="var m=document.getElementById('filterMore');var o=m.classList.toggle('open');this.setAttribute('aria-expanded',o);">필터</button>
+        <div class="filter-more" id="filterMore" th:classappend="${anyFilter} ? 'open'">
         <select name="region">
             <option value="">지역 전체</option>
             <option th:each="r : ${regions}" th:value="${r}" th:text="${r}"
@@ -92,6 +109,7 @@
                    or selectedDetailType != null or selectedCategory != null
                    or selectedSort.name() != 'DEADLINE'}"
            th:href="@{/announcements}" class="btn btn-ghost">초기화</a>
+        </div>
         <label class="scrap-filter">
             <input type="checkbox" id="scrapFilterToggle">
             <span><span class="heart-icon"></span> 찜한 공고만 보기</span>

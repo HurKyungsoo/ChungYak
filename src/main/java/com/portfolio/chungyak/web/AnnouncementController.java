@@ -84,6 +84,7 @@ public class AnnouncementController {
                        @RequestParam(required = false) String q,
                        @RequestParam(required = false) String sort,
                        @RequestParam(required = false) String category,
+                       @RequestParam(required = false) String view,
                        Model model) {
         HouseDetailType parsedDetailType = parseDetailType(detailType);
         SupplyCategory parsedCategory = parseCategory(category);
@@ -93,11 +94,25 @@ public class AnnouncementController {
 
         LocalDate today = queryService.today();
         AnnouncementListSort parsedSort = AnnouncementListSort.from(sort);
-        List<AnnouncementListRow> rows = parsedSort.apply(announcements.stream()
+        List<AnnouncementListRow> allRows = parsedSort.apply(announcements.stream()
                 .map(a -> AnnouncementListRow.of(a, queryService.statusOf(a), today))
                 .toList());
+        // 기본은 "자격 판정 가능"만(2026-11 점검: 열린 공고 89건 중 68건이 판정 안 하는 임대·무순위 등이라 목록 첫 카드부터
+        // 임대였다). 공고명 검색·임대/무순위 구분을 고른 사람은 그 공고를 찾는 중이라 전체를 보여 준다.
+        boolean judgeOnly = !"all".equals(view) && (q == null || q.isBlank())
+                && (parsedCategory == null || parsedCategory == SupplyCategory.SALE || parsedCategory == SupplyCategory.HOPE_TOWN);
+        java.util.Set<Long> judgeable = announcements.stream().filter(Announcement::isEligibilityTarget)
+                .map(Announcement::getId).collect(java.util.stream.Collectors.toSet());
+        List<AnnouncementListRow> rows = judgeOnly
+                ? allRows.stream().filter(r -> judgeable.contains(r.id())).toList()
+                : allRows;
 
         model.addAttribute("rows", rows);
+        model.addAttribute("allRows", allRows);
+        model.addAttribute("judgeOnly", judgeOnly);
+        model.addAttribute("judgeableCount", judgeable.size());
+        model.addAttribute("viewSwitchable", (q == null || q.isBlank())
+                && (parsedCategory == null || parsedCategory == SupplyCategory.SALE || parsedCategory == SupplyCategory.HOPE_TOWN));
         model.addAttribute("sorts", AnnouncementListSort.values());
         model.addAttribute("selectedSort", parsedSort);
         model.addAttribute("totalCount", queryService.totalCount());

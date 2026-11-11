@@ -178,6 +178,22 @@
             .hero-visual { display: none; }
             .hero .lead-more { display: none; }
         }
+        /* 목록 범위 탭 — 자격 판정 가능 / 전체 */
+        .view-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 10px; }
+        .view-tabs a { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface);
+                       color: var(--text-muted); font-weight: 600; font-size: .9rem; text-decoration: none; }
+        .view-tabs a b { margin-left: 4px; }
+        .view-tabs a.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .view-tabs-note { flex-basis: 100%; font-size: .8rem; }
+        /* 필터 접기 — 넓은 화면에선 늘 펼침(버튼 없음), 좁은 화면에서만 접는다 */
+        .filter-more { display: contents; }
+        .filter-toggle { display: none; }
+        @media (max-width: 640px) {
+            .filter-toggle { display: inline-flex; width: auto; flex: none; }
+            .filter-more { display: none; }
+            .filter-more.open { display: flex; flex-wrap: wrap; gap: 10px; flex-basis: 100%; }
+            .filter-more.open select { flex: 1 1 calc(50% - 5px); min-width: 0; }
+        }
         /* 공고 목록 "더 보기" (E6) — 처음 20건만 보이고 나머지는 펼친다. 찜·내 조건 필터를 켜면 걸린 공고는 다 보인다 */
         .list-more { display: flex; justify-content: center; margin: 14px 0 4px; }
         .list-more[hidden] { display: none; }
@@ -819,6 +835,11 @@
             .filter-bar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
             .filter-bar input[type=text], .filter-bar .scrap-filter { grid-column: 1 / -1; }
             .filter-bar select { min-width: 0; width: 100%; }
+            /* 공고 목록: 검색창 + "필터" 버튼 한 줄, 펼치면 고르는 칸 2열 */
+            .filter-bar:has(.filter-toggle) { grid-template-columns: minmax(0, 1fr) auto; }
+            .filter-bar:has(.filter-toggle) input[type=text] { grid-column: 1; }
+            .filter-bar .filter-more.open { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+            .filter-bar .filter-more.open .btn { grid-column: 1 / -1; }
         }
 
         /* 손가락으로 누르는 화면 — 뒤로가기 링크·㎡ 전환·체크박스 줄의 탭 영역을 넓힌다.
