@@ -168,6 +168,37 @@ class ScreenRenderTest {
         return body;
     }
 
+    private Long savePublic(String externalId, String name, boolean specialLaw, SupplyBreakdown breakdown) {
+        LocalDate today = LocalDate.now();
+        Announcement a = Announcement.builder()
+                .externalId(externalId).houseManageNo(externalId).pblancNo(externalId).houseName(name)
+                .houseType(HouseType.APT).houseDetailType(HouseDetailType.PUBLIC).supplyCategory(SupplyCategory.SALE)
+                .regionName("경기").noticeDate(today.minusDays(3)).receptBeginDate(today).receptEndDate(today.plusDays(2))
+                .regulationFlags(RegulationFlags.builder().publicHousingSpecialLaw(specialLaw).build()).build();
+        a.addUnitType(UnitType.builder().modelNo("01").typeName("059.9A").supplyArea("84.10")
+                .generalSupplyCount(10).specialSupplyCount(20).topAmount(30000).supplyBreakdown(breakdown).build());
+        return repository.save(a).getId();
+    }
+
+    @Test
+    @DisplayName("판정 폼 분기 — 토지임대부(총자산 칸)·국민주택(자산 요건 없음 안내, 자동차 칸 없음)·청년 배정(청년 칸)·일반형(부동산·자동차 칸)")
+    void eligibilityFormBranches() throws Exception {
+        SupplyBreakdown basic = SupplyBreakdown.builder().newlywed(10).firstTime(10).build();
+        String landLease = render("/announcements/" + savePublic("RENDER-LL", "삼도이동 2지구 토지임대부 공공분양주택", true,
+                SupplyBreakdown.builder().newlywed(5).youth(5).build()) + "/eligibility");
+        assertThat(landLease).contains("name=\"totalAssets\"").contains("name=\"carValue\"").doesNotContain("name=\"realEstateValue\"")
+                .contains("name=\"personalTotalAssets\"").contains("name=\"parentsTotalAssets\"")   // 청년 배정이 있으니 청년 칸
+                .contains("무주택인지 헷갈리면");
+
+        String national = render("/announcements/" + savePublic("RENDER-NT", "답십리 국민주택", false, basic) + "/eligibility");
+        assertThat(national).contains("자산 요건은 없습니다").doesNotContain("name=\"carValue\"")
+                .contains("name=\"realEstateValue\"").doesNotContain("name=\"personalTotalAssets\"");
+
+        String general = render("/announcements/" + savePublic("RENDER-GN", "시흥거모 S-1블록 공공분양", true, basic) + "/eligibility");
+        assertThat(general).contains("소득·자산 모두 확인합니다").contains("name=\"realEstateValue\"").contains("name=\"carValue\"")
+                .doesNotContain("name=\"totalAssets\"");
+    }
+
     @Test
     @DisplayName("빠른 진단 결과 — 유형별 추가 확인 항목과 해당 조건 미충족을 구분해 렌더링")
     void quickCheckResultExplainsNextStepsByType() throws Exception {

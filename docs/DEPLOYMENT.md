@@ -121,6 +121,17 @@ Flyway 마이그레이션은 되돌릴 수 없어, 코드만 이전 커밋으로
 - **배포를 잠시 끄려면**: 저장소 Settings → Actions 에서 CI 를 끄지 말고, `ci.yml` 의 `deploy` 잡에
   `if: false` 를 넣어 push 한다(빌드·테스트는 계속 돈다).
 
+### 배포 후 화면 점검
+
+```bash
+npm i -g playwright && npx playwright install chromium   # 처음 한 번
+node scripts/smoke/smoke.js https://<사이트 주소>
+```
+
+390px·1280px 로 공고 목록·머리 메뉴의 화면·공고 상세·판정 폼·30초 진단·조건 찾기(마지막 단계까지 입력 후 제출)를 열어
+4xx/5xx·스크립트 오류·가로 넘침·화면 밖으로 잘린 버튼을 찾는다. 걸리면 종료 코드 1. GET 과 조건 찾기 제출 한 번뿐이라
+데이터를 바꾸지 않는다. 2026-11 조건 찾기 제출 버튼 잘림(c4ca005 이전 CSS)을 주입해 돌리면 3건으로 잡힌다.
+
 ## 백업
 
 매일 03:30 KST 에 `scripts/backup-db.sh` 가 `~/backups/chungyak-YYYYMMDD-HHMM.sql.gz` 를 만들고
