@@ -38,6 +38,9 @@ class NoticeFiguresTest {
         assertThat(NoticeFigures.mentionsAmount("부동산 가액이 3억 3,100만원 이하", 331_000_000L)).isTrue();
         assertThat(NoticeFigures.mentionsAmount("331,000,000원 이하", 331_000_000L)).isTrue();
         assertThat(NoticeFigures.mentionsAmount("3억 4,500만원 이하", 362_000_000L)).isFalse();
+        // 뉴홈 토지임대부·지분적립형 공고문 표기(2026000435 <표3>)
+        assertThat(NoticeFigures.mentionsAmount("차감한 금액이\n  362백만원 이하", 362_000_000L)).isTrue();
+        assertThat(NoticeFigures.mentionsAmount("본인 276백만원 이하", 362_000_000L)).isFalse();
         assertThat(NoticeFigures.mentionsAmount(null, 1L)).isFalse();
     }
 }

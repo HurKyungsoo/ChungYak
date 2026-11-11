@@ -42,13 +42,14 @@ public final class NoticeFigures {
         return out;
     }
 
-    /** 원 단위 금액이 공고문에 적혀 있는지 — "362,000천원", "362,000,000원", "3억 6,200만원" 표기 모두 */
+    /** 원 단위 금액이 공고문에 적혀 있는지 — "362,000천원", "362,000,000원", "362백만원", "3억 6,200만원" 표기 모두 */
     public static boolean mentionsAmount(String text, long won) {
         if (text == null) return false;
         String t = normalize(text).replace(" ", "");
         List<String> forms = new ArrayList<>();
         forms.add(String.format(java.util.Locale.ROOT, "%,d원", won));
         if (won % 1000 == 0) forms.add(String.format(java.util.Locale.ROOT, "%,d천원", won / 1000));
+        if (won % 1_000_000 == 0) forms.add(String.format(java.util.Locale.ROOT, "%,d백만원", won / 1_000_000));
         long eok = won / 100_000_000, man = (won % 100_000_000) / 10_000;
         if (won % 10_000 == 0 && eok > 0) {
             forms.add(man == 0 ? eok + "억원" : eok + "억" + String.format(java.util.Locale.ROOT, "%,d", man) + "만원");

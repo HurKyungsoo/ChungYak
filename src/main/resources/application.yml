@@ -208,12 +208,16 @@ special-supply:
     birth-one:          { real-estate: 237050000, car-value: 49960000 }   # 2023.3.28 이후 출생 자녀만 1명(10%p 완화)
     birth-two-or-more:  { real-estate: 258600000, car-value: 54510000 }   # 2명 이상, 또는 1명 + 그 전 자녀(20%p 완화)
     basis: "2026년도"
+    # 뉴홈 토지임대부·지분적립형(Announcement.usesTotalAssetLimit)은 위 부동산·자동차 대신 세대 총자산(부동산+자동차+일반·금융자산−부채) 하나로 본다.
+    # 출처: 2026-10 공고문 2건(제주 삼도이동 토지임대부 2026000435 <표3>·<표3-1>, 광교 지분적립형 2026000527 <표2>·<표3>) — 같은 금액.
+    total-asset: { base: 362000000, birth-one: 397000000, birth-two-or-more: 431000000 }
     # 새 해 기준이 나오면: 지금 값 묶음을 previous 로 옮기고 위 금액을 새 값으로, applies-from 에 쓰기 시작한 공고일을 적는다.
     # applies-from: 2027-01-01
     # previous:
     #   - { real-estate: 215500000, car-value: 45420000, basis: "2026년도",
     #       birth-one: { real-estate: 237050000, car-value: 49960000 },
-    #       birth-two-or-more: { real-estate: 258600000, car-value: 54510000 } }
+    #       birth-two-or-more: { real-estate: 258600000, car-value: 54510000 },
+    #       total-asset: { base: 362000000, birth-one: 397000000, birth-two-or-more: 431000000 } }
 
 # 신혼희망타운(HOUSE_SECD=10) 전용 자산기준 — 총자산+자동차가액을 하나로 합산해 비교한다
 # (위 special-supply.asset-limit 은 표준 공공주택 특공용이라 따로 둔다).

@@ -76,6 +76,63 @@ class AssetRequirementTest {
         assertThat(req.check(withOlder.carValue(54_510_001).build(), pub).passed()).isFalse();
     }
 
+    private static Announcement named(String houseName, HouseDetailType type) {
+        return Announcement.builder()
+                .externalId("A").houseManageNo("A").pblancNo("A").houseName(houseName)
+                .houseType(HouseType.APT).houseDetailType(type).build();
+    }
+
+    @Test
+    @DisplayName("토지임대부·지분적립형 — 세대 총자산+자동차 3억 6,200만 이내 PASS, 초과 FAIL (부동산·자동차 따로 보지 않는다)")
+    void totalAssetBoundary() {
+        Announcement landLease = named("삼도이동 2지구 토지임대부 공공분양주택", HouseDetailType.PUBLIC);
+        Announcement equity = named("광교 자연앤 센트레빌(A17BL) 지분적립형 분양주택", HouseDetailType.PUBLIC);
+        for (Announcement a : new Announcement[]{landLease, equity}) {
+            assertThat(a.usesTotalAssetLimit()).isTrue();
+            ApplicantProfile at = ApplicantProfile.builder().totalAssets(332_000_000L).carValue(30_000_000).build();
+            RequirementCheck c = req.check(at, a);
+            assertThat(c.passed()).isTrue();
+            assertThat(c.reason()).contains("3억 6,200만원").contains("총자산");
+            RequirementCheck over = req.check(ApplicantProfile.builder().totalAssets(332_000_001L).carValue(30_000_000).build(), a);
+            assertThat(over.status()).isEqualTo(Status.FAIL);
+            assertThat(over.reason()).contains("초과");
+        }
+        // 일반형이면 부동산 3억이라 탈락할 세대도 총자산 기준 안이면 통과 — 부동산 가액 칸은 보지 않는다
+        ApplicantProfile bigHouse = ApplicantProfile.builder()
+                .realEstateValue(300_000_000L).totalAssets(300_000_000L).carValue(10_000_000).build();
+        assertThat(req.check(bigHouse, landLease).passed()).isTrue();
+        assertThat(req.check(bigHouse, announcement(HouseDetailType.PUBLIC)).passed()).isFalse();
+    }
+
+    @Test
+    @DisplayName("토지임대부·지분적립형 — 2023.3.28 이후 출생 자녀 1명 3억 9,700만, 2명 이상 4억 3,100만")
+    void totalAssetBirthRelaxation() {
+        Announcement a = named("삼도이동 1지구 토지임대부 공공분양주택", HouseDetailType.PUBLIC);
+        ApplicantProfile.ApplicantProfileBuilder one = ApplicantProfile.builder().childCount(1).childrenBornSince20230328(1).carValue(0);
+        assertThat(req.check(one.totalAssets(397_000_000L).build(), a).passed()).isTrue();
+        assertThat(req.check(one.totalAssets(397_000_001L).build(), a).passed()).isFalse();
+        ApplicantProfile.ApplicantProfileBuilder two = ApplicantProfile.builder().childCount(2).childrenBornSince20230328(2).carValue(0);
+        RequirementCheck at = req.check(two.totalAssets(431_000_000L).build(), a);
+        assertThat(at.passed()).isTrue();
+        assertThat(at.reason()).contains("완화");
+        assertThat(req.check(two.totalAssets(431_000_001L).build(), a).passed()).isFalse();
+    }
+
+    @Test
+    @DisplayName("토지임대부·지분적립형인데 총자산·자동차가 비면 MISSING — 부동산 가액으로 대신하지 않는다")
+    void totalAssetMissing() {
+        Announcement a = named("삼도이동 2지구 토지임대부 공공분양주택", HouseDetailType.PUBLIC);
+        assertThat(req.check(ApplicantProfile.builder().realEstateValue(0L).carValue(0).build(), a).status()).isEqualTo(Status.MISSING);
+        assertThat(req.check(ApplicantProfile.builder().totalAssets(0L).build(), a).status()).isEqualTo(Status.MISSING);
+    }
+
+    @Test
+    @DisplayName("공고명으로 가르는 건 공공분양만 — 민영이나 일반형 공공분양은 해당 없음")
+    void totalAssetOnlyForNamedPublic() {
+        assertThat(named("○○ 지분적립형", HouseDetailType.PRIVATE).usesTotalAssetLimit()).isFalse();
+        assertThat(named("시흥거모지구 S-1블록 공공분양(본청약)", HouseDetailType.PUBLIC).usesTotalAssetLimit()).isFalse();
+    }
+
     @Test
     @DisplayName("초과하면 얼마나 넘었는지 금액도 적는다 (#19-1b)")
     void failReasonCarriesGap() {

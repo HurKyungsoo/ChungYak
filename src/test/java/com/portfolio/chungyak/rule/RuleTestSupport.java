@@ -40,7 +40,10 @@ public final class RuleTestSupport {
                     // application.yml special-supply.asset-limit 과 같게(2026년도 공공분양 자산기준)
                     new AssetLimit(215_500_000L, 45_420_000,
                             new SpecialSupplyRequirementProperties.AssetAmounts(237_050_000L, 49_960_000),
-                            new SpecialSupplyRequirementProperties.AssetAmounts(258_600_000L, 54_510_000)),
+                            new SpecialSupplyRequirementProperties.AssetAmounts(258_600_000L, 54_510_000),
+                            "2026년도", null, null,
+                            // 뉴홈 토지임대부·지분적립형 — application.yml special-supply.asset-limit.total-asset 과 같게
+                            new SpecialSupplyRequirementProperties.TotalAsset(362_000_000L, 397_000_000L, 431_000_000L)),
                     // 민영주택 — application.yml special-supply.private-income-limit 과 같게(다자녀·노부모는 소득 기준 없음)
                     Map.of(
                             SpecialSupplyType.NEWLYWED, new IncomeLimit(140, 160),

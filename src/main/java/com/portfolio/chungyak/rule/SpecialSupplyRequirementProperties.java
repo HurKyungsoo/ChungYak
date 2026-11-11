@@ -99,22 +99,41 @@ public record SpecialSupplyRequirementProperties(
      */
     public record AssetLimit(long realEstate, int carValue, AssetAmounts birthOne, AssetAmounts birthTwoOrMore,
                              /** 기준 이름("2026년도")·적용 시작 공고일·예전 기준 — {@link YearlyFigure} */
-                             String basis, LocalDate appliesFrom, List<AssetLimit> previous) {
+                             String basis, LocalDate appliesFrom, List<AssetLimit> previous,
+                             /** 뉴홈 토지임대부·지분적립형의 세대 총자산 상한 — {@link com.portfolio.chungyak.domain.Announcement#usesTotalAssetLimit} */
+                             TotalAsset totalAsset) {
 
         @ConstructorBinding
         public AssetLimit {
             previous = previous == null ? List.of() : List.copyOf(previous);
         }
 
+        /** 총자산 기준 없이 */
+        public AssetLimit(long realEstate, int carValue, AssetAmounts birthOne, AssetAmounts birthTwoOrMore,
+                          String basis, LocalDate appliesFrom, List<AssetLimit> previous) {
+            this(realEstate, carValue, birthOne, birthTwoOrMore, basis, appliesFrom, previous, null);
+        }
+
         /** 버전 없이(시작일 미확인 한 벌) */
         public AssetLimit(long realEstate, int carValue, AssetAmounts birthOne, AssetAmounts birthTwoOrMore) {
-            this(realEstate, carValue, birthOne, birthTwoOrMore, null, null, null);
+            this(realEstate, carValue, birthOne, birthTwoOrMore, null, null, null, null);
         }
 
         /** 출생 가산 구분(0 없음, 1 그 자녀만 1명, 2 그 밖) — {@link IncomeRequirement#birthTier}. 완화 금액이 없으면 기본 금액 */
         public AssetAmounts forBirthTier(int tier) {
             AssetAmounts relaxed = tier >= 2 ? birthTwoOrMore : tier == 1 ? birthOne : null;
             return relaxed != null ? relaxed : new AssetAmounts(realEstate, carValue);
+        }
+    }
+
+    /**
+     * 세대 총자산 상한 (원) — 2023. 3. 28. 이후 출생 자녀 1명이면 birthOne, 2명 이상(또는 1명 + 그 전 자녀)이면 birthTwoOrMore.
+     * 완화 금액이 비어 있으면 기본 금액.
+     */
+    public record TotalAsset(long base, Long birthOne, Long birthTwoOrMore) {
+        public long forBirthTier(int tier) {
+            Long relaxed = tier >= 2 ? birthTwoOrMore : tier == 1 ? birthOne : null;
+            return relaxed != null ? relaxed : base;
         }
     }
 

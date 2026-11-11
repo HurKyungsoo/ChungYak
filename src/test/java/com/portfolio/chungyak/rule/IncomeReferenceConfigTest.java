@@ -39,4 +39,24 @@ class IncomeReferenceConfigTest {
             }
         }
     }
+
+    @Test
+    @DisplayName("운영 설정 — 뉴홈 토지임대부·지분적립형 총자산 상한(출생 자녀 완화 포함)이 공공 자산 기준 묶음 안에 있다")
+    @SuppressWarnings("unchecked")
+    void totalAssetConfigured() throws Exception {
+        try (InputStream in = getClass().getResourceAsStream("/application.yml")) {
+            Map<String, Object> asset = null;
+            for (Object doc : new Yaml().loadAll(in)) {
+                if (doc instanceof Map<?, ?> m && m.get("special-supply") instanceof Map<?, ?> ss) {
+                    asset = (Map<String, Object>) ss.get("asset-limit");
+                    break;
+                }
+            }
+            assertThat(asset).as("special-supply.asset-limit").isNotNull();
+            Map<String, Number> total = (Map<String, Number>) asset.get("total-asset");
+            assertThat(total).as("total-asset").isNotNull();
+            assertThat(total.get("base").longValue()).isLessThan(total.get("birth-one").longValue());
+            assertThat(total.get("birth-one").longValue()).isLessThan(total.get("birth-two-or-more").longValue());
+        }
+    }
 }

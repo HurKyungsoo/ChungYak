@@ -44,11 +44,15 @@ class EligibilityEngineTest {
     }
 
     private Announcement announcement(HouseDetailType detailType, boolean regulated) {
+        return announcement(detailType, regulated, "테스트 아파트");
+    }
+
+    private Announcement announcement(HouseDetailType detailType, boolean regulated, String houseName) {
         Announcement a = Announcement.builder()
                 .externalId("TEST-" + detailType + "-" + regulated)
                 .houseManageNo("2026000419")
                 .pblancNo("2026000419")
-                .houseName("테스트 아파트")
+                .houseName(houseName)
                 .houseType(HouseType.APT)
                 .houseDetailType(detailType)
                 .regionName("서울")
@@ -159,6 +163,29 @@ class EligibilityEngineTest {
                 .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
         assertThat(engine.evaluate(dual, privateAnnouncement)
                 .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
+    }
+
+    @Test
+    @DisplayName("토지임대부·지분적립형 공공분양 — 세대 총자산+자동차 3억 6,200만은 통과, 1원 넘으면 탈락 (경계값, 부동산 가액은 안 본다)")
+    void newHomeTotalAssetBoundary() {
+        Announcement landLease = announcement(HouseDetailType.PUBLIC, false, "삼도이동 2지구 토지임대부 공공분양주택");
+        ApplicantProfile.ApplicantProfileBuilder base = passing()
+                .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
+                .residenceMonthsInRegion(36)
+                .realEstateValue(300_000_000L)   // 일반형이면 2억 1,550만 초과로 탈락할 값
+                .carValue(12_000_000);
+
+        ApplicantProfile at = base.totalAssets(350_000_000L).build();        // 3억 5,000만 + 1,200만 = 3억 6,200만
+        ApplicantProfile over = base.totalAssets(350_000_001L).build();
+        for (SpecialSupplyType type : new SpecialSupplyType[]{SpecialSupplyType.NEWLYWED, SpecialSupplyType.FIRST_TIME, SpecialSupplyType.MULTI_CHILD}) {
+            assertThat(engine.evaluate(at, landLease).decisions().get(type).getFailedReasons())
+                    .as(type + " 총자산 경계").noneMatch(r -> r.contains("자산"));
+            assertThat(engine.evaluate(over, landLease).decisions().get(type).getFailedReasons())
+                    .as(type + " 총자산 초과").anyMatch(r -> r.contains("총자산") && r.contains("3억 6,200만원"));
+        }
+        assertThat(engine.evaluate(at, landLease).decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
+        // 같은 사람이 일반형 공공분양이면 부동산 3억이라 탈락
+        assertThat(engine.evaluate(at, publicAnnouncement).decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
     }
 
     @Test

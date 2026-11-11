@@ -350,6 +350,17 @@ public class Announcement {
         this.requirementsWaived = waived;
     }
 
+    /**
+     * 특별공급 자산을 <b>세대 총자산</b>(부동산+자동차+일반·금융자산−부채) 하나로 보는 공공분양인지 — 뉴홈 토지임대부·지분적립형.
+     * 2026-10 공고문 2건(제주 삼도이동 토지임대부·광교 지분적립형)이 신혼부부·생애최초·신생아(광교는 다자녀·노부모까지)를
+     * "총자산 362백만원 이하"로 본다. 일반형 공공분양(시흥거모·안산신길 등)은 "부동산 215,500천원·자동차 45,420천원"이다.
+     * 유형 코드가 원천에 없어 공고명으로 가른다 — 공고문으로 확인한 두 유형만(나눔형·선택형은 원문 미확인).
+     */
+    public boolean usesTotalAssetLimit() {
+        return houseDetailType == HouseDetailType.PUBLIC && houseName != null
+                && (houseName.contains("토지임대부") || houseName.contains("지분적립"));
+    }
+
     /** LH 공고인지 — 청약홈과 화면 구성이 다르다(규제·특공 세대수 정보가 원천에 없다). */
     public boolean isLh() {
         return externalId != null && externalId.startsWith("LH-");

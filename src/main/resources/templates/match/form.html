@@ -130,9 +130,10 @@
                     <span class="currency-helper"></span>
                     <span class="hint">세대원 모두의 토지(공시지가)·건축물(시가표준액) 합계. 공공주택 특공 자산 요건에 쓰고, 민영 신혼부부·생애최초·신생아는 소득 기준을 넘어도 이 금액이 기준 이하면 추첨으로 신청할 수 있습니다</span>
                 </label>
-                <label class="field"><span class="lbl">총자산 (원) <span class="req-badge cond">신혼희망타운 필수</span></span>
+                <label class="field"><span class="lbl">세대 총자산 (원) <span class="req-badge cond">신혼희망타운·토지임대부·지분적립형 필수</span></span>
                     <input type="text" inputmode="numeric" th:field="*{totalAssets}" placeholder="예: 3억 (300,000,000)" class="currency-input">
                     <span class="currency-helper"></span>
+                    <span class="hint">세대원 모두의 부동산·예금·주식·전월세 보증금 등 합계에서 대출 등 부채를 뺀 금액(자동차는 아래 칸에 따로). 신혼희망타운과 토지임대부·지분적립형 공공분양은 부동산·자동차 대신 이 금액으로 봅니다</span>
                 </label>
                 <label class="field"><span class="lbl">자동차가액 (원) <span class="req-badge cond">공공주택 필수</span></span>
                     <input type="text" inputmode="numeric" th:field="*{carValue}" placeholder="예: 20,000,000" class="currency-input">

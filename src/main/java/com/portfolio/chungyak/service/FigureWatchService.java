@@ -85,6 +85,7 @@ public class FigureWatchService {
             checkIncome(a, base, text, findings);
             boolean hope = a.getHouseType() == HouseType.NEWLYWED_HOPE_TOWN || a.getSupplyCategory() == SupplyCategory.HOPE_TOWN;
             if (hope) checkHopeTownAsset(a, base, text, findings);
+            else if (a.usesTotalAssetLimit()) checkTotalAsset(a, base, text, findings);
             else if (a.getHouseDetailType() == HouseDetailType.PUBLIC) checkPublicAsset(a, base, text, findings);
             else if (a.getHouseDetailType() == HouseDetailType.PRIVATE) checkRealEstateTrack(a, base, text, findings);
         }
@@ -134,6 +135,17 @@ public class FigureWatchService {
         if (!car.isEmpty() && car.stream().noneMatch(knownCar::contains)) {
             out.add(new Finding(a.getId(), a.getHouseName(), base, "공공 특공 자산 — 자동차(" + pick.basis() + ")",
                     true, won(List.copyOf(knownCar)), won(List.copyOf(car))));
+        }
+    }
+
+    /** 뉴홈 토지임대부·지분적립형 — 공고문에 "총자산 362백만원" 같은 기본 금액이 있는지(표기가 제각각이라 확인 필요로만) */
+    private void checkTotalAsset(Announcement a, LocalDate base, String text, List<Finding> out) {
+        var pick = requirements.assetLimitFor(base);
+        if (pick == null || pick.value().totalAsset() == null || !text.contains("총자산")) return;
+        long expected = pick.value().totalAsset().base();
+        if (!NoticeFigures.mentionsAmount(text, expected)) {
+            out.add(new Finding(a.getId(), a.getHouseName(), base, "토지임대부·지분적립형 총자산(" + pick.basis() + ")",
+                    false, won(List.of(expected)), ""));
         }
     }
 
