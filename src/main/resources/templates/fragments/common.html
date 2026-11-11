@@ -173,9 +173,14 @@
             background: var(--surface);
         }
         @media (max-width: 640px) {
-            .hero { flex-direction: column-reverse; align-items: flex-start; gap: 18px; }
-            .hero-visual img { width: 88px; height: 88px; border-radius: 20px; }
+            /* 좁은 화면에서는 그림·부연 설명이 "30초 진단"을 첫 화면 밖으로 밀었다 — 장식 그림과 부연은 뺀다 (E6) */
+            .hero { flex-direction: column; align-items: flex-start; gap: 18px; }
+            .hero-visual { display: none; }
+            .hero .lead-more { display: none; }
         }
+        /* 공고 목록 "더 보기" (E6) — 처음 20건만 보이고 나머지는 펼친다. 찜·내 조건 필터를 켜면 걸린 공고는 다 보인다 */
+        .list-more { display: flex; justify-content: center; margin: 14px 0 4px; }
+        .list-more[hidden] { display: none; }
         .hero .eyebrow { display: inline-block; font-size: .78rem; font-weight: 650; letter-spacing: .02em;
                          color: var(--brand); background: var(--brand-weak);
                          padding: 4px 10px; border-radius: var(--r-pill); margin-bottom: 12px; }
@@ -2141,15 +2146,32 @@
             var cards = document.querySelectorAll('.notice-card[data-ann-id]');
             var countLabel = document.getElementById('listCount');
             var profileOnly = false;
+            // 공고 목록 "더 보기" (E6) — 처음 LIST_LIMIT 건만 보인다. 서버에서 자르면 아래 찜·내 조건 필터(브라우저에서 거른다)가
+            // 숨은 공고를 놓치므로 여기서 같이 다룬다. 필터를 켜면 걸린 공고는 모두 보여 준다(이미 좁혀졌다).
+            var LIST_LIMIT = 20, expanded = false, moreWrap = null;
+            var list = document.querySelector('.notice-list');
+            if (list && cards.length > LIST_LIMIT) {
+                moreWrap = document.createElement('div');
+                moreWrap.className = 'list-more';
+                moreWrap.innerHTML = '<button type="button" class="btn btn-ghost btn-lg"></button>';
+                list.after(moreWrap);
+                moreWrap.querySelector('button').addEventListener('click', function () { expanded = true; applyFilter(); });
+            }
             var applyFilter = function () {
                 var onlyScraps = filterToggle.checked;
+                var limited = !expanded && !onlyScraps && !profileOnly;
                 var shown = 0;
                 cards.forEach(function (card) {
                     var matchesProfile = !profileOnly || card.dataset.profileState === window.chungyakProfileFilterState;
                     var show = matchesProfile && (!onlyScraps || scraps.has(card.dataset.annId));
-                    card.style.display = show ? '' : 'none';
                     if (show) shown++;
+                    card.style.display = show && (!limited || shown <= LIST_LIMIT) ? '' : 'none';
                 });
+                if (moreWrap) {
+                    var rest = limited ? shown - LIST_LIMIT : 0;
+                    moreWrap.hidden = rest <= 0;
+                    if (rest > 0) moreWrap.querySelector('button').textContent = '더 보기 (' + rest + '건 더)';
+                }
                 // 필터를 걸면 카드는 줄어드는데 위의 "N건"은 그대로라 헷갈렸다 — 같이 맞춘다.
                 if (countLabel) countLabel.textContent = shown + '건';
             };
