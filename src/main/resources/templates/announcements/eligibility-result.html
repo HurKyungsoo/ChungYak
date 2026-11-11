@@ -75,8 +75,8 @@
                 <li th:if="${!sc.needsInfo.isEmpty()}">
                     <span class="sc-k miss">정보 필요</span>
                     <span><th:block th:each="t, it : ${sc.needsInfo}"><a class="sc-type" th:href="'#decision-' + ${t.typeName}" th:text="${t.label}">다자녀가구</a><span th:unless="${it.last}">, </span></th:block>
-                        — <span th:text="${#strings.listJoin(sc.missingInputs, ', ')}">자녀 수</span>을(를)
-                        <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}">입력하면</a> 판정할 수 있어요.</span>
+                        — <a th:href="@{/announcements/{id}/eligibility(id=${announcement.id})}">입력하면</a> 판정할 수 있어요:
+                        <span th:text="${#strings.listJoin(sc.missingInputs, ', ')}">자녀 수</span></span>
                 </li>
             </ul>
 
@@ -319,12 +319,22 @@
 
         <!-- 막은 요건 · 입력 필요 — 맨 위에 항상 펼쳐서 -->
         <div class="reason-group reason-group-attention" th:if="${!d.ownFailedReasons.isEmpty() or !d.ownMissingInputs.isEmpty()}">
-            <strong class="reason-group-title" th:text="${d.undetermined} ? '확인이 필요한 조건' : '충족하지 못한 조건'">충족하지 못한 조건</strong>
-            <p class="reason-group-note" th:if="${!d.ownMissingInputs.isEmpty()}">입력값이 없어 판정을 보류한 항목입니다. 조건을 입력하면 결과가 달라질 수 있어요.</p>
-        <ul class="reasons">
-            <li th:each="r : ${d.ownFailedReasons}" class="r-no"><span class="r-text" th:utext="${@emphasis.html(r)}">미충족</span></li>
-            <li th:each="r : ${d.ownMissingInputs}" class="r-miss" th:text="${r} + ' — 입력이 필요합니다'">누락</li>
-        </ul>
+            <!--/* 미충족이 있으면 결론은 미충족이다(EligibilityDecision.isUndetermined). 빈 입력은 "그 밖에" 로 따로 —
+                 섞어 두면 "입력만 하면 되는구나"로 읽혔다(2026-11-11 점검) */-->
+            <th:block th:unless="${d.ownFailedReasons.isEmpty()}">
+            <strong class="reason-group-title">충족하지 못한 조건</strong>
+            <ul class="reasons">
+                <li th:each="r : ${d.ownFailedReasons}" class="r-no"><span class="r-text" th:utext="${@emphasis.html(r)}">미충족</span></li>
+            </ul>
+            </th:block>
+            <th:block th:unless="${d.ownMissingInputs.isEmpty()}">
+            <strong class="reason-group-title" th:text="${d.ownFailedReasons.isEmpty()} ? '확인이 필요한 조건' : '그 밖에 확인이 필요한 조건'">확인이 필요한 조건</strong>
+            <p class="reason-group-note" th:text="${d.ownFailedReasons.isEmpty()} ? '입력값이 없어 판정을 보류한 항목입니다. 조건을 입력하면 결과가 달라질 수 있어요.'
+                                                : '위 조건이 채워진 뒤에도 이 값에 따라 결과가 달라질 수 있어요.'">입력값이 없어 판정을 보류한 항목입니다.</p>
+            <ul class="reasons">
+                <li th:each="r : ${d.ownMissingInputs}" class="r-miss" th:text="${r} + ' — 입력이 필요합니다'">누락</li>
+            </ul>
+            </th:block>
         </div>
 
         <!-- 이 유형만의 이유는 다 충족했는데도 미충족이면, 위 공통요건 레일에서 막힌 것이다 —

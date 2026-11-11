@@ -73,6 +73,17 @@ class FixableDecisionTest {
     }
 
     @Test
+    @DisplayName("미충족(통장 3개월)과 빈 입력(부동산 가액)이 함께면 판정 보류가 아니라 미충족 — 빈 입력은 남겨 보여 준다, fixable 도 아니다")
+    void failureWithMissingIsDeterminedNotFixable() {
+        EligibilityDecision d = EligibilityDecision.ineligible(SpecialSupplyType.NEWLYWED)
+                .failedWithHint("청약통장 가입기간이 3개월로 요건(6개월)에 미달합니다.", "청약통장을 3개월 더 유지하면 충족합니다.")
+                .missing("세대 부동산 가액");
+        assertThat(d.isUndetermined()).isFalse();   // 빈 칸을 채워도 지금은 신청 불가
+        assertThat(d.isFixable()).isFalse();        // 빈 칸이 또 막을 수 있어 "이것만 바뀌면 가능"이라 단정하지 않는다
+        assertThat(d.getMissingInputs()).containsExactly("세대 부동산 가액");
+    }
+
+    @Test
     @DisplayName("failedWithHint 에 힌트가 null 이면 메울 수 없는 미충족으로 센다")
     void nullHintCountsAsUnfixable() {
         EligibilityDecision d = EligibilityDecision.ineligible(SpecialSupplyType.NEWLYWED)

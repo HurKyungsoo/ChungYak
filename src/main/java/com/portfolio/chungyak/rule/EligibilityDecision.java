@@ -103,9 +103,14 @@ public class EligibilityDecision {
         return this;
     }
 
-    /** 입력이 부족해 판정을 못 내린 상태인지 */
+    /**
+     * 입력이 부족해 판정을 못 내린 상태인지 — 미충족이 <b>하나도 없고</b> 빈 입력만 있을 때.
+     * 이미 미충족이 있으면 빈 칸을 채워도 지금은 신청할 수 없으니 결론은 "미충족"이다. 예전엔 빈 입력이 하나라도 있으면
+     * 보류로 봐서, 통장 3개월(미달) + 부동산 가액 빈칸인 사람에게 "입력하면 판정할 수 있어요"라고 했다(2026-11-11 점검).
+     * 빈 입력은 {@link #getMissingInputs()} 에 그대로 남아 "그 밖에 확인할 것"으로 보여 준다.
+     */
     public boolean isUndetermined() {
-        return !missingInputs.isEmpty();
+        return !missingInputs.isEmpty() && failedReasons.isEmpty();
     }
 
     /**
@@ -115,6 +120,7 @@ public class EligibilityDecision {
      * 입력이 부족한(판정 보류) 상태는 메울 수 있는지 알 수 없으므로 거짓이다.
      */
     public boolean isFixable() {
-        return !eligible && !isUndetermined() && !failedReasons.isEmpty() && unfixableFailures == 0;
+        // 빈 입력이 남아 있으면 그 값이 또 막을 수 있어 "이것만 바뀌면 가능"이라고 단정하지 않는다
+        return !eligible && missingInputs.isEmpty() && !failedReasons.isEmpty() && unfixableFailures == 0;
     }
 }
