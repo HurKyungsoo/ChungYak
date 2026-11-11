@@ -809,8 +809,10 @@
         .field .hint { display: block; margin-top: 4px; color: var(--text-subtle); font-size: .8rem; }
         .field.narrow { max-width: 260px; }
         .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 16px; }
+        /* 격자 안에선 칸 간격을 격자 gap 하나로 — 칸마다 위아래 12px 여백이 더해져(격자는 여백이 겹치지 않는다) 38px 로 벌어졌다 */
+        .field-grid > .field { margin: 0; }
         .check { display: flex; align-items: flex-start; gap: 9px; margin: 11px 0; font-size: .9rem; cursor: pointer; }
-        .check input { margin-top: 3px; }
+        .check input { margin-top: 3px; flex: none; }   /* 문구가 두 줄이 되면 체크박스가 17→13px 로 눌렸다 */
         /* 기본 16px 인 이유: iOS 사파리는 글자가 16px 미만인 입력창을 누르면 화면을 자동으로
            확대한다 — 판정 폼처럼 필드가 20개 넘는 화면에서는 칸을 옮길 때마다 확대되고
            사용자가 손으로 되돌려야 한다. 마우스를 쓰는 화면에서만 원래의 촘촘한 크기로 줄인다. */
@@ -1286,7 +1288,7 @@
         fieldset { padding: 18px 20px; margin: 16px 0; }
         fieldset legend { font-size: 1rem; letter-spacing: -0.015em; }
         fieldset.tint { box-shadow: none; }
-        .field-grid { gap: 14px 18px; }
+        .field-grid { gap: 20px 18px; margin: 12px 0; }
         input[type=number], input[type=text], input[type=email], textarea, select {
             background: var(--surface); border-color: var(--border-strong);
         }
