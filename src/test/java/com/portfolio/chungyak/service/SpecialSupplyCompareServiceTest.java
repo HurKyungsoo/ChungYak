@@ -82,6 +82,17 @@ class SpecialSupplyCompareServiceTest {
     }
 
     @Test
+    @DisplayName("화면에 같은 값으로 보이는 유형이 있으면(둘 다 0.4배) '가장 낮음'을 붙이지 않는다")
+    void noLowestOnDisplayedTie() {
+        when(mapper.pastSpecialSupplies(any(), any(), any(), any())).thenReturn(List.of(
+                past("A", "NEWLYWED", 100, 38), past("B", "NEWLYWED", 100, 38), past("C", "NEWLYWED", 100, 38),      // 0.38 → 0.4
+                past("A", "NEWBORN", 100, 41), past("B", "NEWBORN", 100, 41), past("C", "NEWBORN", 100, 41)));       // 0.41 → 0.4
+        var c = service.compare(announcement("X"), view(
+                decision("NEWLYWED", "신혼부부", true, 25), decision("NEWBORN", "신생아", true, 9))).orElseThrow();
+        assertThat(c.rows()).noneMatch(Row::lowest);
+    }
+
+    @Test
     @DisplayName("과거 공고가 3개 미만이면 중앙값을 내지 않고 '가장 낮음'도 붙이지 않는다")
     void tooFewSamples() {
         when(mapper.pastSpecialSupplies(any(), any(), any(), any())).thenReturn(List.of(

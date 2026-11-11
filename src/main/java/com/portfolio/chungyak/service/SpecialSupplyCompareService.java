@@ -116,7 +116,9 @@ public class SpecialSupplyCompareService {
         if (withMedian.size() < 2) withMedian = rows.stream().filter(x -> x.median() != null && x.widened()).toList();
         if (withMedian.size() >= 2) {
             Row low = withMedian.stream().min(Comparator.comparingDouble(Row::median)).orElseThrow();
-            rows.replaceAll(x -> x == low ? x.markLowest() : x);
+            // 화면은 소수 첫째 자리까지 보여 준다 — 보이는 값이 같은 행이 또 있으면("0.4배" 둘) 한쪽만 "가장 낮음"이면 이상하다
+            boolean tie = withMedian.stream().anyMatch(x -> x != low && shown(x.median()) == shown(low.median()));
+            if (!tie) rows.replaceAll(x -> x == low ? x.markLowest() : x);
         }
         return Optional.of(new Comparison(a.getRegionName(), a.getHouseDetailType().getLabel(), MONTHS, rows));
     }
@@ -130,6 +132,11 @@ public class SpecialSupplyCompareService {
                         Collectors.mapping(p -> (double) p.applications() / p.households(), Collectors.toList())));
         ratios.values().forEach(l -> l.sort(Comparator.naturalOrder()));
         return ratios;
+    }
+
+    /** 화면에 보이는 값 — 소수 첫째 자리 반올림 */
+    private static long shown(double ratio) {
+        return Math.round(ratio * 10);
     }
 
     static double median(List<Double> sorted) {
