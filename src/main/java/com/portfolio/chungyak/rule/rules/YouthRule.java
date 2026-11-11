@@ -146,10 +146,19 @@ public class YouthRule implements EligibilityRule {
                         + AssetRequirement.won(personal - limit) + " 초과." + amounts.note());
     }
 
-    /** 총자산 — 본인·부모 각각 */
+    /**
+     * 총자산 — 본인·부모 각각. 공고문: "본인이 소유하고 있는 모든 부동산·<b>자동차</b>·금융자산·일반자산 가액의 총합에서 부채를 차감".
+     * 1인 가구면 가구 값을 본인 값으로 쓰는데, 가구 "총자산" 칸은 자동차를 뺀 값(자동차가액은 따로 입력 — 신혼희망타운·뉴홈과 같은
+     * 입력)이라 자동차가액을 더한다. 자동차가액이 비면 추측하지 않고 MISSING.
+     */
     private RequirementCheck checkAsset(ApplicantProfile profile, YearlyFigure.Pick<YouthSupplyProperties.Amounts> amounts) {
         Long self = profile.getPersonalTotalAssets();
-        if (self == null && Integer.valueOf(1).equals(profile.getHouseholdSize())) self = profile.getTotalAssets();
+        if (self == null && Integer.valueOf(1).equals(profile.getHouseholdSize()) && profile.getTotalAssets() != null) {
+            if (profile.getCarValue() == null) {
+                return RequirementCheck.missing("자동차가액(1인 가구라 총자산에 자동차가액을 더해 본인 총자산으로 봅니다)");
+            }
+            self = profile.getTotalAssets() + profile.getCarValue();
+        }
         Long parents = profile.getParentsTotalAssets();
         if (self == null && parents == null) return RequirementCheck.missing("본인 총자산·부모 총자산(청년 특별공급은 각각 봅니다)");
         if (self == null) return RequirementCheck.missing("본인 총자산");

@@ -176,7 +176,7 @@
         <fieldset th:if="${announcement.visibleSupplyTypes().contains(T(com.portfolio.chungyak.domain.SpecialSupplyType).YOUTH)}">
             <legend>청년 특별공급 <span class="muted">(19~39세, 혼인 중이 아닌 분)</span></legend>
             <p class="muted" style="margin:2px 0 10px">19~39세이고 혼인 중이 아닌 분만 해당합니다. 청년 특별공급은 세대가 아니라
-                <strong>본인</strong>의 소득·주택, <strong>본인과 부모</strong>의 총자산을 따로 봅니다 — 1인 가구면 위 가구 소득·총자산을 본인 값으로 씁니다.</p>
+                <strong>본인</strong>의 소득·주택, <strong>본인과 부모</strong>의 총자산을 따로 봅니다 — 1인 가구면 위 가구 소득과 총자산(+자동차가액)을 본인 값으로 씁니다.</p>
             <label class="check"><input type="checkbox" th:field="*{selfNeverOwnedHouse}">
                 <span>본인 명의로 주택을 가진 적이 없다 <span class="hint" style="display:inline">— 부모 등 세대원이 주택을 가져도 본인 명의가 아니면 해당</span></span></label>
             <div class="field-grid">
@@ -187,12 +187,12 @@
                     <input type="text" inputmode="numeric" th:field="*{personalMonthlyIncome}" placeholder="예: 3,500,000" class="currency-input">
                     <span class="currency-helper"></span>
                 </label>
-                <label class="field"><span class="lbl">본인 총자산 (원)</span>
+                <label class="field"><span class="lbl">본인 총자산 (원, 자동차 포함)</span>
                     <input type="text" inputmode="numeric" th:field="*{personalTotalAssets}" placeholder="예: 50,000,000" class="currency-input">
                     <span class="currency-helper"></span>
                     <span class="hint">부동산·자동차·금융·일반자산 − 부채</span>
                 </label>
-                <label class="field"><span class="lbl">부모 총자산 (원)</span>
+                <label class="field"><span class="lbl">부모 총자산 (원, 자동차 포함)</span>
                     <input type="text" inputmode="numeric" th:field="*{parentsTotalAssets}" placeholder="예: 600,000,000" class="currency-input">
                     <span class="currency-helper"></span>
                     <span class="hint">부모 두 분 합계 — 부동산·자동차·금융·일반자산 − 부채</span>

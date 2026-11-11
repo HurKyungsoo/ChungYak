@@ -31,7 +31,7 @@ class YouthRuleTest {
                 .married(false).age(29).houseless(true)
                 .accountMonths(12).accountPaymentCount(12)
                 .householdSize(1).monthlyHouseholdIncome(4_000_000)
-                .totalAssets(100_000_000L).parentsTotalAssets(500_000_000L);
+                .totalAssets(100_000_000L).carValue(0).parentsTotalAssets(500_000_000L);
     }
 
     private EligibilityDecision judge(ApplicantProfile p) {
@@ -85,6 +85,18 @@ class YouthRuleTest {
         assertThat(judge(single().parentsTotalAssets(1_035_000_001L).build()).getFailedReasons()).anyMatch(r -> r.contains("부모 총자산"));
         assertThat(judge(single().totalAssets(311_000_000L).childCount(1).childrenBornSince20230328(1).build()).isEligible()).isTrue();
         assertThat(judge(single().parentsTotalAssets(null).build()).getMissingInputs()).contains("부모 총자산");
+    }
+
+    @Test
+    @DisplayName("1인 가구 — 가구 총자산 칸(자동차 제외)에 자동차가액을 더해 본인 총자산으로 본다, 자동차가액이 비면 MISSING")
+    void singleHouseholdAddsCar() {
+        // 2억 6,600만 + 자동차 1,000만 = 2억 7,600만 → 경계 통과, 1원 넘으면 탈락
+        assertThat(judge(single().totalAssets(266_000_000L).carValue(10_000_000).build()).isEligible()).isTrue();
+        assertThat(judge(single().totalAssets(266_000_001L).carValue(10_000_000).build()).getFailedReasons())
+                .anyMatch(r -> r.contains("본인 총자산"));
+        assertThat(judge(single().carValue(null).build()).getMissingInputs()).anyMatch(m -> m.contains("자동차가액"));
+        // 본인 총자산을 직접 넣으면(자동차 포함 값) 그대로 쓴다 — 자동차가액을 또 더하지 않는다
+        assertThat(judge(single().personalTotalAssets(276_000_000L).carValue(50_000_000).build()).isEligible()).isTrue();
     }
 
     @Test

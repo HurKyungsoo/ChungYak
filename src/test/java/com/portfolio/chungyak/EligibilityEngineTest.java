@@ -403,7 +403,7 @@ class EligibilityEngineTest {
                 .specialSupplyCount(6).supplyBreakdown(SupplyBreakdown.builder().youth(6).build()).build());
         ApplicantProfile youth = ApplicantProfile.builder()
                 .married(false).age(29).houseless(true).accountMonths(12).accountPaymentCount(12)
-                .householdSize(1).monthlyHouseholdIncome(4_000_000).totalAssets(100_000_000L).parentsTotalAssets(500_000_000L)
+                .householdSize(1).monthlyHouseholdIncome(4_000_000).totalAssets(100_000_000L).carValue(10_000_000).parentsTotalAssets(500_000_000L)
                 .build();
 
         assertThat(engine.evaluate(youth, youthAnn).decisions().get(SpecialSupplyType.YOUTH).isEligible()).isTrue();
