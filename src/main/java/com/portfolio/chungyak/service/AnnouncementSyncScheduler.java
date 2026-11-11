@@ -101,19 +101,20 @@ public class AnnouncementSyncScheduler {
         }
         log.info("전체 동기화 완료. {}", total);
 
+        // 청약홈에 올라온 LH 공급 공고에 LH 같은 공고의 공고문을 잇는다 — 두 소스를 다 받은 뒤라야 짝을 찾는다.
+        // 알림보다 먼저 — 짝이 이어져야 같은 공고가 메일에 두 번(청약홈·LH) 들어가지 않는다(E1)
+        try {
+            lhDocumentLinker.linkAll();
+        } catch (RuntimeException e) {
+            log.warn("LH 공고문 연결 중 오류 — 다음 배치에서 다시 시도. {}", e.toString());
+        }
+
         // 새 공고 알림 — 이번 배치에서 새로 생긴 공고만 대상으로 한다("새 공고" 알림의 정의 그대로).
         // 여기서 실패해도 수집 자체는 이미 끝났으니 배치를 실패시키지 않는다.
         try {
             alertService.notifyMatchingSubscribers(stillCurrent(newAnnouncements));
         } catch (RuntimeException e) {
             log.warn("새 공고 알림 발송 중 오류 — 다음 배치에서 다시 시도되지 않으니 원인 확인 필요. {}", e.toString());
-        }
-
-        // 청약홈에 올라온 LH 공급 공고에 LH 같은 공고의 공고문을 잇는다 — 두 소스를 다 받은 뒤라야 짝을 찾는다
-        try {
-            lhDocumentLinker.linkAll();
-        } catch (RuntimeException e) {
-            log.warn("LH 공고문 연결 중 오류 — 다음 배치에서 다시 시도. {}", e.toString());
         }
 
         // 공고문 Q&A 인덱스 — BM25 모드(무료)일 때만 자동. 실패해도 수집은 끝났으니 배치를 실패시키지 않는다.
@@ -133,9 +134,11 @@ public class AnnouncementSyncScheduler {
      */
     private List<Announcement> stillCurrent(List<Announcement> announcements) {
         if (announcements.isEmpty()) return announcements;
+        Set<Long> lhTwins = new java.util.HashSet<>(announcementRepository.findLhTwinIdsBorrowedByApplyhome());
         Set<Long> current = announcementRepository.findAllById(
                         announcements.stream().map(Announcement::getId).toList()).stream()
                 .filter(Announcement::isCurrentRevision)
+                .filter(a -> !lhTwins.contains(a.getId()))   // 청약홈에도 있는 LH 공고 — 청약홈 쪽으로 한 번만 알린다(E1)
                 .map(Announcement::getId)
                 .collect(Collectors.toSet());
         return announcements.stream().filter(a -> current.contains(a.getId())).toList();

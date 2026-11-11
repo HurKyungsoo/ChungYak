@@ -316,6 +316,8 @@ public class AnnouncementController {
         model.addAttribute("status", status);
         // 같은 공고의 정정 전 본·정정본·취소공고 (#47) — 낡은 본이면 최신본으로, 최신본이면 이전 본으로 잇는다
         model.addAttribute("revisions", queryService.findRevisions(announcement));
+        // 청약홈에도 올라온 LH 공고 — 목록에선 청약홈 쪽만 보이므로 그쪽(유형별 배정 세대가 있다)으로 잇는다 (E1)
+        model.addAttribute("applyhomeTwin", queryService.findApplyhomeTwin(announcement).orElse(null));
         model.addAttribute("dday", Dday.of(status, announcement.getReceptBeginDate(),
                 announcement.getReceptEndDate(), queryService.today()));
         model.addAttribute("timeline", ScheduleTimeline.of(announcement, queryService.today()));

@@ -45,6 +45,29 @@ class AnnouncementQueryServiceTest {
     }
 
     @Test
+    @DisplayName("청약홈 공고가 공고문을 빌려 쓰는 LH 공고(같은 공고의 짝)는 목록에서 빼고 청약홈 쪽만 남긴다 (E1)")
+    void lhTwinOfApplyhomeIsHidden() {
+        Announcement applyhome = announcement("시흥거모지구 S-1블록 공공분양(본청약)", "경기");
+        Announcement lhTwin = Announcement.builder()
+                .externalId("LH-1").houseManageNo("LH-1").pblancNo("LH-1")
+                .houseName("시흥거모 S-1블록 공공분양주택 입주자모집공고").houseType(HouseType.APT)
+                .houseDetailType(HouseDetailType.PUBLIC).regionName("경기")
+                .receptBeginDate(today).receptEndDate(today.plusDays(3)).build();
+        Announcement lhAlone = Announcement.builder()
+                .externalId("LH-2").houseManageNo("LH-2").pblancNo("LH-2")
+                .houseName("짝 없는 LH 공고").houseType(HouseType.APT)
+                .houseDetailType(HouseDetailType.PUBLIC).regionName("경기")
+                .receptBeginDate(today).receptEndDate(today.plusDays(3)).build();
+        org.springframework.test.util.ReflectionTestUtils.setField(lhTwin, "id", 11L);
+        org.springframework.test.util.ReflectionTestUtils.setField(lhAlone, "id", 12L);
+        when(repository.findOpenWithUnitTypes(today)).thenReturn(List.of(applyhome, lhTwin, lhAlone));
+        when(repository.findLhTwinIdsBorrowedByApplyhome()).thenReturn(java.util.Set.of(11L));
+
+        assertThat(service.findOpenOrUpcoming(null, null, null)).extracting(Announcement::getHouseName)
+                .containsExactlyInAnyOrder("시흥거모지구 S-1블록 공공분양(본청약)", "짝 없는 LH 공고");
+    }
+
+    @Test
     @DisplayName("공고명 키워드는 대소문자 구분 없이 부분 일치한다")
     void keywordMatchesCaseInsensitiveSubstring() {
         when(repository.findOpenWithUnitTypes(today)).thenReturn(List.of(

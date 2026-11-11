@@ -51,8 +51,10 @@ public class DeadlineReminderService {
     @Transactional(readOnly = true)
     public void remindClosingSoon() {
         LocalDate target = LocalDate.now(clock).plusDays(properties.daysBefore());
+        java.util.Set<Long> lhTwins = new java.util.HashSet<>(announcementRepository.findLhTwinIdsBorrowedByApplyhome());
         List<Announcement> closingSoon = announcementRepository.findByReceptEndDateWithUnitTypes(target).stream()
                 .filter(Announcement::isCurrentRevision)   // 취소·정정 전 공고로 마감 알림을 보내지 않는다 (#47)
+                .filter(a -> !lhTwins.contains(a.getId()))   // 청약홈에도 있는 LH 공고 — 청약홈 쪽으로 한 번만(E1)
                 .toList();
         if (closingSoon.isEmpty()) {
             return;

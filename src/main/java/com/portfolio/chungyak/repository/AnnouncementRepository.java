@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface AnnouncementRepository extends JpaRepository<Announcement, Long> {
 
@@ -39,6 +40,18 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
     @Query("select distinct a from Announcement a left join fetch a.unitTypes "
             + "where a.receptEndDate >= :today")
     List<Announcement> findOpenWithUnitTypes(@Param("today") LocalDate today);
+
+    /**
+     * 청약홈 공고가 공고문을 빌려 쓰는 LH 공고 id — 같은 공고가 두 소스로 들어온 짝이다({@code LhNoticeTwin}).
+     * 목록·매칭·알림은 유형별 배정 세대가 있는 청약홈 쪽만 보여 주고 이 LH 공고는 뺀다(ROADMAP E1).
+     */
+    @Query("select distinct a.documentAnnouncementId from Announcement a "
+            + "where a.documentAnnouncementId is not null and a.documentAnnouncementId <> a.id "
+            + "and a.externalId not like 'LH-%'")
+    Set<Long> findLhTwinIdsBorrowedByApplyhome();
+
+    /** 이 LH 공고의 공고문을 빌려 쓰는 청약홈 공고 */
+    Optional<Announcement> findFirstByDocumentAnnouncementIdAndExternalIdNotLike(Long documentAnnouncementId, String externalIdPattern);
 
     @Query("select distinct a from Announcement a left join fetch a.unitTypes where a.id = :id")
     Optional<Announcement> findByIdWithUnitTypes(@Param("id") Long id);

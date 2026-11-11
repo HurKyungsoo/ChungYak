@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * 공고 조회 (읽기 전용).
@@ -44,8 +45,10 @@ public class AnnouncementQueryService {
                                                  SupplyCategory category) {
         LocalDate today = LocalDate.now(clock);
         String normalizedKeyword = keyword == null ? null : keyword.trim().toLowerCase();
+        Set<Long> lhTwins = new java.util.HashSet<>(announcementRepository.findLhTwinIdsBorrowedByApplyhome());
         return announcementRepository.findOpenWithUnitTypes(today).stream()
                 .filter(Announcement::isCurrentRevision)   // 정정 전 본·취소된 공고는 목록에 두지 않는다 (#47)
+                .filter(a -> !lhTwins.contains(a.getId()))   // 청약홈에도 있는 LH 공고는 한 줄만 — 청약홈 쪽을 남긴다 (E1)
                 .filter(a -> region == null || region.isBlank()
                         || canonicalRegion(region).equals(canonicalRegion(a.getRegionName())))
                 .filter(a -> detailType == null || detailType == a.getHouseDetailType())
@@ -55,6 +58,15 @@ public class AnnouncementQueryService {
                 .sorted(Comparator.comparing(Announcement::getReceptBeginDate,
                         Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
+    }
+
+    /**
+     * 이 LH 공고와 같은 공고인 청약홈 공고 — 목록에서 LH 쪽을 뺐으므로 LH 상세에서 그쪽으로 안내한다(E1). 없으면 빈 값.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Announcement> findApplyhomeTwin(Announcement lh) {
+        if (lh == null || !lh.isLh() || lh.getId() == null) return Optional.empty();
+        return announcementRepository.findFirstByDocumentAnnouncementIdAndExternalIdNotLike(lh.getId(), "LH-%");
     }
 
     /** 수집된 전체 공고 수 — 목록 화면 상단 통계 */
