@@ -129,7 +129,7 @@ AI(LLM) 활용을 더 밀어붙이는 계획은 → **`docs/AI-ROADMAP.md`**
 2. ~~**E1** (중복 공고)~~ ✅
 3. ~~**E3** (상세 정렬·첫 화면)~~ ✅ — 원인: 빈 "오늘 본 공고" 레일이 232px 를 차지, 모바일 벤토 크기 규칙이 기본 규칙보다 앞에 있어 무시됨
 4. ~~**E4** (분류 감시)~~ ✅
-5. ~~**E5**~~ ✅ → ~~**E6**~~ ✅ → ~~**E7**~~ ✅ (`scripts/smoke/smoke.js` + `ScreenRenderTest.eligibilityFormBranches`)
+5. ~~**E5**~~ ✅ → ~~**E6**~~ ✅ → ~~**E7**~~ ✅ (`scripts/smoke/smoke.js` + `ScreenRenderTest.eligibilityFormBranches`, CI `smoke` 작업이 배포 뒤 자동 실행)
    E6 은 서버 페이지 나눔 대신 브라우저에서 20건 + "더 보기"로 했다 — 목록 HTML 은 gzip 46KB 라 전송은 문제가 아니었고(길이가 문제),
    찜·내 조건 필터가 브라우저에서 카드를 거르므로 서버에서 자르면 숨은 공고를 놓친다. D1(MyBatis)과 묶을 이유가 없어졌다.
 

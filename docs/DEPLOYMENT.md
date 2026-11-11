@@ -132,6 +132,10 @@ node scripts/smoke/smoke.js https://<사이트 주소>
 4xx/5xx·스크립트 오류·가로 넘침·화면 밖으로 잘린 버튼을 찾는다. 걸리면 종료 코드 1. GET 과 조건 찾기 제출 한 번뿐이라
 데이터를 바꾸지 않는다. 2026-11 조건 찾기 제출 버튼 잘림(c4ca005 이전 CSS)을 주입해 돌리면 3건으로 잡힌다.
 
+**CI 가 배포 뒤 자동으로 돌린다** — `ci.yml` 의 `smoke` 작업(deploy 다음). 주소는 `DEPLOY_HEALTH_URL` 의 스킴+호스트를 쓰므로
+새 설정이 없다. Playwright 는 1.63.0 고정. 이 작업이 빨개져도 배포는 이미 끝난 상태다 — 화면 회귀 신호이니 Actions 로그의
+"화면 점검 실패 N건" 목록을 보고 고친다.
+
 ## 백업
 
 매일 03:30 KST 에 `scripts/backup-db.sh` 가 `~/backups/chungyak-YYYYMMDD-HHMM.sql.gz` 를 만들고

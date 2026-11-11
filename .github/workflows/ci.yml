@@ -106,3 +106,33 @@ jobs:
           done
           echo "::error::배포 후 $HEALTH_URL 이 UP 이 아닙니다"
           exit 1
+
+  # 배포 뒤 바깥에서 실제 화면을 열어 본다 — 4xx/5xx·스크립트 오류·가로 넘침·화면 밖으로 잘린 버튼(ROADMAP E7).
+  # 배포와 다른 작업이라 여기가 빨개져도 배포는 끝난 상태다 — 화면 회귀 신호로 본다.
+  # 사이트 주소는 DEPLOY_HEALTH_URL 의 앞부분(스킴+호스트)을 쓴다 — 새 설정이 필요 없다.
+  smoke:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # 버전 고정 — 로컬에서 이 버전으로 운영을 점검해 통과했다(2026-11-11)
+      - name: Playwright 설치
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.63.0
+          npx playwright install --with-deps chromium
+
+      - name: 화면 점검
+        env:
+          HEALTH_URL: ${{ vars.DEPLOY_HEALTH_URL }}
+        run: |
+          BASE=$(printf '%s' "$HEALTH_URL" | sed -E 's#^(https?://[^/]+).*#\1#')
+          NODE_PATH="$RUNNER_TEMP/pw/node_modules" node scripts/smoke/smoke.js "$BASE"
