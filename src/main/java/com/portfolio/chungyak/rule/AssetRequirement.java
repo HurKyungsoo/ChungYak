@@ -12,6 +12,10 @@ import org.springframework.stereotype.Component;
  * 2026-11-02 확인). 총자산 기준이 아니다 — 총자산은 신혼희망타운({@code NewlywedHopeTownRule})·공공임대 쪽 기준이다.
  * 2023. 3. 28. 이후 출생 자녀가 있으면 완화 금액을 쓴다.
  *
+ * 공공주택 특별법이 아닌 국민주택({@link IncomeRequirement.HousingRule#NATIONAL})은 자산 요건이 없다 — 주택공급에 관한 규칙
+ * (2025-10-31·2026-06-15 원문)에 특별공급 자산 조항이 없고, 국민주택 공고문(2026000274 군산 세경·2023000438 답십리)도
+ * "소득 또는 자산기준"(소득 초과 시 부동산가액 추첨 경로 — {@link IncomeRequirement})만 둔다(2026-11-11 확인).
+ *
  * 예외: 뉴홈 토지임대부·지분적립형({@link Announcement#usesTotalAssetLimit})은 공고문이 특별공급 자산을 <b>세대 총자산</b>
  * (부동산+자동차+일반·금융자산−부채) 하나로 본다 — 입력은 신혼희망타운과 같이 "총자산(자동차 제외)" + "자동차가액"을 더한다.
  */
@@ -27,6 +31,10 @@ public class AssetRequirement {
     public RequirementCheck check(ApplicantProfile profile, Announcement announcement) {
         if (announcement.getHouseDetailType() != HouseDetailType.PUBLIC) {
             return RequirementCheck.pass("민영주택은 특별공급 자산 요건이 없습니다.");
+        }
+        if (IncomeRequirement.housingRuleOf(announcement) == IncomeRequirement.HousingRule.NATIONAL) {
+            return RequirementCheck.pass("공공주택 특별법이 적용되지 않는 국민주택이라 특별공급 자산 요건이 없습니다"
+                    + "(소득 기준을 넘으면 부동산 가액으로 보는 추첨 경로는 소득 요건에서 확인합니다).");
         }
 
         // 공고일에 맞는 해의 기준 — 새 해 기준으로 바꿔도 그 전에 나온 공고는 예전 기준으로 판정한다(YearlyFigure)

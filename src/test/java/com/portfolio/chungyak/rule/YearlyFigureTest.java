@@ -86,8 +86,8 @@ class YearlyFigureTest {
         AssetRequirement asset = new AssetRequirement(new SpecialSupplyRequirementProperties(Map.of(), now));
         ApplicantProfile p = ApplicantProfile.builder().realEstateValue(220_000_000L).carValue(10_000_000).build();
 
-        RequirementCheck before = asset.check(p, publicAnn(SWITCH.minusDays(1)));
-        RequirementCheck after = asset.check(p, publicAnn(SWITCH));
+        RequirementCheck before = asset.check(p, specialLaw(SWITCH.minusDays(1)));
+        RequirementCheck after = asset.check(p, specialLaw(SWITCH));
         assertThat(before.passed()).isFalse();
         assertThat(before.reason()).contains("2026년도 기준");
         assertThat(after.passed()).isTrue();
@@ -152,10 +152,4 @@ class YearlyFigureTest {
                 .noticeDate(noticeDate).build();
     }
 
-    private static Announcement publicAnn(LocalDate noticeDate) {
-        return Announcement.builder()
-                .externalId("A").houseManageNo("A").pblancNo("A").houseName("t")
-                .houseType(HouseType.APT).houseDetailType(HouseDetailType.PUBLIC)
-                .noticeDate(noticeDate).build();
-    }
 }

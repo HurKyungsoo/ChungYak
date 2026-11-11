@@ -168,7 +168,7 @@ class EligibilityEngineTest {
     @Test
     @DisplayName("토지임대부·지분적립형 공공분양 — 세대 총자산+자동차 3억 6,200만은 통과, 1원 넘으면 탈락 (경계값, 부동산 가액은 안 본다)")
     void newHomeTotalAssetBoundary() {
-        Announcement landLease = announcement(HouseDetailType.PUBLIC, false, "삼도이동 2지구 토지임대부 공공분양주택");
+        Announcement landLease = specialLaw(announcement(HouseDetailType.PUBLIC, false, "삼도이동 2지구 토지임대부 공공분양주택"));
         ApplicantProfile.ApplicantProfileBuilder base = passing()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
                 .residenceMonthsInRegion(36)
@@ -184,12 +184,20 @@ class EligibilityEngineTest {
                     .as(type + " 총자산 초과").anyMatch(r -> r.contains("총자산") && r.contains("3억 6,200만원"));
         }
         assertThat(engine.evaluate(at, landLease).decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
-        // 같은 사람이 일반형 공공분양이면 부동산 3억이라 탈락
-        assertThat(engine.evaluate(at, publicAnnouncement).decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
+        // 같은 사람이 일반형 공공분양(공공주택 특별법)이면 부동산 3억이라 탈락
+        assertThat(engine.evaluate(at, specialLaw(announcement(HouseDetailType.PUBLIC, false))).decisions()
+                .get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
+    }
+
+    /** 공공주택 특별법 공고로 표시한다(청약홈 PUBLIC_HOUSE_SPCLW_APPLC_AT=Y) — 표시 없는 PUBLIC 은 그 밖의 국민주택이다 */
+    private static Announcement specialLaw(Announcement a) {
+        org.springframework.test.util.ReflectionTestUtils.setField(a, "regulationFlags",
+                RegulationFlags.builder().publicHousingSpecialLaw(true).build());
+        return a;
     }
 
     @Test
-    @DisplayName("공공주택 특공은 자산 요건이 있다 — 부동산 가액 초과면 탈락, 민영은 자산 안 본다")
+    @DisplayName("공공주택 특공은 자산 요건이 있다 — 부동산 가액 초과면 탈락, 민영·그 밖의 국민주택은 자산 안 본다")
     void publicHousingAssetRequirement() {
         ApplicantProfile richInAssets = ApplicantProfile.builder()
                 .married(true).monthsSinceMarriage(36).houseless(true).accountMonths(12)
@@ -198,10 +206,13 @@ class EligibilityEngineTest {
                 .realEstateValue(300_000_000L).carValue(15_000_000)   // 부동산 3억 > 2억 1,550만
                 .build();
 
-        assertThat(engine.evaluate(richInAssets, publicAnnouncement)
+        assertThat(engine.evaluate(richInAssets, specialLaw(announcement(HouseDetailType.PUBLIC, false)))
                 .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isFalse();
         // 같은 사람이라도 민영 공고면 자산 요건이 없어 통과
         assertThat(engine.evaluate(richInAssets, privateAnnouncement)
+                .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
+        // 공공주택 특별법이 아닌 국민주택(민간건설 국민주택 등)도 자산 요건이 없다 — 주택공급규칙·공고문 확인(2026-11-11)
+        assertThat(engine.evaluate(richInAssets, publicAnnouncement)
                 .decisions().get(SpecialSupplyType.NEWLYWED).isEligible()).isTrue();
     }
 

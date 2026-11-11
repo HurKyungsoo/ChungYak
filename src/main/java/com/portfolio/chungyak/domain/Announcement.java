@@ -351,6 +351,20 @@ public class Announcement {
     }
 
     /**
+     * 공공주택 특별법이 적용되는 공고인지 — 청약홈 {@code PUBLIC_HOUSE_SPCLW_APPLC_AT=Y} 또는 LH(공공주택사업자, LH API 는 이 표시를
+     * 주지 않는다). 공공(국민)인데 아니면 "그 밖의 국민주택"(민간건설 국민주택·분양전환 잔여세대 등) — 소득 기준이 주택공급규칙을 따르고
+     * 특별공급 자산 요건이 없다({@code rule/IncomeRequirement.housingRuleOf}, {@code rule/AssetRequirement}).
+     */
+    public boolean isPublicHousingSpecialLaw() {
+        return isLh() || (regulationFlags != null && regulationFlags.isPublicHousingSpecialLaw());
+    }
+
+    /** 공공주택 특별법이 적용되지 않는 국민주택인지 */
+    public boolean isNationalHousingOutsideSpecialLaw() {
+        return houseDetailType == HouseDetailType.PUBLIC && !isPublicHousingSpecialLaw();
+    }
+
+    /**
      * 특별공급 자산을 <b>세대 총자산</b>(부동산+자동차+일반·금융자산−부채) 하나로 보는 공공분양인지 — 뉴홈 토지임대부·지분적립형.
      * 2026-10 공고문 2건(제주 삼도이동 토지임대부·광교 지분적립형)이 신혼부부·생애최초·신생아(광교는 다자녀·노부모까지)를
      * "총자산 362백만원 이하"로 본다. 일반형 공공분양(시흥거모·안산신길 등)은 "부동산 215,500천원·자동차 45,420천원"이다.

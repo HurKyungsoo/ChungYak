@@ -134,9 +134,13 @@
 
         <fieldset th:with="isPublic=${announcement.houseDetailType.name() == 'PUBLIC'},
                            isHopeTown=${announcement.houseType.name() == 'NEWLYWED_HOPE_TOWN'},
-                           isTotalAsset=${announcement.usesTotalAssetLimit()}">
+                           isTotalAsset=${announcement.usesTotalAssetLimit()},
+                           isNational=${announcement.nationalHousingOutsideSpecialLaw},
+                           hasAsset=${isPublic and !isNational}">
+            <!--/* 자산 요건은 공공주택 특별법 공고만(AssetRequirement) — 민영·그 밖의 국민주택은 소득(초과 시 부동산 추첨 경로)만 */-->
             <legend>소득 · 자산
-                <span class="muted" th:if="${isPublic}">(공공주택 — 소득·자산 모두 확인합니다)</span>
+                <span class="muted" th:if="${hasAsset}">(공공주택 — 소득·자산 모두 확인합니다)</span>
+                <span class="muted" th:if="${isNational}">(국민주택 — 소득을 확인합니다, 자산 요건은 없습니다)</span>
                 <span class="muted" th:unless="${isPublic}">(민영주택 — 소득만 확인합니다)</span>
             </legend>
             <p class="muted" style="margin:2px 0 10px">금액은 서버에 30분만 머물고 지워집니다(다시 채우려고 이 브라우저에는 저장).</p>
@@ -148,12 +152,12 @@
                 <!-- 민영 신혼부부·생애최초·신생아: 소득 기준을 넘어도 세대 부동산 가액이 기준 이하면 추첨공급(IncomeRequirement).
                      공공(신혼희망타운·토지임대부·지분적립형 제외): 부동산·자동차 자산 요건(AssetRequirement) -->
                 <label class="field" th:unless="${isHopeTown or isTotalAsset}"><span class="lbl">세대 부동산 가액 (원)
-                        <span class="req-badge" th:if="${isPublic}">필수</span>
-                        <span class="req-badge cond" th:unless="${isPublic}">소득 초과 시</span></span>
+                        <span class="req-badge" th:if="${hasAsset}">필수</span>
+                        <span class="req-badge cond" th:unless="${hasAsset}">소득 초과 시</span></span>
                     <input type="text" inputmode="numeric" th:field="*{realEstateValue}" placeholder="예: 200,000,000" class="currency-input">
                     <span class="currency-helper"></span>
-                    <span class="hint" th:if="${isPublic}">세대원 모두의 토지(공시지가)·건축물(시가표준액) 합계 — 판정 결과에 기준 금액이 나옵니다</span>
-                    <span class="hint" th:unless="${isPublic}">신혼부부·생애최초·신생아 특공은 소득 기준을 넘어도 이 금액이 기준(공고문의 "부동산가액 ○억 이하") 이하면 추첨으로 신청할 수 있습니다 — 판정 결과에 기준 금액이 나옵니다</span>
+                    <span class="hint" th:if="${hasAsset}">세대원 모두의 토지(공시지가)·건축물(시가표준액) 합계 — 판정 결과에 기준 금액이 나옵니다</span>
+                    <span class="hint" th:unless="${hasAsset}">신혼부부·생애최초·신생아 특공은 소득 기준을 넘어도 이 금액이 기준(공고문의 "부동산가액 ○억 이하") 이하면 추첨으로 신청할 수 있습니다 — 판정 결과에 기준 금액이 나옵니다</span>
                 </label>
                 <!-- 신혼희망타운(NewlywedHopeTownRule)·토지임대부·지분적립형(AssetRequirement)은 세대 총자산
                      (부동산+금융+기타−부채)에 아래 자동차가액을 더해 본다 -->
@@ -163,7 +167,7 @@
                     <span class="hint">세대원 모두의 부동산·예금·주식·전월세 보증금 등 합계에서 대출 등 부채를 뺀 금액(자동차는 아래 칸에 따로)
                         <th:block th:if="${isTotalAsset}"> — 이 공고는 부동산·자동차를 따로 보지 않고 총자산으로 봅니다</th:block></span>
                 </label>
-                <label class="field" th:if="${isPublic}"><span class="lbl">자동차가액 (원) <span class="req-badge">필수</span></span>
+                <label class="field" th:if="${hasAsset or isHopeTown or isTotalAsset}"><span class="lbl">자동차가액 (원) <span class="req-badge">필수</span></span>
                     <input type="text" inputmode="numeric" th:field="*{carValue}" placeholder="예: 20,000,000" class="currency-input">
                     <span class="currency-helper"></span>
                 </label>

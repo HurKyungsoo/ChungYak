@@ -3,6 +3,7 @@ package com.portfolio.chungyak.rule;
 import com.portfolio.chungyak.domain.Announcement;
 import com.portfolio.chungyak.domain.HouseDetailType;
 import com.portfolio.chungyak.domain.HouseType;
+import com.portfolio.chungyak.domain.RegulationFlags;
 import com.portfolio.chungyak.rule.RequirementCheck.Status;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 특별공급 자산 요건 확인 — 공공주택만 적용.
+ * 특별공급 자산 요건 확인 — 공공주택 특별법 공고만 적용(민영·그 밖의 국민주택은 자산 요건 없음).
  */
 class AssetRequirementTest {
 
@@ -19,7 +20,9 @@ class AssetRequirementTest {
     private static Announcement announcement(HouseDetailType type) {
         return Announcement.builder()
                 .externalId("A").houseManageNo("A").pblancNo("A").houseName("t")
-                .houseType(HouseType.APT).houseDetailType(type).build();
+                .houseType(HouseType.APT).houseDetailType(type)
+                .regulationFlags(RegulationFlags.builder().publicHousingSpecialLaw(type == HouseDetailType.PUBLIC).build())
+                .build();
     }
 
     private static ApplicantProfile assets(Long realEstate, Integer car) {
@@ -33,6 +36,20 @@ class AssetRequirementTest {
                 announcement(HouseDetailType.PRIVATE));
         assertThat(c.status()).isEqualTo(Status.PASS);
         assertThat(c.reason()).contains("민영");
+    }
+
+    @Test
+    @DisplayName("공공주택 특별법이 아닌 국민주택은 자산 요건이 없다 — 주택공급규칙에 조항이 없고 공고문도 소득(초과 시 부동산 추첨)만 본다")
+    void nationalHousingHasNoAssetLimit() {
+        Announcement national = Announcement.builder()
+                .externalId("N").houseManageNo("N").pblancNo("N").houseName("e편한세상 답십리 아르테포레(국민주택)")
+                .houseType(HouseType.APT).houseDetailType(HouseDetailType.PUBLIC)
+                .regulationFlags(RegulationFlags.builder().publicHousingSpecialLaw(false).build())
+                .build();
+        RequirementCheck c = req.check(assets(900_000_000L, 200_000_000), national);
+        assertThat(c.status()).isEqualTo(Status.PASS);
+        assertThat(c.reason()).contains("국민주택").contains("자산 요건이 없습니다");
+        assertThat(req.check(assets(null, null), national).status()).isEqualTo(Status.PASS);   // 입력이 없어도 물을 게 없다
     }
 
     @Test
@@ -79,7 +96,9 @@ class AssetRequirementTest {
     private static Announcement named(String houseName, HouseDetailType type) {
         return Announcement.builder()
                 .externalId("A").houseManageNo("A").pblancNo("A").houseName(houseName)
-                .houseType(HouseType.APT).houseDetailType(type).build();
+                .houseType(HouseType.APT).houseDetailType(type)
+                .regulationFlags(RegulationFlags.builder().publicHousingSpecialLaw(type == HouseDetailType.PUBLIC).build())
+                .build();
     }
 
     @Test

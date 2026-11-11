@@ -56,9 +56,7 @@ public class IncomeRequirement {
     public static HousingRule housingRuleOf(Announcement announcement) {
         if (announcement == null) return HousingRule.PUBLIC_HOUSING;
         if (announcement.getHouseDetailType() == HouseDetailType.PRIVATE) return HousingRule.PRIVATE;
-        boolean specialLaw = announcement.getRegulationFlags() != null
-                && announcement.getRegulationFlags().isPublicHousingSpecialLaw();
-        return specialLaw || announcement.isLh() ? HousingRule.PUBLIC_HOUSING : HousingRule.NATIONAL;
+        return announcement.isPublicHousingSpecialLaw() ? HousingRule.PUBLIC_HOUSING : HousingRule.NATIONAL;
     }
 
     /** 공고 구분을 모를 때(신혼희망타운 — 늘 공공) — 공공주택 특별법 기준 */
