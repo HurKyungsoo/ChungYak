@@ -481,6 +481,10 @@
         .rail-layout { display: flex; align-items: flex-start; gap: 24px; }
         .rail-main { flex: 1; min-width: 0; }
         .rail-side { flex: 0 0 232px; position: sticky; top: 74px; }
+        /* 레일에 보일 것이 없으면(오늘 본 공고가 아직 없는 첫 방문) 자리를 잡지 않는다 — 비어 있는 232px 때문에
+           본문이 왼쪽으로 치우쳐 머리 메뉴(가운데)와 어긋났다 (ROADMAP E3) */
+        main.with-rail:not(:has(.rail-side > :not([hidden]))) { max-width: var(--maxw); }
+        .rail-layout:not(:has(.rail-side > :not([hidden]))) .rail-side { display: none; }
         @media (max-width: 1100px) {
             /* 좁으면 레일을 세울 자리가 없다 — 본문 아래로 내려 평범한 카드가 된다 */
             main.with-rail { max-width: var(--maxw); }
@@ -971,12 +975,6 @@
         /* 핵심 숫자 벤토 (#19-3) — 좁으면 2열, 넓으면 4열 */
         .bento { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
                  gap: 12px; margin: 14px 0; }
-        @media (max-width: 520px) {
-            .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-            .bento-card { padding: 14px; }
-            .bento-card .b-value { font-size: 1.15rem; }
-            .bento-card .b-value-sm { font-size: 1.05rem; }
-        }
         .bento-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
                       padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
         .bento-card .b-label { font-size: .8rem; color: var(--text-muted); }
@@ -988,6 +986,13 @@
                              background: color-mix(in srgb, var(--brand) 25%, var(--surface-2)); margin-top: 4px; }
         .bento-card .b-bar-special { background: var(--brand); }
         .bento-card .b-split { display: flex; justify-content: space-between; gap: 6px; }
+        /* 좁은 화면 크기 — 기본 규칙보다 뒤에 둬야 이긴다(앞에 있어 1.45rem 이 그대로 나와 "5억 9,930만원"이 두 줄이 됐다, E3) */
+        @media (max-width: 520px) {
+            .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+            .bento-card { padding: 14px; }
+            .bento-card .b-value { font-size: 1.15rem; white-space: nowrap; }
+            .bento-card .b-value-sm { font-size: 1.05rem; }
+        }
 
         /* ㎡/평 전환 버튼 (#19-5) — 표 머리글 안의 작은 단위 버튼 */
         .area-toggle { font: inherit; font-size: .78rem; font-weight: 700; line-height: 1;
@@ -1161,6 +1166,12 @@
             /* 버튼 글자를 줄바꿈시켜 억지로 한 줄에 욱여넣지 않는다 — 자연스러운 폭을 유지하고
                다 안 들어가면(.btn-row 는 flex-wrap:wrap) 다음 줄로 넘어가게 한다. */
             .btn-row .btn { width: auto; flex: 0 1 auto; white-space: nowrap; }
+            /* 공고 상세 버튼 줄 — 글자 너비대로 늘어나 들쭉날쭉했다(E3). 주 버튼 + 찜(하트만) 한 줄, 나머지는 반반 */
+            body.page-detail #ctaAnchor .btn { flex: 1 1 calc(50% - 5px); min-width: 0; }
+            body.page-detail #ctaAnchor .btn-primary { flex: 1 1 calc(100% - 58px); order: 0; }
+            body.page-detail #ctaAnchor .scrap-btn-lg { flex: 0 0 48px; min-width: 48px; padding: 0; order: 1; }
+            body.page-detail #ctaAnchor .scrap-btn-lg::after { content: none; }
+            body.page-detail #ctaAnchor .btn:not(.btn-primary):not(.scrap-btn-lg) { order: 2; }
             /* 공고 상세 — 사이트 머리 대신 앱형 머리(목업 Mobile), 본문 위 "← 공고 목록"도 앱 머리가 대신한다 */
             body.page-detail .site-header { display: none; }
             body.page-detail .backlink { display: none; }
@@ -1174,7 +1185,11 @@
                                        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             /* 타임라인 한 줄 (목업 Mobile) — 두 칸씩 줄바꿈 대신 가로로 민다 */
             .timeline { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 104px;
-                        overflow-x: auto; scrollbar-width: thin; padding-bottom: 6px; }
+                        overflow-x: auto; scrollbar-width: thin; padding-bottom: 6px;
+                        /* 오른쪽이 잘려 보였는데 밀 수 있다는 표시가 없었다 — 끝을 흐리게 (E3) */
+                        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+                        mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+                        padding-right: 36px; }
             .timeline .tl-when { font-size: .82rem; }
 
             /* 7칸 격자는 공고명이 3~4글자로 잘려 못 읽는다 — 일정 목록으로 바꿔 보여 준다 */
