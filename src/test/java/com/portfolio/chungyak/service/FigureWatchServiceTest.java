@@ -99,4 +99,33 @@ class FigureWatchServiceTest {
             assertThat(f.figure()).contains("신혼희망타운");
         });
     }
+
+    private static Announcement nationalSale(String name) {
+        Announcement a = Announcement.builder().externalId("2026000274").houseName(name)
+                .houseType(HouseType.APT).houseDetailType(HouseDetailType.PUBLIC).supplyCategory(SupplyCategory.SALE)
+                .regulationFlags(com.portfolio.chungyak.domain.RegulationFlags.builder().publicHousingSpecialLaw(false).build())
+                .noticeDate(LocalDate.of(2026, 10, 27)).build();
+        ReflectionTestUtils.setField(a, "id", 1L);
+        return a;
+    }
+
+    @Test
+    @DisplayName("국민주택으로 분류됐는데 공고문에 공공 특공 자산 기준이 있으면 '분류 확인 필요' (E4)")
+    void nationalWithPublicAssetTable() {
+        var r = serviceWith(nationalSale("○○ 공공분양"), NOTICE_2026).check();
+        assertThat(r.findings()).singleElement().satisfies(f -> {
+            assertThat(f.certain()).isFalse();
+            assertThat(f.figure()).contains("공공주택 특별법 분류");
+            assertThat(f.found()).contains("215,500,000");
+        });
+    }
+
+    @Test
+    @DisplayName("국민주택 공고문이 소득·부동산가액 추첨 기준만 두면 알리지 않는다 — 실제 국민주택 공고문(군산 세경) 문구")
+    void nationalWithoutPublicAssetIsQuiet() {
+        String gunsan = "도시근로자 가구당 월평균소득액의 100% 7,533,763 8,802,202 9,326,985 9,906,263 10,485,541 11,064,819 "
+                + "「신생아 및 신혼부부 주택 특별공급 운용지침」에서 정하는 소득기준 또는 자산기준을 충족하는 분 "
+                + "부동산가액 산출기준 : 재산등급 29등급에 해당하는 재산금액의 상한과 하한을 산술평균한 금액";
+        assertThat(serviceWith(nationalSale("군산 세경아파트"), gunsan).check().findings()).isEmpty();
+    }
 }

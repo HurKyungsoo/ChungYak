@@ -85,6 +85,7 @@ public class FigureWatchService {
             checkIncome(a, base, text, findings);
             boolean hope = a.getHouseType() == HouseType.NEWLYWED_HOPE_TOWN || a.getSupplyCategory() == SupplyCategory.HOPE_TOWN;
             if (hope) checkHopeTownAsset(a, base, text, findings);
+            else if (a.isNationalHousingOutsideSpecialLaw()) checkNationalClassification(a, base, text, findings);
             else if (a.usesTotalAssetLimit()) checkTotalAsset(a, base, text, findings);
             else if (a.getHouseDetailType() == HouseDetailType.PUBLIC) checkPublicAsset(a, base, text, findings);
             else if (a.getHouseDetailType() == HouseDetailType.PRIVATE) checkRealEstateTrack(a, base, text, findings);
@@ -135,6 +136,29 @@ public class FigureWatchService {
         if (!car.isEmpty() && car.stream().noneMatch(knownCar::contains)) {
             out.add(new Finding(a.getId(), a.getHouseName(), base, "공공 특공 자산 — 자동차(" + pick.basis() + ")",
                     true, won(List.copyOf(knownCar)), won(List.copyOf(car))));
+        }
+    }
+
+    /**
+     * 국민주택(공공주택 특별법 표시 없음)으로 분류된 공고인데 공고문에 공공주택 특별공급 자산 기준(부동산·자동차 천원 금액,
+     * 총자산 보유기준)이 있으면 분류를 의심한다(E4). 국민주택은 자산 요건이 없고 소득도 다른 기준이라, 청약홈의
+     * {@code PUBLIC_HOUSE_SPCLW_APPLC_AT} 표시가 빠진 특별법 공고면 소득·자산 판정이 모두 느슨해진다.
+     * 국민주택 공고문 4건(2023~2026)에는 이런 표기가 없었다 — 판정은 바꾸지 않고 "확인 필요"로만 알린다.
+     */
+    private void checkNationalClassification(Announcement a, LocalDate base, String text, List<Finding> out) {
+        var pick = requirements.assetLimitFor(base);
+        if (pick == null) return;
+        var limit = pick.value();
+        Set<Long> knownRe = new java.util.HashSet<>();
+        for (int tier = 0; tier <= 2; tier++) knownRe.add(limit.forBirthTier(tier).realEstate());
+        List<Long> found = new ArrayList<>(NoticeFigures.thousandWonAfter(text, "부동산").stream().filter(knownRe::contains).toList());
+        if (limit.totalAsset() != null && text.contains("총자산") && NoticeFigures.mentionsAmount(text, limit.totalAsset().base())) {
+            found.add(limit.totalAsset().base());
+        }
+        if (!found.isEmpty()) {
+            out.add(new Finding(a.getId(), a.getHouseName(), base,
+                    "공공주택 특별법 분류 — 국민주택(자산 요건 없음)으로 판정 중인데 공고문에 공공 특공 자산 기준이 있다",
+                    false, "국민주택", won(found)));
         }
     }
 
